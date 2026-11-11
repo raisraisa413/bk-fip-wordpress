@@ -746,6 +746,193 @@ $current_path = trim($req_path, '/');
 // Is Front Page
 $is_home = is_front_page() || is_home() || empty($current_path) || $current_path === 'beranda';
 
+if (!function_exists('ppb_resolve_canonical_item_url')) {
+    /**
+     * Resolves and corrects generic or stale placeholder URLs (such as '#' or
+     * root '/profil/') saved in WP-Admin menus into their true permalinks.
+     */
+    function ppb_resolve_canonical_item_url($url, $title = '') {
+        $clean = trim((string)$url);
+        if (empty($clean)) return $clean;
+        
+        $parsed = parse_url($clean);
+        $path = trim($parsed['path'] ?? '', '/');
+        $home_path = trim(parse_url(home_url(), PHP_URL_PATH) ?? '', '/');
+        if (!empty($home_path) && strpos($path, $home_path) === 0) {
+            $path = trim(substr($path, strlen($home_path)), '/');
+        }
+        $path = trim(str_replace('yamato/', '', $path), '/');
+
+        if ($path === 'profil' || $path === '#' || empty($path)) {
+            $t = strtolower(trim((string)$title));
+            if (strpos($t, 'ringkasan') !== false) return home_url('/profil/');
+            if (strpos($t, 'sejarah') !== false) return home_url('/profil/sejarah/');
+            if (strpos($t, 'visi') !== false && strpos($t, 'keilmuan') !== false) return home_url('/profil/visi-keilmuan/');
+            if (strpos($t, 'visi') !== false) return home_url('/profil/visi-misi/');
+            if (strpos($t, 'struktur') !== false) return home_url('/profil/struktur/');
+            if (strpos($t, 'buku') !== false && strpos($t, 'dosen') !== false) return home_url('/profil/buku-dosen/');
+            if (strpos($t, 'kepakaran') !== false || strpos($t, 'sinta') !== false) return home_url('/profil/kepakaran-dosen/');
+            if (strpos($t, 'dosen') !== false || strpos($t, 'pengajar') !== false) return home_url('/profil/dosen/');
+            if (strpos($t, 'kerjasama') !== false || strpos($t, 'tridharma') !== false) return home_url('/profil/kerjasama-tridharma/');
+            if (strpos($t, 'sarana') !== false || strpos($t, 'prasarana') !== false) return home_url('/profil/sarana-prasarana/');
+            if (strpos($t, 'roadmap') !== false) return home_url('/profil/roadmap/');
+            if (strpos($t, 'dokumen') !== false || strpos($t, 'regulasi') !== false) return home_url('/profil/dokumen/');
+            if (strpos($t, 'sertifikat') !== false) return home_url('/akreditasi/sertifikat/');
+            if (strpos($t, 'upm') !== false) return home_url('/akreditasi/upm/');
+            if (strpos($t, 'kriteria') !== false || strpos($t, 'akreditasi') !== false) return home_url('/akreditasi/');
+        }
+        return $url;
+    }
+}
+
+if (!function_exists('ppb_is_leaf_item_active')) {
+    /**
+     * Determines whether a specific mega menu leaf link is active.
+     * Enforces strict singular matching for section summary hubs so that
+     * on '/profil/' only 'Ringkasan Profil' is active, and other sub-items
+     * (Sejarah, Visi-Misi, Dosen, etc.) are strictly kept clean/white.
+     *
+     * @param array  $link Link array containing 'url', 'title', etc.
+     * @param string $current_path Normalized request path
+     * @param bool   $is_home Whether current request is homepage
+     * @param bool   $matched_already Reference flag to ensure only 1 active link per dropdown
+     * @return bool
+     */
+    function ppb_is_leaf_item_active($link, $current_path, $is_home, &$matched_already = false) {
+        if ($is_home || empty($current_path)) {
+            return false;
+        }
+
+        $raw_url = !empty($link['url']) ? trim((string)$link['url']) : '';
+        if (empty($raw_url) || $raw_url === '#' || strpos($raw_url, '#') === 0) {
+            return false;
+        }
+
+        $parsed = parse_url($raw_url);
+        $m_frag = $parsed['fragment'] ?? '';
+        if (!empty($m_frag)) {
+            return false;
+        }
+
+        $m_path = $parsed['path'] ?? '';
+        $home_path = parse_url(home_url(), PHP_URL_PATH) ?? '';
+        if (!empty($home_path) && strpos($m_path, $home_path) === 0) {
+            $m_path = substr($m_path, strlen($home_path));
+        }
+        if (strpos($m_path, '/yamato/') === 0) {
+            $m_path = substr($m_path, 7);
+        } elseif ($m_path === '/yamato') {
+            $m_path = '/';
+        }
+        $m_path = trim($m_path, '/');
+
+        if (empty($m_path) || $m_path === 'beranda') {
+            return false;
+        }
+
+        $title = !empty($link['title']) ? trim((string)$link['title']) : '';
+        $title_lower = strtolower($title);
+        $is_summary_title = (strpos($title_lower, 'ringkasan') !== false || strpos($title_lower, 'ikhtisar') !== false);
+
+        // 1. SECTION HUB MATCHING (e.g. current path is 'profil', 'akademik', etc.)
+        if ($current_path === 'profil') {
+            if ($m_path === 'profil' && ($is_summary_title || !$matched_already) && strpos($title_lower, 'sejarah') === false && strpos($title_lower, 'visi') === false && strpos($title_lower, 'struktur') === false && strpos($title_lower, 'dosen') === false && strpos($title_lower, 'sarana') === false && strpos($title_lower, 'roadmap') === false && strpos($title_lower, 'dokumen') === false && strpos($title_lower, 'kerjasama') === false) {
+                if (!$matched_already) {
+                    $matched_already = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if ($current_path === 'akademik') {
+            if ($m_path === 'akademik' && ($is_summary_title || !$matched_already)) {
+                if (!$matched_already) {
+                    $matched_already = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if ($current_path === 'kemahasiswaan') {
+            if ($m_path === 'kemahasiswaan' && ($is_summary_title || !$matched_already)) {
+                if (!$matched_already) {
+                    $matched_already = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if ($current_path === 'laboratorium' || $current_path === 'lab-bk') {
+            if (in_array($m_path, ['laboratorium', 'lab-bk']) && ($is_summary_title || !$matched_already)) {
+                if (!$matched_already) {
+                    $matched_already = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if ($current_path === 'layanan') {
+            if ($m_path === 'layanan' && ($is_summary_title || !$matched_already)) {
+                if (!$matched_already) {
+                    $matched_already = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 2. SUBPAGE MATCHING (e.g. current path is 'profil/sejarah', 'sejarah', 'dosen', etc.)
+        // Summary links ('Ringkasan Profil', 'Ringkasan Akademik', etc.) are NEVER active on subpages!
+        if ($is_summary_title || in_array($m_path, ['profil', 'akademik', 'kemahasiswaan', 'layanan', 'laboratorium', 'lab-bk'])) {
+            return false;
+        }
+
+        // Exact match
+        if ($m_path === $current_path) {
+            $matched_already = true;
+            return true;
+        }
+
+        // Hierarchical alias match: e.g. m_path is 'profil/dosen' and current_path is 'dosen' (or vice-versa)
+        if ($m_path === 'profil/' . $current_path || $current_path === 'profil/' . $m_path) {
+            $matched_already = true;
+            return true;
+        }
+        if ($m_path === 'akademik/' . $current_path || $current_path === 'akademik/' . $m_path) {
+            $matched_already = true;
+            return true;
+        }
+        if ($m_path === 'kemahasiswaan/' . $current_path || $current_path === 'kemahasiswaan/' . $m_path) {
+            $matched_already = true;
+            return true;
+        }
+        if ($m_path === 'akreditasi/' . $current_path || $current_path === 'akreditasi/' . $m_path) {
+            $matched_already = true;
+            return true;
+        }
+
+        // Blog / warta matching
+        if ($m_path === 'berita') {
+            if (strpos($current_path, 'berita/') === 0 || (function_exists('is_singular') && is_singular('post')) || (function_exists('is_category') && is_category())) {
+                $matched_already = true;
+                return true;
+            }
+        }
+
+        // Pagination
+        if (strpos($current_path, $m_path . '/page/') === 0) {
+            $matched_already = true;
+            return true;
+        }
+
+        return false;
+    }
+}
+
 // Helper function to check if a navigation URL matches the current path
 if (!function_exists('ppb_nav_is_active')) {
     /**
@@ -793,31 +980,9 @@ if (!function_exists('ppb_nav_is_active')) {
         }
 
         // Sub-items inside mega menu (leaf links) must NEVER use loose parent-prefix matching!
-        // Otherwise, being on '/profil/' makes EVERY sub-item under Profil active!
         if (!$is_parent) {
-            // Anchor links (e.g. /mis-pnbp/#penelitian) are section targets, not active on general page load
-            if (!empty($m_frag)) {
-                return false;
-            }
-
-            // 1. Exact match (e.g. 'profil' === 'profil', 'profil/sejarah' === 'profil/sejarah')
-            if ($m_path === $current_path) {
-                return true;
-            }
-
-            // 2. Blog posts & category archive for /berita/
-            if ($m_path === 'berita') {
-                if (strpos($current_path, 'berita/') === 0 || (function_exists('is_singular') && is_singular('post')) || (function_exists('is_category') && is_category())) {
-                    return true;
-                }
-            }
-
-            // 3. Pagination support (e.g. /akademik/page/2/)
-            if (strpos($current_path, $m_path . '/page/') === 0) {
-                return true;
-            }
-
-            return false;
+            $matched_dummy = false;
+            return ppb_is_leaf_item_active(['url' => $clean_url, 'title' => ''], $current_path, $is_home, $matched_dummy);
         }
 
         // Top-Level Parent Buttons (e.g. "Profil", "Akademik", "Kemahasiswaan", etc.):
@@ -1026,7 +1191,10 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
                                         <!-- Columns Grid -->
                                         <div class="<?php echo !empty($item['spotlight']) ? 'col-span-12 lg:col-span-8 xl:col-span-9' : 'col-span-12'; ?>">
                                             <div class="grid gap-6 lg:gap-8" style="grid-template-columns: repeat(<?php echo (int)$cols; ?>, minmax(0, 1fr));">
-                                                <?php foreach ($item['sections'] as $sec) : ?>
+                                                <?php 
+                                                $menu_active_leaf_found = false;
+                                                foreach ($item['sections'] as $sec) : 
+                                                ?>
                                                     <div class="bk-mega-col flex flex-col">
                                                         <?php if (!empty($sec['heading'])) : ?>
                                                             <div class="bk-mega-col-heading text-[11px] font-bold uppercase tracking-wider text-[#0D3B22] mb-2.5 pb-1.5 border-b-2 border-[#E8F0EA] flex items-center gap-1.5">
@@ -1039,10 +1207,11 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
 
                                                         <div class="bk-mega-col-list flex flex-col gap-1">
                                                             <?php foreach ($sec['items'] as $link) : 
-                                                                $is_link_active = !empty($link['is_active']);
+                                                                $is_link_active = function_exists('ppb_is_leaf_item_active') ? ppb_is_leaf_item_active($link, $current_path, $is_home, $menu_active_leaf_found) : !empty($link['is_active']);
+                                                                $link_url = function_exists('ppb_resolve_canonical_item_url') ? ppb_resolve_canonical_item_url($link['url'], $link['title'] ?? '') : $link['url'];
                                                                 $link_target = (!empty($link['target']) && $link['target'] === '_blank') ? ' target="_blank" rel="noopener"' : '';
                                                             ?>
-                                                                <a href="<?php echo esc_url($link['url']); ?>" class="bk-mega-link <?php echo $is_link_active ? 'is-active' : ''; ?>"<?php echo $link_target; ?>>
+                                                                <a href="<?php echo esc_url($link_url); ?>" class="bk-mega-link <?php echo $is_link_active ? 'is-active' : ''; ?>"<?php echo $link_target; ?>>
                                                                     <div class="bk-mega-link-icon">
                                                                         <?php echo ppb_get_menu_icon_svg(!empty($link['icon']) ? $link['icon'] : 'chevron-right', 13); ?>
                                                                     </div>
@@ -1159,7 +1328,10 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;color:#F5B82E;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </button>
                         <div class="mobile-acc-content pl-2 pt-2 space-y-3 border-l-2 border-white/20 ml-2 mt-2">
-                            <?php foreach ($item['sections'] as $sec) : ?>
+                            <?php 
+                            $mobile_active_leaf_found = false;
+                            foreach ($item['sections'] as $sec) : 
+                            ?>
                                 <div class="mobile-sec-group">
                                     <?php if (!empty($sec['heading']) && count($item['sections']) > 1) : ?>
                                         <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#F5B82E;opacity:0.9;margin-bottom:4px;padding-left:4px;display:flex;align-items:center;gap:4px;">
@@ -1168,10 +1340,11 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
                                     <?php endif; ?>
                                     <div class="space-y-1">
                                         <?php foreach ($sec['items'] as $link) : 
-                                            $is_link_active = !empty($link['is_active']);
+                                            $is_link_active = function_exists('ppb_is_leaf_item_active') ? ppb_is_leaf_item_active($link, $current_path, $is_home, $mobile_active_leaf_found) : !empty($link['is_active']);
+                                            $link_url = function_exists('ppb_resolve_canonical_item_url') ? ppb_resolve_canonical_item_url($link['url'], $link['title'] ?? '') : $link['url'];
                                             $link_target = (!empty($link['target']) && $link['target'] === '_blank') ? ' target="_blank" rel="noopener"' : '';
                                         ?>
-                                            <a href="<?php echo esc_url($link['url']); ?>" class="block text-sm py-1.5 px-2 rounded-lg transition-colors <?php echo $is_link_active ? 'text-[#F5B82E] font-bold bg-white/10' : 'text-white/80 hover:text-[#F5B82E] hover:bg-white/5'; ?>"<?php echo $link_target; ?> style="text-decoration:none;">
+                                            <a href="<?php echo esc_url($link_url); ?>" class="block text-sm py-1.5 px-2 rounded-lg transition-colors <?php echo $is_link_active ? 'text-[#F5B82E] font-bold bg-white/10' : 'text-white/80 hover:text-[#F5B82E] hover:bg-white/5'; ?>"<?php echo $link_target; ?> style="text-decoration:none;">
                                                 <div class="flex items-center justify-between">
                                                     <span><?php echo esc_html($link['title']); ?></span>
                                                     <?php if (!empty($link['badge'])) : ?>

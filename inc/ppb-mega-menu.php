@@ -130,6 +130,227 @@ if (!function_exists('ppb_get_menu_icon_svg')) {
 }
 
 /* ========================================================================== */
+/* 1b. CANONICAL URL RESOLVER & EXACT LEAF ACTIVE CHECKER                     */
+/* ========================================================================== */
+if (!function_exists('ppb_resolve_canonical_item_url')) {
+    /**
+     * Resolves and corrects generic or stale placeholder URLs (such as '#' or
+     * root '/profil/') saved in WP-Admin menus into their true permalinks.
+     */
+    function ppb_resolve_canonical_item_url($url, $title = '') {
+        $clean = trim((string)$url);
+        if (empty($clean)) return $clean;
+        
+        $parsed = parse_url($clean);
+        $path = trim($parsed['path'] ?? '', '/');
+        $home_path = trim(parse_url(home_url(), PHP_URL_PATH) ?? '', '/');
+        if (!empty($home_path) && strpos($path, $home_path) === 0) {
+            $path = trim(substr($path, strlen($home_path)), '/');
+        }
+        $path = trim(str_replace('yamato/', '', $path), '/');
+
+        // Only repair if the URL is generic 'profil', '#', or empty, while title specifies a distinct subpage
+        if ($path === 'profil' || $path === '#' || empty($path)) {
+            $t = strtolower(trim((string)$title));
+            if (strpos($t, 'ringkasan') !== false) {
+                return home_url('/profil/');
+            }
+            if (strpos($t, 'sejarah') !== false) {
+                return home_url('/profil/sejarah/');
+            }
+            if (strpos($t, 'visi') !== false && strpos($t, 'keilmuan') !== false) {
+                return home_url('/profil/visi-keilmuan/');
+            }
+            if (strpos($t, 'visi') !== false) {
+                return home_url('/profil/visi-misi/');
+            }
+            if (strpos($t, 'struktur') !== false) {
+                return home_url('/profil/struktur/');
+            }
+            if (strpos($t, 'buku') !== false && strpos($t, 'dosen') !== false) {
+                return home_url('/profil/buku-dosen/');
+            }
+            if (strpos($t, 'kepakaran') !== false || strpos($t, 'sinta') !== false) {
+                return home_url('/profil/kepakaran-dosen/');
+            }
+            if (strpos($t, 'dosen') !== false || strpos($t, 'pengajar') !== false) {
+                return home_url('/profil/dosen/');
+            }
+            if (strpos($t, 'kerjasama') !== false || strpos($t, 'tridharma') !== false) {
+                return home_url('/profil/kerjasama-tridharma/');
+            }
+            if (strpos($t, 'sarana') !== false || strpos($t, 'prasarana') !== false) {
+                return home_url('/profil/sarana-prasarana/');
+            }
+            if (strpos($t, 'roadmap') !== false) {
+                return home_url('/profil/roadmap/');
+            }
+            if (strpos($t, 'dokumen') !== false || strpos($t, 'regulasi') !== false) {
+                return home_url('/profil/dokumen/');
+            }
+            if (strpos($t, 'sertifikat') !== false) {
+                return home_url('/akreditasi/sertifikat/');
+            }
+            if (strpos($t, 'upm') !== false) {
+                return home_url('/akreditasi/upm/');
+            }
+            if (strpos($t, 'kriteria') !== false || strpos($t, 'akreditasi') !== false) {
+                return home_url('/akreditasi/');
+            }
+        }
+        return $url;
+    }
+}
+
+if (!function_exists('ppb_is_leaf_item_active')) {
+    /**
+     * Determines whether a specific mega menu leaf link is active.
+     * Enforces strict singular matching for section summary hubs so that
+     * on '/profil/' only 'Ringkasan Profil' is active, and other sub-items
+     * (Sejarah, Visi-Misi, Dosen, etc.) are strictly kept clean/white.
+     *
+     * @param array  $link Link array containing 'url', 'title', etc.
+     * @param string $current_path Normalized request path
+     * @param bool   $is_home Whether current request is homepage
+     * @param bool   $matched_already Reference flag to ensure only 1 active link per dropdown
+     * @return bool
+     */
+    function ppb_is_leaf_item_active($link, $current_path, $is_home, &$matched_already = false) {
+        if ($is_home || empty($current_path)) {
+            return false;
+        }
+
+        $raw_url = !empty($link['url']) ? trim((string)$link['url']) : '';
+        if (empty($raw_url) || $raw_url === '#' || strpos($raw_url, '#') === 0) {
+            return false;
+        }
+
+        $parsed = parse_url($raw_url);
+        $m_frag = $parsed['fragment'] ?? '';
+        if (!empty($m_frag)) {
+            return false;
+        }
+
+        $m_path = $parsed['path'] ?? '';
+        $home_path = parse_url(home_url(), PHP_URL_PATH) ?? '';
+        if (!empty($home_path) && strpos($m_path, $home_path) === 0) {
+            $m_path = substr($m_path, strlen($home_path));
+        }
+        if (strpos($m_path, '/yamato/') === 0) {
+            $m_path = substr($m_path, 7);
+        } elseif ($m_path === '/yamato') {
+            $m_path = '/';
+        }
+        $m_path = trim($m_path, '/');
+
+        if (empty($m_path) || $m_path === 'beranda') {
+            return false;
+        }
+
+        $title = !empty($link['title']) ? trim((string)$link['title']) : '';
+        $title_lower = strtolower($title);
+        $is_summary_title = (strpos($title_lower, 'ringkasan') !== false || strpos($title_lower, 'ikhtisar') !== false);
+
+        // 1. SECTION HUB MATCHING (e.g. current path is 'profil', 'akademik', etc.)
+        if ($current_path === 'profil') {
+            if ($m_path === 'profil' && ($is_summary_title || !$matched_already) && strpos($title_lower, 'sejarah') === false && strpos($title_lower, 'visi') === false && strpos($title_lower, 'struktur') === false && strpos($title_lower, 'dosen') === false && strpos($title_lower, 'sarana') === false && strpos($title_lower, 'roadmap') === false && strpos($title_lower, 'dokumen') === false && strpos($title_lower, 'kerjasama') === false) {
+                if (!$matched_already) {
+                    $matched_already = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if ($current_path === 'akademik') {
+            if ($m_path === 'akademik' && ($is_summary_title || !$matched_already)) {
+                if (!$matched_already) {
+                    $matched_already = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if ($current_path === 'kemahasiswaan') {
+            if ($m_path === 'kemahasiswaan' && ($is_summary_title || !$matched_already)) {
+                if (!$matched_already) {
+                    $matched_already = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if ($current_path === 'laboratorium' || $current_path === 'lab-bk') {
+            if (in_array($m_path, ['laboratorium', 'lab-bk']) && ($is_summary_title || !$matched_already)) {
+                if (!$matched_already) {
+                    $matched_already = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if ($current_path === 'layanan') {
+            if ($m_path === 'layanan' && ($is_summary_title || !$matched_already)) {
+                if (!$matched_already) {
+                    $matched_already = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 2. SUBPAGE MATCHING (e.g. current path is 'profil/sejarah', 'sejarah', 'dosen', etc.)
+        // Summary links ('Ringkasan Profil', 'Ringkasan Akademik', etc.) are NEVER active on subpages!
+        if ($is_summary_title || in_array($m_path, ['profil', 'akademik', 'kemahasiswaan', 'layanan', 'laboratorium', 'lab-bk'])) {
+            return false;
+        }
+
+        // Exact match
+        if ($m_path === $current_path) {
+            $matched_already = true;
+            return true;
+        }
+
+        // Hierarchical alias match: e.g. m_path is 'profil/dosen' and current_path is 'dosen' (or vice-versa)
+        if ($m_path === 'profil/' . $current_path || $current_path === 'profil/' . $m_path) {
+            $matched_already = true;
+            return true;
+        }
+        if ($m_path === 'akademik/' . $current_path || $current_path === 'akademik/' . $m_path) {
+            $matched_already = true;
+            return true;
+        }
+        if ($m_path === 'kemahasiswaan/' . $current_path || $current_path === 'kemahasiswaan/' . $m_path) {
+            $matched_already = true;
+            return true;
+        }
+        if ($m_path === 'akreditasi/' . $current_path || $current_path === 'akreditasi/' . $m_path) {
+            $matched_already = true;
+            return true;
+        }
+
+        // Blog / warta matching
+        if ($m_path === 'berita') {
+            if (strpos($current_path, 'berita/') === 0 || (function_exists('is_singular') && is_singular('post')) || (function_exists('is_category') && is_category())) {
+                $matched_already = true;
+                return true;
+            }
+        }
+
+        // Pagination
+        if (strpos($current_path, $m_path . '/page/') === 0) {
+            $matched_already = true;
+            return true;
+        }
+
+        return false;
+    }
+}
+
+/* ========================================================================== */
 /* 2. DATASET LENGKAP STRUKTUR DEFAULT MEGA MENU BK FIP UNM                   */
 /* ========================================================================== */
 if (!function_exists('ppb_get_default_mega_menu_data')) {
@@ -422,8 +643,9 @@ if (!function_exists('ppb_get_nav_tree')) {
                     // Simpan mapping dan sanitasi URL
                     foreach ($menu_items as $item) {
                         $raw_url = !empty($item->url) ? $item->url : '#';
-                        $filtered_url = function_exists('ppb_filter_yamato_url') ? ppb_filter_yamato_url($raw_url) : $raw_url;
-                        $is_active = ppb_nav_is_active($filtered_url, $current_path, $is_home, false);
+                        $canonical_url = function_exists('ppb_resolve_canonical_item_url') ? ppb_resolve_canonical_item_url($raw_url, $item->title) : $raw_url;
+                        $filtered_url = function_exists('ppb_filter_yamato_url') ? ppb_filter_yamato_url($canonical_url) : $canonical_url;
+                        $is_active = function_exists('ppb_is_leaf_item_active') ? ppb_is_leaf_item_active(['url' => $filtered_url, 'title' => $item->title], $current_path, $is_home) : ppb_nav_is_active($filtered_url, $current_path, $is_home, false);
 
                         // Ambil custom postmeta jika ada
                         $badge    = get_post_meta($item->ID, '_ppb_menu_badge', true) ?: (!empty($item->attr_title) ? $item->attr_title : '');
@@ -485,8 +707,15 @@ if (!function_exists('ppb_get_nav_tree')) {
                                     $col_sub_ids = !empty($children_map[$col_id]) ? $children_map[$col_id] : [];
                                     $items_in_col = [];
 
+                                    $col_leaf_matched = false;
                                     foreach ($col_sub_ids as $sub_id) {
                                         $sub_item = $items_by_id[$sub_id];
+                                        if (function_exists('ppb_resolve_canonical_item_url')) {
+                                            $sub_item['url'] = ppb_resolve_canonical_item_url($sub_item['url'], $sub_item['title']);
+                                        }
+                                        if (function_exists('ppb_is_leaf_item_active')) {
+                                            $sub_item['is_active'] = ppb_is_leaf_item_active($sub_item, $current_path, $is_home, $col_leaf_matched);
+                                        }
                                         if ($sub_item['is_active']) {
                                             $parent_any_child_active = true;
                                         }
@@ -562,9 +791,17 @@ if (!function_exists('ppb_get_nav_tree')) {
                 $any_child_active = false;
 
                 if (!empty($top['sections'])) {
+                    $def_leaf_matched = false;
                     foreach ($top['sections'] as &$sec) {
                         foreach ($sec['items'] as &$it) {
-                            $it['is_active'] = ppb_nav_is_active($it['url'], $current_path, $is_home, false);
+                            if (function_exists('ppb_resolve_canonical_item_url')) {
+                                $it['url'] = ppb_resolve_canonical_item_url($it['url'], $it['title'] ?? '');
+                            }
+                            if (function_exists('ppb_is_leaf_item_active')) {
+                                $it['is_active'] = ppb_is_leaf_item_active($it, $current_path, $is_home, $def_leaf_matched);
+                            } else {
+                                $it['is_active'] = ppb_nav_is_active($it['url'], $current_path, $is_home, false);
+                            }
                             if ($it['is_active']) {
                                 $any_child_active = true;
                             }
