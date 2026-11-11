@@ -868,6 +868,38 @@ add_action('admin_post_ppb_sync_mega_menu', function() {
     exit;
 });
 
+// Handler Aksi Bersihkan Menu Demo / Tidak Terpakai Admin POST
+add_action('admin_post_ppb_cleanup_unused_menus', function() {
+    check_admin_referer('ppb_cleanup_unused_menus_nonce');
+    if (!current_user_can('manage_options')) {
+        wp_die('Akses ditolak.');
+    }
+
+    $locations = get_nav_menu_locations();
+    $active_menu_ids = array_filter(array_values((array)$locations));
+
+    $all_menus = wp_get_nav_menus();
+    $deleted_count = 0;
+
+    if (!empty($all_menus) && is_array($all_menus)) {
+        foreach ($all_menus as $menu) {
+            // Jangan hapus menu yang sedang ditugaskan di lokasi (misal 'primary-menu' atau 'footer-menu')
+            // dan jangan hapus menu bernama 'Menu Utama'
+            if (in_array((int)$menu->term_id, $active_menu_ids, true) || strtolower(trim($menu->name)) === 'menu utama') {
+                continue;
+            }
+
+            $res = wp_delete_nav_menu($menu->term_id);
+            if ($res && !is_wp_error($res)) {
+                $deleted_count++;
+            }
+        }
+    }
+
+    wp_safe_redirect(admin_url('themes.php?page=ppb-mega-menu-manager&ppb_cleaned=' . $deleted_count));
+    exit;
+});
+
 /* ========================================================================== */
 /* 6. HALAMAN ADMIN PENGELOLAAN MEGA MENU (PORTAL PPB FIP & TAMPILAN)         */
 /* ========================================================================== */
@@ -912,6 +944,17 @@ if (!function_exists('ppb_render_mega_menu_admin_page')) {
                     </p>
                     <p style="font-size:13px;color:#334155;margin:4px 0 0;">
                         Anda dapat langsung mengatur urutan, mengubah judul label, atau menambahkan tautan baru di bawah ini.
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($_GET['ppb_cleaned'])) : ?>
+                <div class="notice notice-success is-dismissible" style="border-left-color:#10b981;padding:12px 16px;">
+                    <p style="font-size:14px;font-weight:700;color:#065f46;margin:0;">
+                        🧹 Berhasil membersihkan <?php echo (int)$_GET['ppb_cleaned']; ?> menu demo lama yang tidak digunakan!
+                    </p>
+                    <p style="font-size:13px;color:#334155;margin:4px 0 0;">
+                        Daftar menu di WP-Admin sekarang bersih dan hanya menyisakan menu yang aktif digunakan untuk portal BK FIP.
                     </p>
                 </div>
             <?php endif; ?>
@@ -975,6 +1018,26 @@ if (!function_exists('ppb_render_mega_menu_admin_page')) {
                         <input type="hidden" name="action" value="ppb_sync_mega_menu" />
                         <button type="submit" class="button button-secondary button-hero" style="background:#F5B82E;border-color:#e5a925;color:#0D3B22;font-weight:800;border-radius:8px;">
                             ⚡ Buat / Sinkronkan Menu Standar ke WP-Admin
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 1-Click Cleanup Card -->
+                <div style="background:#ffffff;border:1px solid #fecaca;border-radius:14px;padding:22px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#dc2626;margin-bottom:8px;">
+                        Pembersih Menu Demo (1-Klik)
+                    </div>
+                    <strong style="display:block;font-size:17px;color:#0f172a;margin-bottom:10px;">
+                        Hapus Menu Sampah / Tidak Digunakan
+                    </strong>
+                    <p style="font-size:13px;color:#64748b;margin:0 0 16px;line-height:1.5;">
+                        Ada menu lama seperti <em>Finance Menu</em>, <em>International Taxation Menu</em>, atau menu template lama? Bersihkan semua menu yang tidak aktif hanya dengan satu kali klik.
+                    </p>
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('Apakah Anda yakin ingin menghapus semua menu lama yang TIDAK terpakai? Menu aktif (Menu Utama) akan tetap aman.');">
+                        <?php wp_nonce_field('ppb_cleanup_unused_menus_nonce'); ?>
+                        <input type="hidden" name="action" value="ppb_cleanup_unused_menus" />
+                        <button type="submit" class="button button-secondary" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;font-weight:700;border-radius:8px;padding:8px 16px;">
+                            🗑️ Bersihkan Semua Menu Tak Terpakai
                         </button>
                     </form>
                 </div>
