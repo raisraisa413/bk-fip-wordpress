@@ -412,7 +412,8 @@
     .dropdown-container:hover > .bk-mega-dropdown,
     .group:hover > .bk-mega-dropdown,
     .dropdown-container:focus-within > .bk-mega-dropdown,
-    .bk-mega-dropdown:hover {
+    .bk-mega-dropdown:hover,
+    .bk-mega-dropdown.is-open {
         display: block !important;
     }
 
@@ -967,7 +968,7 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
                         </button>
                         
                         <!-- Panel Mega Menu -->
-                        <div class="bk-mega-dropdown dropdown-menu animate-fadeIn <?php echo esc_attr('mega-cols-' . $cols . ' align-' . $align); ?>">
+                        <div class="bk-mega-dropdown animate-fadeIn <?php echo esc_attr('mega-cols-' . $cols . ' align-' . $align); ?>">
                             
                             <!-- Header Bar -->
                             <?php if (!empty($item['subtitle']) || !empty($item['spotlight'])) : ?>
@@ -1223,6 +1224,38 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
             btn.classList.add("is-open");
         }
     };
+
+    // 2b. Desktop Mega Menu Click / Tap Toggle Support
+    function initDesktopMegaMenu() {
+        var triggers = document.querySelectorAll("#bk-desktop-nav .dropdown-trigger");
+        triggers.forEach(function(btn) {
+            btn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var wrap = btn.closest(".bk-nav-item-wrap");
+                var menu = wrap ? wrap.querySelector(".bk-mega-dropdown") : null;
+                if (!menu) return;
+                var isOpen = menu.classList.contains("is-open");
+                document.querySelectorAll(".bk-mega-dropdown.is-open").forEach(function(m) {
+                    m.classList.remove("is-open");
+                });
+                if (!isOpen) {
+                    menu.classList.add("is-open");
+                }
+            };
+        });
+        document.addEventListener("click", function(e) {
+            if (!e.target.closest(".bk-nav-item-wrap")) {
+                document.querySelectorAll(".bk-mega-dropdown.is-open").forEach(function(m) {
+                    m.classList.remove("is-open");
+                });
+            }
+        });
+    }
+    initDesktopMegaMenu();
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initDesktopMegaMenu);
+    }
 
     // 3. Bind Single Event Listener to Toggle Button
     function bindMobileNav() {
