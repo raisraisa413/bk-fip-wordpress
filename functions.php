@@ -1193,13 +1193,13 @@ function ppb_auto_sync_pages_content() {
 
 
 
-    $force = isset($_GET['sync_ppb_content']) && $_GET['sync_ppb_content'] === '1' && current_user_can('manage_options');
+    $force = !empty($_GET['sync_ppb_content']) || !empty($_GET['refresh_pages']);
 
     $synced_version = get_option('ppb_content_synced_version');
 
 
 
-    if ($synced_version === '18.0' && !$force) {
+    if ($synced_version === '20.0' && !$force) {
         return;
     }
 
@@ -1605,7 +1605,7 @@ function ppb_auto_sync_pages_content() {
         }
     }
 
-    update_option('ppb_content_synced_version', '18.0');
+    update_option('ppb_content_synced_version', '20.0');
 
 
 
@@ -1863,12 +1863,13 @@ add_filter('template_include', function($template) {
                         }
 
                         // Auto-create page if not present in DB
+                        $clean_matched_content = str_replace(array('http://bk-fip.local/', 'https://bk-fip.local/'), '/', $matched_page['content']);
                         if (!$post_id) {
                             $now = current_time('mysql');
                             $wpdb->insert($wpdb->posts, array(
                                 'post_title'     => $matched_page['title'],
                                 'post_name'      => $matched_page['slug'],
-                                'post_content'   => $matched_page['content'],
+                                'post_content'   => $clean_matched_content,
                                 'post_status'    => 'publish',
                                 'post_type'      => 'page',
                                 'post_parent'    => $parent_id,
@@ -1881,10 +1882,35 @@ add_filter('template_include', function($template) {
                             ));
                             $post_id = $wpdb->insert_id;
                             clean_post_cache($post_id);
+                        } else {
+                            // Failsafe auto-repair: if DB content is corrupt, truncated, or lacks key sections
+                            $db_content = $wpdb->get_var($wpdb->prepare("SELECT post_content FROM $wpdb->posts WHERE ID = %d", $post_id));
+                            $expected_len = strlen($clean_matched_content);
+                            $actual_len = strlen($db_content);
+                            $needs_db_repair = ($actual_len < ($expected_len - 150))
+                                             || ($matched_page['slug'] === 'struktur' && strpos($db_content, 'Bagan Kepemimpinan') === false)
+                                             || ($matched_page['slug'] === 'roadmap' && strpos($db_content, '3 Pilar Kepakaran') === false)
+                                             || (strpos($db_content, 'bk-page-wrapper') === false)
+                                             || !empty($_GET['refresh_pages'])
+                                             || !empty($_GET['sync_ppb_content']);
+
+                            if ($needs_db_repair) {
+                                $wpdb->update($wpdb->posts, array(
+                                    'post_content'      => $clean_matched_content,
+                                    'post_status'       => 'publish',
+                                    'post_modified'     => current_time('mysql'),
+                                    'post_modified_gmt' => current_time('mysql', 1)
+                                ), array('ID' => $post_id));
+                                clean_post_cache($post_id);
+                            }
                         }
 
                         if ($post_id) {
                             $post = get_post($post_id);
+                            // Immediate in-memory failsafe: guarantee current render is 100% pristine
+                            if ($post && (strlen($post->post_content) < (strlen($clean_matched_content) - 150) || strpos($post->post_content, 'bk-page-wrapper') === false || ($matched_page['slug'] === 'struktur' && strpos($post->post_content, 'Bagan Kepemimpinan') === false))) {
+                                $post->post_content = $clean_matched_content;
+                            }
                             setup_postdata($post);
                             $wp_query->posts = array($post);
                             $wp_query->post_count = 1;

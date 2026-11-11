@@ -23,38 +23,64 @@ if (have_posts()) : while (have_posts()) : the_post();
     $is_dosen = (strpos($current_slug, 'dosen') !== false);
     $needs_dosen_refresh = ($is_dosen && (strpos($content, 'bk-dosen-card-name') === false || strlen($content) < 1000 || isset($_GET['refresh_dosen'])));
 
+    $req_path = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
+    if (strpos($req_path, 'yamato/') === 0) {
+        $req_path = substr($req_path, 7);
+    }
+    $req_slug = basename($req_path);
+
     // Load pages-data.json for precise matching
     $json_file = get_template_directory() . '/pages-data.json';
     $target_page = null;
     if (file_exists($json_file)) {
         $pages_data = json_decode(file_get_contents($json_file), true);
         if (is_array($pages_data)) {
+            // Priority 1: Match full path e.g. profil/struktur, profil/roadmap
             foreach ($pages_data as $p) {
-                if ($p['slug'] === $current_slug || ($is_dosen && $p['slug'] === 'dosen')) {
-                    if (!empty($parent_slug) && !empty($p['parent_slug']) && $p['parent_slug'] === $parent_slug) {
-                        $target_page = $p;
-                        break;
-                    } elseif (empty($parent_slug) && empty($p['parent_slug'])) {
-                        $target_page = $p;
-                        break;
-                    } elseif (!$target_page) {
-                        $target_page = $p;
+                $p_full = !empty($p['parent_slug']) ? $p['parent_slug'] . '/' . $p['slug'] : $p['slug'];
+                if ($p_full === $req_path) {
+                    $target_page = $p;
+                    break;
+                }
+            }
+            // Priority 2: Match current_slug or req_slug
+            if (!$target_page) {
+                foreach ($pages_data as $p) {
+                    $matches_slug = ($p['slug'] === $current_slug || $p['slug'] === $req_slug || ($is_dosen && $p['slug'] === 'dosen') || ($p['slug'] === 'struktur' && strpos($current_slug, 'struktur') !== false));
+                    if ($matches_slug) {
+                        if (!empty($parent_slug) && !empty($p['parent_slug']) && $p['parent_slug'] === $parent_slug) {
+                            $target_page = $p;
+                            break;
+                        } elseif (empty($parent_slug) && empty($p['parent_slug'])) {
+                            $target_page = $p;
+                            break;
+                        } elseif (!$target_page) {
+                            $target_page = $p;
+                        }
                     }
                 }
             }
         }
     }
 
-    $is_truncated = ($target_page && strlen($content) < (strlen($target_page['content']) - 300));
-    $force_refresh = isset($_GET['refresh_pages']) || isset($_GET['sync_ppb_content']);
+    $clean_target_content = $target_page ? str_replace(array('http://bk-fip.local/', 'https://bk-fip.local/'), '/', $target_page['content']) : '';
+    $is_truncated = ($target_page && strlen($content) < (strlen($clean_target_content) - 100));
+    $is_corrupted = ($target_page && $target_page['slug'] === 'struktur' && strpos($content, 'Bagan Kepemimpinan') === false);
+    $is_roadmap_corrupted = ($target_page && $target_page['slug'] === 'roadmap' && strpos($content, '3 Pilar Kepakaran') === false);
+    $force_refresh = !empty($_GET['refresh_pages']) || !empty($_GET['sync_ppb_content']);
 
-    if (!$has_modern_markup || $is_empty || $needs_dosen_refresh || $is_truncated || $force_refresh) {
+    if (!$has_modern_markup || $is_empty || $needs_dosen_refresh || $is_truncated || $is_corrupted || $is_roadmap_corrupted || $force_refresh) {
         if ($target_page) {
-            $content = $target_page['content'];
+            $content = $clean_target_content;
             // Instantly repair in database
             $wpdb->update(
                 $wpdb->posts,
-                array('post_content' => $content, 'post_status' => 'publish'),
+                array(
+                    'post_content'      => $content,
+                    'post_status'       => 'publish',
+                    'post_modified'     => current_time('mysql'),
+                    'post_modified_gmt' => current_time('mysql', 1)
+                ),
                 array('ID' => $post->ID)
             );
             clean_post_cache($post->ID);
