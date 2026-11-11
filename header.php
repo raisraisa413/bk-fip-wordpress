@@ -336,26 +336,25 @@
         overflow-y: auto !important;
     }
 
-    /* Hover & Open States */
-    .dropdown-container:hover > .bk-mega-dropdown,
-    .group:hover > .bk-mega-dropdown,
-    .dropdown-container:focus-within > .bk-mega-dropdown,
-    .bk-mega-dropdown:hover,
+    /* Open States (Controlled cleanly by Click & Mouseenter via JS) */
+    .bk-nav-item-wrap.is-open > .bk-mega-dropdown,
     .bk-mega-dropdown.is-open {
         display: block !important;
     }
 
-    /* Trigger Button Active & Hover Highlight */
-    .dropdown-container:hover > .bk-nav-btn,
-    .dropdown-container.is-open > .bk-nav-btn {
+    /* Trigger Button Active & Open Highlight */
+    .bk-nav-item-wrap.is-open > .bk-nav-btn {
         background: rgba(255, 255, 255, 0.16) !important;
         color: #F5B82E !important;
         border-color: rgba(245, 184, 46, 0.5) !important;
     }
-    .dropdown-container:hover > .bk-nav-btn svg,
-    .dropdown-container.is-open > .bk-nav-btn svg {
+    .bk-nav-item-wrap.is-open > .bk-nav-btn svg {
         transform: rotate(180deg) !important;
         color: #F5B82E !important;
+    }
+    .bk-nav-item-wrap:not(.is-open) > .bk-nav-btn:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: #ffffff !important;
     }
 
     /* Invisible Hover Bridge */
@@ -1189,30 +1188,82 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
         }
     };
 
-    // 2b. Desktop Mega Menu Click / Tap Toggle Support
+    // 2b. Desktop Mega Menu Deterministic Click Toggle & Hover Controller
     function initDesktopMegaMenu() {
-        var triggers = document.querySelectorAll("#bk-desktop-nav .dropdown-trigger");
-        triggers.forEach(function(btn) {
+        var wraps = document.querySelectorAll("#bk-desktop-nav .bk-nav-item-wrap");
+        if (!wraps.length) return;
+
+        function closeAllMenus() {
+            wraps.forEach(function(w) {
+                w.classList.remove("is-open");
+                w.classList.remove("is-manually-closed");
+                var m = w.querySelector(".bk-mega-dropdown");
+                if (m) m.classList.remove("is-open");
+                var b = w.querySelector(".dropdown-trigger");
+                if (b) b.setAttribute("aria-expanded", "false");
+            });
+        }
+
+        wraps.forEach(function(wrap) {
+            var btn = wrap.querySelector(".dropdown-trigger");
+            var menu = wrap.querySelector(".bk-mega-dropdown");
+            if (!btn || !menu) return;
+
+            // Click Handler: Deterministic Toggle (1st click = Open, 2nd click = Close)
             btn.onclick = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                var wrap = btn.closest(".bk-nav-item-wrap");
-                var menu = wrap ? wrap.querySelector(".bk-mega-dropdown") : null;
-                if (!menu) return;
-                var isOpen = menu.classList.contains("is-open");
-                document.querySelectorAll(".bk-mega-dropdown.is-open").forEach(function(m) {
-                    m.classList.remove("is-open");
-                });
-                if (!isOpen) {
+
+                var isOpen = wrap.classList.contains("is-open");
+
+                if (isOpen) {
+                    // SECOND CLICK: Close immediately!
+                    wrap.classList.remove("is-open");
+                    wrap.classList.add("is-manually-closed");
+                    menu.classList.remove("is-open");
+                    btn.setAttribute("aria-expanded", "false");
+                } else {
+                    // FIRST CLICK: Close others, open this one!
+                    closeAllMenus();
+                    wrap.classList.remove("is-manually-closed");
+                    wrap.classList.add("is-open");
                     menu.classList.add("is-open");
+                    btn.setAttribute("aria-expanded", "true");
                 }
             };
+
+            // Desktop Hover Support (smooth hover open unless user intentionally closed via click)
+            wrap.addEventListener("mouseenter", function() {
+                if (window.innerWidth >= 1024 && !wrap.classList.contains("is-manually-closed")) {
+                    closeAllMenus();
+                    wrap.classList.add("is-open");
+                    menu.classList.add("is-open");
+                    btn.setAttribute("aria-expanded", "true");
+                }
+            });
+
+            // Desktop Mouseleave: Reset manually-closed flag and close menu
+            wrap.addEventListener("mouseleave", function() {
+                if (window.innerWidth >= 1024) {
+                    wrap.classList.remove("is-open");
+                    wrap.classList.remove("is-manually-closed");
+                    menu.classList.remove("is-open");
+                    btn.setAttribute("aria-expanded", "false");
+                }
+            });
         });
+
+        // Click outside closes any open mega menu
         document.addEventListener("click", function(e) {
-            if (!e.target.closest(".bk-nav-item-wrap")) {
-                document.querySelectorAll(".bk-mega-dropdown.is-open").forEach(function(m) {
-                    m.classList.remove("is-open");
-                });
+            if (!e.target.closest("#bk-desktop-nav")) {
+                closeAllMenus();
+            }
+        });
+
+        // Escape key closes any open mega menu
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") {
+                closeAllMenus();
             }
         });
     }

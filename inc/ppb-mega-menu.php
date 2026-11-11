@@ -138,31 +138,20 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
      */
     function ppb_get_default_mega_menu_data() {
         return [
-            // 1. BERANDA (Tunggal)
-            [
-                'title'       => 'Beranda',
-                'url'         => home_url('/'),
-                'is_mega'     => false,
-                'icon'        => 'home',
-                'badge'       => '',
-                'subtitle'    => 'Halaman Utama Portal',
-                'sections'    => [],
-            ],
-
-            // 2. PROFIL (Mega Menu 3 Kolom + Spotlight)
+            // 1. PROFIL (Mega Menu 4 Kolom + Spotlight LAMDIK Unggul)
             [
                 'title'       => 'Profil',
                 'url'         => home_url('/profil/'),
                 'is_mega'     => true,
-                'mega_cols'   => 3,
+                'mega_cols'   => 4,
                 'icon'        => 'building',
-                'badge'       => 'Profil',
-                'subtitle'    => 'Mengenal Jurusan PPB FIP UNM lebih dekat',
+                'badge'       => 'Unggul',
+                'subtitle'    => 'Mengenal Jurusan PPB FIP UNM, dosen, tata pamong & akreditasi',
                 'align'       => 'left',
                 'spotlight'   => [
                     'badge'       => '⭐ LAMDIK UNGGUL',
                     'title'       => 'Jurusan PPB FIP UNM',
-                    'description' => 'Program Studi Bimbingan dan Konseling berakreditasi Unggul dengan kurikulum adaptif masa depan.',
+                    'description' => 'Program Studi Bimbingan dan Konseling berakreditasi Unggul nasional dengan kurikulum adaptif masa depan.',
                     'url'         => home_url('/profil/'),
                     'action_text' => 'Buka Hub Profil &rarr;',
                 ],
@@ -189,7 +178,7 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                         ],
                     ],
                     [
-                        'heading' => 'Fasilitas & Regulasi',
+                        'heading' => 'Sarana & Regulasi',
                         'icon'    => 'home',
                         'items'   => [
                             ['title' => 'Sarana & Prasarana', 'url' => home_url('/profil/sarana-prasarana/'), 'subtitle' => 'Lab, ruang konseling & smart class', 'icon' => 'home', 'badge' => ''],
@@ -197,18 +186,27 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                             ['title' => 'Dokumen Mutu & Regulasi', 'url' => home_url('/profil/dokumen/'), 'subtitle' => 'Regulasi & standar penjaminan mutu', 'icon' => 'file-check', 'badge' => 'Mutu'],
                         ],
                     ],
+                    [
+                        'heading' => 'Akreditasi LAMDIK',
+                        'icon'    => 'award',
+                        'items'   => [
+                            ['title' => 'Instrumen Hub 9 Kriteria', 'url' => home_url('/akreditasi/'), 'subtitle' => 'Kriteria 1 sampai 9 LAMDIK lengkap', 'icon' => 'grid', 'badge' => '9 Kriteria'],
+                            ['title' => 'Sertifikat Akreditasi S1/S2/S3', 'url' => home_url('/akreditasi/sertifikat/'), 'subtitle' => 'Unduh SK resmi BAN-PT/LAMDIK', 'icon' => 'file-badge', 'badge' => 'SK Resmi'],
+                            ['title' => 'Renstra & Penjaminan Mutu', 'url' => home_url('/akreditasi/upm/'), 'subtitle' => 'Unit Penjaminan Mutu (UPM) FIP', 'icon' => 'shield-check', 'badge' => 'UPM'],
+                        ],
+                    ],
                 ],
             ],
 
-            // 3. AKADEMIK (Mega Menu 2 Kolom + Spotlight)
+            // 2. AKADEMIK (Mega Menu 3 Kolom + Spotlight Kurikulum OBE)
             [
                 'title'       => 'Akademik',
                 'url'         => home_url('/akademik/'),
                 'is_mega'     => true,
-                'mega_cols'   => 2,
+                'mega_cols'   => 3,
                 'icon'        => 'graduation-cap',
                 'badge'       => 'OBE 2025',
-                'subtitle'    => 'Kurikulum OBE, RPS, jadwal kuliah & evaluasi',
+                'subtitle'    => 'Kurikulum OBE 2025, RPS, jadwal, evaluasi & repositori modul',
                 'align'       => 'left',
                 'spotlight'   => [
                     'badge'       => '🎓 KURIKULUM BARU',
@@ -219,12 +217,12 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                 ],
                 'sections'    => [
                     [
-                        'heading' => 'Kurikulum & Silabus',
+                        'heading' => 'Kurikulum OBE 2025',
                         'icon'    => 'layers',
                         'items'   => [
                             ['title' => 'Ringkasan Akademik', 'url' => home_url('/akademik/'), 'subtitle' => 'Informasi perkuliahan & capaian', 'icon' => 'book-open', 'badge' => ''],
                             ['title' => 'Kurikulum OBE 2025', 'url' => home_url('/akademik/kurikulum/'), 'subtitle' => 'Struktur mata kuliah & sebaran SKS', 'icon' => 'layers', 'badge' => 'OBE 2025'],
-                            ['title' => 'RPS Lengkap, SAP & Rubrik OBE', 'url' => home_url('/akademik/rps-sap/'), 'subtitle' => 'Rencana pembelajaran semester & rubrik', 'icon' => 'file-text', 'badge' => 'Silabus'],
+                            ['title' => 'RPS Lengkap, SAP & Rubrik', 'url' => home_url('/akademik/rps-sap/'), 'subtitle' => 'Rencana pembelajaran semester & rubrik', 'icon' => 'file-text', 'badge' => 'Silabus'],
                         ],
                     ],
                     [
@@ -234,21 +232,28 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                             ['title' => 'Pedoman Akademik & Penilaian', 'url' => home_url('/akademik/panduan/'), 'subtitle' => 'Panduan skripsi, KKN & ujian', 'icon' => 'file-check', 'badge' => ''],
                             ['title' => 'Jadwal Perkuliahan & Ujian', 'url' => home_url('/akademik/jadwal-ujian/'), 'subtitle' => 'Seminar proposal, hasil & tutup', 'icon' => 'calendar', 'badge' => 'Update'],
                             ['title' => 'Data & Statistik Akademik', 'url' => home_url('/akademik/statistik/'), 'subtitle' => 'Statistik kelulusan & IPK rata-rata', 'icon' => 'bar-chart-2', 'badge' => ''],
-                            ['title' => 'Jurnal & Pengabdian Prodi BK', 'url' => home_url('/jurnal-bk/'), 'subtitle' => 'Publikasi riset dosen & mahasiswa', 'icon' => 'book', 'badge' => 'Jurnal'],
+                        ],
+                    ],
+                    [
+                        'heading' => 'Sumber Belajar & Modul',
+                        'icon'    => 'book-open',
+                        'items'   => [
+                            ['title' => 'E-Library & Repositori Modul', 'url' => home_url('/e-library/'), 'subtitle' => 'Koleksi e-book & modul perkuliahan', 'icon' => 'folder', 'badge' => 'Digital'],
+                            ['title' => 'Panduan SOP & Template Berkas', 'url' => home_url('/layanan/akademik/'), 'subtitle' => 'Template skripsi, ujian & formulir', 'icon' => 'download', 'badge' => 'Unduh'],
                         ],
                     ],
                 ],
             ],
 
-            // 4. KEMAHASISWAAN (Mega Menu 2 Kolom + Spotlight)
+            // 3. KEMAHASISWAAN (Mega Menu 3 Kolom + Spotlight Prestasi Mahasiswa)
             [
                 'title'       => 'Kemahasiswaan',
                 'url'         => home_url('/kemahasiswaan/'),
                 'is_mega'     => true,
-                'mega_cols'   => 2,
+                'mega_cols'   => 3,
                 'icon'        => 'award',
                 'badge'       => 'Prestasi',
-                'subtitle'    => 'Penerimaan maba, prestasi, karya & jejaring alumni',
+                'subtitle'    => 'Penerimaan maba, prestasi, inovasi karya & direktori alumni',
                 'align'       => 'left',
                 'spotlight'   => [
                     'badge'       => '🏆 TALENTA UNM',
@@ -259,20 +264,26 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                 ],
                 'sections'    => [
                     [
-                        'heading' => 'Penerimaan & Layanan',
+                        'heading' => 'Penerimaan & MBKM',
                         'icon'    => 'user-plus',
                         'items'   => [
                             ['title' => 'Ringkasan Kemahasiswaan', 'url' => home_url('/kemahasiswaan/'), 'subtitle' => 'Dinamika & aktivitas mahasiswa', 'icon' => 'user-check', 'badge' => ''],
                             ['title' => 'Penerimaan Maba (Daya Tampung)', 'url' => home_url('/kemahasiswaan/penerimaan/'), 'subtitle' => 'Peminat, daya tampung & seleksi', 'icon' => 'user-plus', 'badge' => 'SNBP/SNBT'],
-                            ['title' => 'Pameran Layanan MBKM & Kemanusiaan', 'url' => home_url('/kemahasiswaan/mbkm-kemanusiaan/'), 'subtitle' => 'Magang mandiri & relawan konseling', 'icon' => 'globe', 'badge' => 'MBKM'],
+                            ['title' => 'Pameran Layanan MBKM', 'url' => home_url('/kemahasiswaan/mbkm-kemanusiaan/'), 'subtitle' => 'Magang mandiri & relawan konseling', 'icon' => 'globe', 'badge' => 'MBKM'],
                         ],
                     ],
                     [
-                        'heading' => 'Karya & Direktori Alumni',
+                        'heading' => 'Prestasi & Inovasi',
                         'icon'    => 'trophy',
                         'items'   => [
-                            ['title' => 'Prestasi & Riset Non-Akademik', 'url' => home_url('/kemahasiswaan/prestasi/'), 'subtitle' => 'Rekam medali & kompetisi nasional', 'icon' => 'trophy', 'badge' => 'Juara'],
-                            ['title' => 'Karya & Inovasi Mahasiswa', 'url' => home_url('/kemahasiswaan/karya/'), 'subtitle' => 'Media bimbingan, video & modul konseling', 'icon' => 'spark', 'badge' => 'Karya'],
+                            ['title' => 'Prestasi & Riset Mahasiswa', 'url' => home_url('/kemahasiswaan/prestasi/'), 'subtitle' => 'Rekam medali & kompetisi nasional', 'icon' => 'trophy', 'badge' => 'Juara'],
+                            ['title' => 'Karya & Inovasi Konseling', 'url' => home_url('/kemahasiswaan/karya/'), 'subtitle' => 'Media bimbingan, video & modul', 'icon' => 'spark', 'badge' => 'Karya'],
+                        ],
+                    ],
+                    [
+                        'heading' => 'Direktori Alumni & Data',
+                        'icon'    => 'share-2',
+                        'items'   => [
                             ['title' => 'Direktori Alumni & Tracer Study', 'url' => home_url('/kemahasiswaan/alumni/'), 'subtitle' => 'Jejaring alumni & sebaran profesi', 'icon' => 'share-2', 'badge' => 'Tracer'],
                             ['title' => 'Data & Statistik Mahasiswa', 'url' => home_url('/kemahasiswaan/statistik/'), 'subtitle' => 'Demografi & data kemahasiswaan aktif', 'icon' => 'pie-chart', 'badge' => ''],
                         ],
@@ -280,16 +291,16 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                 ],
             ],
 
-            // 5. LABORATORIUM (Mega Menu 2 Kolom + Spotlight)
+            // 4. RISET & LABORATORIUM (Mega Menu 4 Kolom + Spotlight BK Connect Suite)
             [
-                'title'       => 'Laboratorium',
+                'title'       => 'Riset & Laboratorium',
                 'url'         => home_url('/laboratorium/'),
                 'is_mega'     => true,
-                'mega_cols'   => 2,
+                'mega_cols'   => 4,
                 'icon'        => 'flask-conical',
-                'badge'       => 'Lab BK',
-                'subtitle'    => 'Fasilitas alat tes, ruang simulasi & portal suite',
-                'align'       => 'left',
+                'badge'       => 'Lab & Riset',
+                'subtitle'    => 'Fasilitas alat tes, ruang simulasi, hibah MIS PNBP & jurnal',
+                'align'       => 'center',
                 'spotlight'   => [
                     'badge'       => '🚀 PORTAL DIGITAL',
                     'title'       => 'BK Connect Suite',
@@ -300,16 +311,16 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                 ],
                 'sections'    => [
                     [
-                        'heading' => 'Layanan & Praktikum Lab',
+                        'heading' => 'Laboratorium BK',
                         'icon'    => 'activity',
                         'items'   => [
                             ['title' => 'Ringkasan Laboratorium BK', 'url' => home_url('/laboratorium/'), 'subtitle' => 'Fasilitas & ruang konseling mikro', 'icon' => 'activity', 'badge' => ''],
-                            ['title' => 'Kegiatan Mahasiswa Lab BK', 'url' => home_url('/laboratorium/kegiatan/'), 'subtitle' => 'Workshop, praktikum & simulasi tes', 'icon' => 'users', 'badge' => 'Praktikum'],
+                            ['title' => 'Kegiatan Mahasiswa Lab', 'url' => home_url('/laboratorium/kegiatan/'), 'subtitle' => 'Workshop, praktikum & simulasi tes', 'icon' => 'users', 'badge' => 'Praktikum'],
                             ['title' => 'Lomba Non-Akademik Lab', 'url' => home_url('/laboratorium/lomba/'), 'subtitle' => 'Ajang kompetisi kreativitas konseling', 'icon' => 'medal', 'badge' => 'Lomba'],
                         ],
                     ],
                     [
-                        'heading' => 'Instrumen & Portal Suite',
+                        'heading' => 'Alat Tes & Suite',
                         'icon'    => 'check-square',
                         'items'   => [
                             ['title' => 'Inventaris Alat Tes Lab BK', 'url' => home_url('/lab-bk/inventaris/'), 'subtitle' => 'Daftar alat tes psikologi & inventori', 'icon' => 'check-square', 'badge' => 'Tes'],
@@ -317,62 +328,43 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                             ['title' => 'Portal Peersupport BK', 'url' => 'https://peersupport-bk.unm.ac.id/', 'subtitle' => 'Konselor sebaya bagi mahasiswa', 'icon' => 'heart', 'badge' => 'Portal ↗', 'target' => '_blank'],
                         ],
                     ],
-                ],
-            ],
-
-            // 6. RISET & PKM (Mega Menu 2 Kolom + Spotlight)
-            [
-                'title'       => 'Riset & PkM',
-                'url'         => home_url('/mis-pnbp/'),
-                'is_mega'     => true,
-                'mega_cols'   => 2,
-                'icon'        => 'microchip',
-                'badge'       => 'MIS PNBP',
-                'subtitle'    => 'Hibah penelitian, pengabdian masyarakat & jurnal',
-                'align'       => 'center',
-                'spotlight'   => [
-                    'badge'       => '💡 HIBAH PNBP',
-                    'title'       => 'Sistem MIS PNBP UNM',
-                    'description' => 'Akselerasi riset terapan dan hilirisasi pengabdian masyarakat dosen bersama mahasiswa.',
-                    'url'         => home_url('/mis-pnbp/'),
-                    'action_text' => 'Buka Pusat MIS &rarr;',
-                ],
-                'sections'    => [
                     [
                         'heading' => 'Pusat MIS PNBP',
                         'icon'    => 'database',
                         'items'   => [
                             ['title' => 'Pusat MIS PNBP', 'url' => home_url('/mis-pnbp/'), 'subtitle' => 'Dashboard integrasi riset & PkM', 'icon' => 'database', 'badge' => 'Hub'],
                             ['title' => 'Hibah Penelitian PNBP', 'url' => home_url('/mis-pnbp/#penelitian'), 'subtitle' => 'Proposal, laporan & luaran riset', 'icon' => 'search', 'badge' => 'Hibah'],
-                            ['title' => 'Pengabdian kepada Masyarakat (PkM)', 'url' => home_url('/mis-pnbp/#pkm'), 'subtitle' => 'Pemberdayaan sekolah & mitra komunitas', 'icon' => 'heart-handshake', 'badge' => 'PkM'],
+                            ['title' => 'Pengabdian Masyarakat (PkM)', 'url' => home_url('/mis-pnbp/#pkm'), 'subtitle' => 'Pemberdayaan sekolah & komunitas', 'icon' => 'heart-handshake', 'badge' => 'PkM'],
                         ],
                     ],
                     [
-                        'heading' => 'Publikasi & Desiminasi',
+                        'heading' => 'Publikasi Jurnal',
                         'icon'    => 'book-open',
                         'items'   => [
-                            ['title' => 'Publikasi Jurnal & Desiminasi', 'url' => home_url('/jurnal-bk/'), 'subtitle' => 'Artikel terindeks SINTA & Scopus', 'icon' => 'book-open', 'badge' => 'SINTA'],
+                            ['title' => 'Jurnal BK (JBK)', 'url' => 'https://ojs.unm.ac.id/JBK', 'subtitle' => 'Jurnal terakreditasi SINTA 3', 'icon' => 'book', 'badge' => 'SINTA 3 ↗', 'target' => '_blank'],
+                            ['title' => 'Jurnal Pengabdian (JPKN)', 'url' => 'https://ojs.unm.ac.id/JPKN', 'subtitle' => 'Jurnal pengabdian terindeks SINTA 4', 'icon' => 'book-open', 'badge' => 'SINTA 4 ↗', 'target' => '_blank'],
+                            ['title' => 'Publikasi Jurnal & Desiminasi', 'url' => home_url('/jurnal-bk/'), 'subtitle' => 'Portal publikasi resmi prodi', 'icon' => 'award', 'badge' => 'Jurnal'],
                         ],
                     ],
                 ],
             ],
 
-            // 7. LAYANAN (Mega Menu 2 Kolom + Spotlight)
+            // 5. LAYANAN & BERITA (Mega Menu 3 Kolom + Spotlight Pusat Warta)
             [
-                'title'       => 'Layanan',
+                'title'       => 'Layanan & Berita',
                 'url'         => home_url('/layanan/'),
                 'is_mega'     => true,
-                'mega_cols'   => 2,
+                'mega_cols'   => 3,
                 'icon'        => 'life-buoy',
                 'badge'       => 'Layanan',
-                'subtitle'    => 'Persuratan, modul e-library & perlindungan mahasiswa',
+                'subtitle'    => 'Layanan persuratan, SOP, perlindungan & pusat warta prodi',
                 'align'       => 'right',
                 'spotlight'   => [
-                    'badge'       => '📚 MODUL DIGITAL',
-                    'title'       => 'E-Library & Modul BK',
-                    'description' => 'Akses cepat buku pegangan, instrumen konseling, dan modul ajar daring tanpa batas.',
-                    'url'         => home_url('/e-library/'),
-                    'action_text' => 'Kunjungi E-Library &rarr;',
+                    'badge'       => '📰 KABAR JURUSAN',
+                    'title'       => 'Pusat Warta & Publikasi',
+                    'description' => 'Liputan kegiatan tridharma, seminar nasional, pengumuman akademik, dan publikasi resmi PPB FIP UNM.',
+                    'url'         => home_url('/berita/'),
+                    'action_text' => 'Buka Semua Berita &rarr;',
                 ],
                 'sections'    => [
                     [
@@ -380,67 +372,27 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                         'icon'    => 'mail',
                         'items'   => [
                             ['title' => 'Ringkasan Layanan', 'url' => home_url('/layanan/'), 'subtitle' => 'Pusat bantuan & layanan terpadu', 'icon' => 'life-buoy', 'badge' => ''],
-                            ['title' => 'Layanan Persuratan & Kode Surat', 'url' => home_url('/layanan/persuratan/'), 'subtitle' => 'Nomor surat resmi, izin riset & pengantar', 'icon' => 'mail', 'badge' => 'Surat'],
-                            ['title' => 'Panduan Prosedur & Template SOP', 'url' => home_url('/layanan/akademik/'), 'subtitle' => 'Template skripsi, berkas ujian & form', 'icon' => 'download', 'badge' => 'Unduh'],
+                            ['title' => 'Layanan Persuratan & Kode', 'url' => home_url('/layanan/persuratan/'), 'subtitle' => 'Nomor surat resmi & izin riset', 'icon' => 'mail', 'badge' => 'Surat'],
+                            ['title' => 'Panduan Prosedur & SOP', 'url' => home_url('/layanan/akademik/'), 'subtitle' => 'Template skripsi & formulir ujian', 'icon' => 'download', 'badge' => 'Unduh'],
                         ],
                     ],
                     [
-                        'heading' => 'Sumber Belajar & Bantuan',
+                        'heading' => 'Advokasi & Bantuan',
                         'icon'    => 'shield-check',
                         'items'   => [
-                            ['title' => 'E-Library & Modul', 'url' => home_url('/e-library/'), 'subtitle' => 'Koleksi e-book & modul perkuliahan', 'icon' => 'folder', 'badge' => 'Digital'],
-                            ['title' => 'Perlindungan Mahasiswa (No. 13)', 'url' => home_url('/layanan/perlindungan-mahasiswa/'), 'subtitle' => 'Satgas PPKS & kanal aman pengaduan', 'icon' => 'shield', 'badge' => 'Satgas'],
-                            ['title' => 'Survei Kepuasan Sivitas', 'url' => home_url('/survei/'), 'subtitle' => 'Evaluasi kepuasan layanan & mutu prodi', 'icon' => 'check-circle', 'badge' => 'Survei'],
-                        ],
-                    ],
-                ],
-            ],
-
-            // 8. AKREDITASI (Mega Menu 2 Kolom + Spotlight)
-            [
-                'title'       => 'Akreditasi',
-                'url'         => home_url('/akreditasi/'),
-                'is_mega'     => true,
-                'mega_cols'   => 2,
-                'icon'        => 'award',
-                'badge'       => 'Unggul',
-                'subtitle'    => 'Instrumen 9 Kriteria LAMDIK & Sertifikat S1/S2/S3',
-                'align'       => 'right',
-                'spotlight'   => [
-                    'badge'       => '🥇 AKREDITASI UNGGUL',
-                    'title'       => 'Peringkat LAMDIK Tertinggi',
-                    'description' => 'Program Studi S1 Bimbingan dan Konseling FIP UNM meraih predikat Akreditasi Unggul nasional.',
-                    'url'         => home_url('/akreditasi/sertifikat/'),
-                    'action_text' => 'Lihat Sertifikat &rarr;',
-                ],
-                'sections'    => [
-                    [
-                        'heading' => 'Instrumen & Penjaminan Mutu',
-                        'icon'    => 'grid',
-                        'items'   => [
-                            ['title' => 'Instrumen Hub 9 Kriteria LAMDIK', 'url' => home_url('/akreditasi/'), 'subtitle' => 'Kriteria 1 sampai 9 LAMDIK lengkap', 'icon' => 'grid', 'badge' => '9 Kriteria'],
-                            ['title' => 'Renstra, Renop & Penjaminan Mutu', 'url' => home_url('/akreditasi/upm/'), 'subtitle' => 'Unit Penjaminan Mutu (UPM) FIP UNM', 'icon' => 'shield-check', 'badge' => 'UPM'],
+                            ['title' => 'Perlindungan Mahasiswa (No. 13)', 'url' => home_url('/layanan/perlindungan-mahasiswa/'), 'subtitle' => 'Satgas PPKS & kanal aman aduan', 'icon' => 'shield', 'badge' => 'Satgas'],
+                            ['title' => 'Survei Kepuasan Sivitas', 'url' => home_url('/survei/'), 'subtitle' => 'Evaluasi kepuasan layanan & mutu', 'icon' => 'check-circle', 'badge' => 'Survei'],
                         ],
                     ],
                     [
-                        'heading' => 'Sertifikat & SK Resmi',
-                        'icon'    => 'file-badge',
+                        'heading' => 'Warta & Pengumuman',
+                        'icon'    => 'newspaper',
                         'items'   => [
-                            ['title' => 'Sertifikat Akreditasi S1, S2, S3', 'url' => home_url('/akreditasi/sertifikat/'), 'subtitle' => 'Unduh sertifikat & SK resmi BAN-PT/LAMDIK', 'icon' => 'file-badge', 'badge' => 'SK Resmi'],
+                            ['title' => 'Semua Warta & Berita Resmi', 'url' => home_url('/berita/'), 'subtitle' => 'Arsip berita tridharma & kegiatan', 'icon' => 'newspaper', 'badge' => 'Warta'],
+                            ['title' => 'Pengumuman Akademik Terkini', 'url' => home_url('/berita/'), 'subtitle' => 'Pemberitahuan resmi prodi', 'icon' => 'info', 'badge' => 'Update'],
                         ],
                     ],
                 ],
-            ],
-
-            // 9. BERITA (Tunggal)
-            [
-                'title'       => 'Berita',
-                'url'         => home_url('/berita/'),
-                'is_mega'     => false,
-                'icon'        => 'newspaper',
-                'badge'       => '',
-                'subtitle'    => 'Warta terkini & pengumuman prodi',
-                'sections'    => [],
             ],
         ];
     }
