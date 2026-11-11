@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html <?php language_attributes(); ?> class="scroll-smooth">
 <head>
-    <!-- BK_THEME_VER: 2.1.2_20261028_URLFIX -->
+    <!-- BK_THEME_VER: 2.2.0_20261111_MEGAMENU -->
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php wp_head(); ?>
