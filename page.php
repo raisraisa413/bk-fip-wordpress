@@ -14,6 +14,7 @@ if (have_posts()) : while (have_posts()) : the_post();
     global $post, $wpdb;
     $content = get_the_content();
     $current_slug = $post->post_name;
+    $parent_slug = $post->post_parent ? get_post_field('post_name', $post->post_parent) : '';
 
     // FAILSAFE: If content in DB lacks 'bk-page-wrapper' and 'elementor',
     // or is empty/truncated, automatically restore the full rich content from pages-data.json!
@@ -21,25 +22,42 @@ if (have_posts()) : while (have_posts()) : the_post();
     $is_empty = empty(trim(strip_tags($content))) || strlen(trim($content)) < 100;
     $is_dosen = (strpos($current_slug, 'dosen') !== false);
     $needs_dosen_refresh = ($is_dosen && (strpos($content, 'bk-dosen-card-name') === false || strlen($content) < 1000 || isset($_GET['refresh_dosen'])));
-    if (!$has_modern_markup || $is_empty || $needs_dosen_refresh) {
-        $json_file = get_template_directory() . '/pages-data.json';
-        if (file_exists($json_file)) {
-            $pages_data = json_decode(file_get_contents($json_file), true);
-            if (is_array($pages_data)) {
-                foreach ($pages_data as $p) {
-                    if ($p['slug'] === $current_slug || ($is_dosen && $p['slug'] === 'dosen')) {
-                        $content = $p['content'];
-                        // Instantly repair in database
-                        $wpdb->update(
-                            $wpdb->posts,
-                            array('post_content' => $content, 'post_status' => 'publish'),
-                            array('ID' => $post->ID)
-                        );
-                        clean_post_cache($post->ID);
+
+    // Load pages-data.json for precise matching
+    $json_file = get_template_directory() . '/pages-data.json';
+    $target_page = null;
+    if (file_exists($json_file)) {
+        $pages_data = json_decode(file_get_contents($json_file), true);
+        if (is_array($pages_data)) {
+            foreach ($pages_data as $p) {
+                if ($p['slug'] === $current_slug || ($is_dosen && $p['slug'] === 'dosen')) {
+                    if (!empty($parent_slug) && !empty($p['parent_slug']) && $p['parent_slug'] === $parent_slug) {
+                        $target_page = $p;
                         break;
+                    } elseif (empty($parent_slug) && empty($p['parent_slug'])) {
+                        $target_page = $p;
+                        break;
+                    } elseif (!$target_page) {
+                        $target_page = $p;
                     }
                 }
             }
+        }
+    }
+
+    $is_truncated = ($target_page && strlen($content) < (strlen($target_page['content']) - 300));
+    $force_refresh = isset($_GET['refresh_pages']) || isset($_GET['sync_ppb_content']);
+
+    if (!$has_modern_markup || $is_empty || $needs_dosen_refresh || $is_truncated || $force_refresh) {
+        if ($target_page) {
+            $content = $target_page['content'];
+            // Instantly repair in database
+            $wpdb->update(
+                $wpdb->posts,
+                array('post_content' => $content, 'post_status' => 'publish'),
+                array('ID' => $post->ID)
+            );
+            clean_post_cache($post->ID);
         }
     }
     ?>
