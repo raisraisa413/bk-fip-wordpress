@@ -1691,7 +1691,7 @@ $mobile_h_class = (($spotlight_settings['mobile_height_mode'] ?? 'fullscreen') =
                     $init = bk_home_initials($nama);
                     $url = home_url('/profil/dosen/' . $slug . '/');
                 ?>
-                <div class="bk-faculty-card" onclick="window.location.href='<?php echo esc_url($url); ?>'">
+                <div class="bk-faculty-card" data-url="<?php echo esc_url($url); ?>" role="link" tabindex="0">
                     <div>
                         <div style="height:4px;width:100%;background:<?php echo esc_attr($top_bar_color); ?>;"></div>
                         <div style="padding:20px 20px 14px;">
@@ -1737,6 +1737,94 @@ $mobile_h_class = (($spotlight_settings['mobile_height_mode'] ?? 'fullscreen') =
         </div>
 
     </div>
+    <script>
+    (function() {
+        var track = document.getElementById('bk-dosen-track');
+        var btnLeft = document.getElementById('bk-dosen-left');
+        var btnRight = document.getElementById('bk-dosen-right');
+        if (!track) return;
+
+        if (btnLeft) {
+            btnLeft.addEventListener('click', function(e) {
+                e.preventDefault();
+                track.scrollBy({ left: -320, behavior: 'smooth' });
+            });
+        }
+        if (btnRight) {
+            btnRight.addEventListener('click', function(e) {
+                e.preventDefault();
+                track.scrollBy({ left: 320, behavior: 'smooth' });
+            });
+        }
+
+        var isDown = false;
+        var startX = 0;
+        var scrollLeft = 0;
+        var isDragging = false;
+
+        track.addEventListener('mousedown', function(e) {
+            isDown = true;
+            isDragging = false;
+            track.style.cursor = 'grabbing';
+            startX = e.pageX - track.offsetLeft;
+            scrollLeft = track.scrollLeft;
+        });
+
+        track.addEventListener('mouseleave', function() {
+            isDown = false;
+            track.style.cursor = 'grab';
+        });
+
+        track.addEventListener('mouseup', function() {
+            isDown = false;
+            track.style.cursor = 'grab';
+        });
+
+        track.addEventListener('mousemove', function(e) {
+            if (!isDown) return;
+            var x = e.pageX - track.offsetLeft;
+            var walk = (x - startX);
+            if (Math.abs(walk) > 6) {
+                isDragging = true;
+                e.preventDefault();
+                track.scrollLeft = scrollLeft - walk;
+            }
+        });
+
+        var touchStartX = 0;
+        var touchMoved = false;
+        track.addEventListener('touchstart', function(e) {
+            touchStartX = e.touches[0].clientX;
+            touchMoved = false;
+        }, { passive: true });
+
+        track.addEventListener('touchmove', function(e) {
+            var diff = Math.abs(e.touches[0].clientX - touchStartX);
+            if (diff > 8) touchMoved = true;
+        }, { passive: true });
+
+        track.querySelectorAll('.bk-faculty-card').forEach(function(card) {
+            card.addEventListener('click', function(e) {
+                if (isDragging || touchMoved) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+                var targetUrl = card.getAttribute('data-url');
+                if (targetUrl) {
+                    window.location.href = targetUrl;
+                }
+            });
+            card.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    var targetUrl = card.getAttribute('data-url');
+                    if (targetUrl) window.location.href = targetUrl;
+                }
+            });
+        });
+    })();
+    </script>
 </section>
 
 <!-- =====================================================================
