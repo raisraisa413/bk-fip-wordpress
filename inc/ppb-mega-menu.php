@@ -389,7 +389,7 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                         'icon'    => 'newspaper',
                         'items'   => [
                             ['title' => 'Semua Warta & Berita Resmi', 'url' => home_url('/berita/'), 'subtitle' => 'Arsip berita tridharma & kegiatan', 'icon' => 'newspaper', 'badge' => 'Warta'],
-                            ['title' => 'Pengumuman Akademik Terkini', 'url' => home_url('/berita/'), 'subtitle' => 'Pemberitahuan resmi prodi', 'icon' => 'info', 'badge' => 'Update'],
+                            ['title' => 'Pengumuman Akademik Terkini', 'url' => home_url('/berita/?kategori=pengumuman'), 'subtitle' => 'Pemberitahuan resmi prodi', 'icon' => 'info', 'badge' => 'Update'],
                         ],
                     ],
                 ],
@@ -423,7 +423,7 @@ if (!function_exists('ppb_get_nav_tree')) {
                     foreach ($menu_items as $item) {
                         $raw_url = !empty($item->url) ? $item->url : '#';
                         $filtered_url = function_exists('ppb_filter_yamato_url') ? ppb_filter_yamato_url($raw_url) : $raw_url;
-                        $is_active = ppb_nav_is_active($filtered_url, $current_path, $is_home);
+                        $is_active = ppb_nav_is_active($filtered_url, $current_path, $is_home, false);
 
                         // Ambil custom postmeta jika ada
                         $badge    = get_post_meta($item->ID, '_ppb_menu_badge', true) ?: (!empty($item->attr_title) ? $item->attr_title : '');
@@ -538,6 +538,8 @@ if (!function_exists('ppb_get_nav_tree')) {
 
                             if (!$is_home && $parent_any_child_active) {
                                 $top_item['is_active'] = true;
+                            } else {
+                                $top_item['is_active'] = ppb_nav_is_active($top_item['url'], $current_path, $is_home, true);
                             }
 
                             $top_item['is_mega'] = true;
@@ -556,13 +558,13 @@ if (!function_exists('ppb_get_nav_tree')) {
             $tree = [];
 
             foreach ($default_data as $top) {
-                $top_active = ppb_nav_is_active($top['url'], $current_path, $is_home);
+                $top_active = ppb_nav_is_active($top['url'], $current_path, $is_home, true);
                 $any_child_active = false;
 
                 if (!empty($top['sections'])) {
                     foreach ($top['sections'] as &$sec) {
                         foreach ($sec['items'] as &$it) {
-                            $it['is_active'] = ppb_nav_is_active($it['url'], $current_path, $is_home);
+                            $it['is_active'] = ppb_nav_is_active($it['url'], $current_path, $is_home, false);
                             if ($it['is_active']) {
                                 $any_child_active = true;
                             }

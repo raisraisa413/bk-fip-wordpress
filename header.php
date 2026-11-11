@@ -748,7 +748,16 @@ $is_home = is_front_page() || is_home() || empty($current_path) || $current_path
 
 // Helper function to check if a navigation URL matches the current path
 if (!function_exists('ppb_nav_is_active')) {
-    function ppb_nav_is_active($url, $current_path, $is_home) {
+    /**
+     * Determines whether a navigation URL matches the current page.
+     *
+     * @param string $url URL to check
+     * @param string $current_path Normalized path of current request
+     * @param bool   $is_home Whether current request is front page
+     * @param bool   $is_parent Whether this is a top-level parent menu button (allows section prefix matching)
+     * @return bool
+     */
+    function ppb_nav_is_active($url, $current_path, $is_home, $is_parent = false) {
         if (empty($url)) return false;
         
         $clean_url = trim($url);
@@ -757,7 +766,10 @@ if (!function_exists('ppb_nav_is_active')) {
             return false;
         }
 
-        $m_path = parse_url($clean_url, PHP_URL_PATH) ?? '';
+        $parsed = parse_url($clean_url);
+        $m_path = $parsed['path'] ?? '';
+        $m_frag = $parsed['fragment'] ?? '';
+
         $home_path = parse_url(home_url(), PHP_URL_PATH) ?? '';
         if (!empty($home_path) && strpos($m_path, $home_path) === 0) {
             $m_path = substr($m_path, strlen($home_path));
@@ -780,7 +792,60 @@ if (!function_exists('ppb_nav_is_active')) {
             return false;
         }
 
-        return ($m_path === $current_path || strpos($current_path, $m_path . '/') === 0 || strpos($m_path, $current_path . '/') === 0);
+        // Sub-items inside mega menu (leaf links) must NEVER use loose parent-prefix matching!
+        // Otherwise, being on '/profil/' makes EVERY sub-item under Profil active!
+        if (!$is_parent) {
+            // Anchor links (e.g. /mis-pnbp/#penelitian) are section targets, not active on general page load
+            if (!empty($m_frag)) {
+                return false;
+            }
+
+            // 1. Exact match (e.g. 'profil' === 'profil', 'profil/sejarah' === 'profil/sejarah')
+            if ($m_path === $current_path) {
+                return true;
+            }
+
+            // 2. Blog posts & category archive for /berita/
+            if ($m_path === 'berita') {
+                if (strpos($current_path, 'berita/') === 0 || (function_exists('is_singular') && is_singular('post')) || (function_exists('is_category') && is_category())) {
+                    return true;
+                }
+            }
+
+            // 3. Pagination support (e.g. /akademik/page/2/)
+            if (strpos($current_path, $m_path . '/page/') === 0) {
+                return true;
+            }
+
+            return false;
+        }
+
+        // Top-Level Parent Buttons (e.g. "Profil", "Akademik", "Kemahasiswaan", etc.):
+        if ($m_path === $current_path) {
+            return true;
+        }
+        if (strpos($current_path, $m_path . '/') === 0) {
+            return true;
+        }
+
+        // Top-level Section Aliases for seamless active highlight on all subpages
+        if ($m_path === 'profil') {
+            return (strpos($current_path, 'profil') === 0 || strpos($current_path, 'akreditasi') === 0 || in_array($current_path, ['sejarah', 'visi-misi', 'visi-keilmuan', 'struktur', 'kerjasama-tridharma', 'dosen', 'buku-dosen', 'kepakaran-dosen', 'sarana-prasarana', 'roadmap', 'dokumen', 'akreditasi', 'upm', 'sertifikat']));
+        }
+        if ($m_path === 'akademik') {
+            return (strpos($current_path, 'akademik') === 0 || in_array($current_path, ['kurikulum', 'rps-sap', 'panduan', 'jadwal-ujian', 'statistik']));
+        }
+        if ($m_path === 'kemahasiswaan') {
+            return (strpos($current_path, 'kemahasiswaan') === 0 || in_array($current_path, ['penerimaan', 'prestasi', 'mbkm-kemanusiaan', 'karya', 'alumni']));
+        }
+        if ($m_path === 'laboratorium' || $m_path === 'lab-bk') {
+            return (strpos($current_path, 'lab') === 0 || strpos($current_path, 'mis-pnbp') === 0 || in_array($current_path, ['laboratorium', 'lab-bk', 'mis-pnbp', 'jurnal-bk', 'penelitian', 'pkm']));
+        }
+        if ($m_path === 'layanan') {
+            return (strpos($current_path, 'layanan') === 0 || strpos($current_path, 'berita') === 0 || strpos($current_path, 'survei') === 0 || strpos($current_path, 'persuratan') !== false || strpos($current_path, 'perlindungan-mahasiswa') !== false || strpos($current_path, 'library') !== false || (function_exists('is_singular') && is_singular('post')) || (function_exists('is_category') && is_category()));
+        }
+
+        return false;
     }
 }
 
