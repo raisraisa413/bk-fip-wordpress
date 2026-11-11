@@ -154,7 +154,7 @@ function ppb_handle_spotlight_admin_actions() {
             }
         }
 
-        update_option('ppb_spotlight_slides', $cleaned_slides);
+        update_option('ppb_spotlight_slides', $cleaned_slides, false);
 
         // General settings
         update_option('ppb_spotlight_autoplay', !empty($_POST['spotlight_autoplay']) ? '1' : '0');
@@ -165,7 +165,7 @@ function ppb_handle_spotlight_admin_actions() {
 
         add_settings_error('ppb_spotlight_notices', 'saved', 'Semua perubahan Spotlight Beranda berhasil disimpan!', 'success');
     } elseif ($action === 'reset_default') {
-        update_option('ppb_spotlight_slides', ppb_get_default_spotlight_slides());
+        update_option('ppb_spotlight_slides', ppb_get_default_spotlight_slides(), false);
         add_settings_error('ppb_spotlight_notices', 'reset', 'Spotlight Beranda dikembalikan ke susunan bawaan resmi.', 'info');
     }
 }
