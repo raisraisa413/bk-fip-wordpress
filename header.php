@@ -282,11 +282,34 @@
         border-color: rgba(245, 184, 46, 0.6) !important;
     }
 
-    /* Dropdown Menu Container */
+    /* =========================================================================
+       BK MEGA MENU & DROPDOWN STYLES (ACADEMIC EDITORIAL AESTHETIC)
+       ========================================================================= */
+    .bk-nav-item-wrap {
+        position: relative !important;
+    }
+
+    /* Pill Badge on Navbar Trigger Button (e.g. OBE 2025, Unggul) */
+    .bk-nav-pill-badge {
+        background: rgba(245, 184, 46, 0.22) !important;
+        color: #F5B82E !important;
+        border: 1px solid rgba(245, 184, 46, 0.45) !important;
+        font-size: 9px !important;
+        font-weight: 700 !important;
+        padding: 1px 5px !important;
+        border-radius: 9999px !important;
+        letter-spacing: 0.03em !important;
+        line-height: 1.2 !important;
+        margin-left: 2px !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Fallback Standard Dropdown Menu */
     .dropdown-menu {
         background-color: #ffffff !important;
-        border-radius: 16px !important;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 20px 45px -10px rgba(13, 59, 34, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+        border: 1px solid rgba(212, 227, 216, 0.9) !important;
         padding: 6px !important;
         min-width: 240px !important;
     }
@@ -329,6 +352,284 @@
     .dropdown-menu a::after {
         content: none !important;
         display: none !important;
+    }
+
+    /* =========================================================================
+       MODERN MEGA MENU DROPDOWN PANEL
+       ========================================================================= */
+    .bk-mega-dropdown {
+        display: none !important;
+        position: absolute !important;
+        top: 100% !important;
+        margin-top: 6px !important;
+        background-color: #ffffff !important;
+        border-radius: 20px !important;
+        box-shadow: 0 25px 50px -12px rgba(13, 59, 34, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+        border: 1px solid rgba(212, 227, 216, 0.95) !important;
+        overflow: hidden !important;
+        z-index: 99999 !important;
+        text-align: left !important;
+        color: #1f2937 !important;
+        box-sizing: border-box !important;
+        padding: 0 !important;
+        max-width: calc(100vw - 32px) !important;
+    }
+
+    /* Alignment Modes */
+    .bk-mega-dropdown.align-left {
+        left: 0 !important;
+        right: auto !important;
+    }
+    .bk-mega-dropdown.align-right {
+        right: 0 !important;
+        left: auto !important;
+    }
+    .bk-mega-dropdown.align-center {
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+    }
+
+    /* Dimension Presets Based on Columns */
+    .bk-mega-dropdown.mega-cols-3 {
+        width: 760px !important;
+        max-width: min(800px, calc(100vw - 40px)) !important;
+    }
+    .bk-mega-dropdown.mega-cols-2 {
+        width: 580px !important;
+        max-width: min(620px, calc(100vw - 40px)) !important;
+    }
+    .bk-mega-dropdown.mega-cols-1 {
+        width: 320px !important;
+        max-width: min(340px, calc(100vw - 40px)) !important;
+    }
+    .bk-mega-dropdown.mega-cols-4 {
+        width: 880px !important;
+        max-width: min(940px, calc(100vw - 40px)) !important;
+    }
+
+    /* Hover & Focus Interaction */
+    .dropdown-container:hover > .bk-mega-dropdown,
+    .group:hover > .bk-mega-dropdown,
+    .dropdown-container:focus-within > .bk-mega-dropdown,
+    .bk-mega-dropdown:hover {
+        display: block !important;
+    }
+
+    /* Invisible Bridge between button and mega menu */
+    .bk-mega-dropdown::before {
+        content: "" !important;
+        display: block !important;
+        position: absolute !important;
+        top: -14px !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 16px !important;
+        background: transparent !important;
+    }
+
+    /* Mega Menu Header Bar */
+    .bk-mega-header {
+        background: #FAF8F5 !important;
+        border-bottom: 1px solid #E8F0EA !important;
+        padding: 12px 20px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 12px !important;
+    }
+    .bk-mega-header-icon {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 9px !important;
+        background: #E8F0EA !important;
+        color: #0D3B22 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-shrink: 0 !important;
+    }
+    .bk-mega-header-title {
+        font-family: 'Fraunces', Georgia, serif !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        color: #0D3B22 !important;
+        line-height: 1.2 !important;
+    }
+    .bk-mega-header-sub {
+        font-size: 11px !important;
+        color: #64748b !important;
+        margin-top: 1px !important;
+        line-height: 1.25 !important;
+    }
+    .bk-mega-badge-pill {
+        background: #FEF3C7 !important;
+        color: #92400e !important;
+        border: 1px solid #FDE68A !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        padding: 2px 8px !important;
+        border-radius: 9999px !important;
+        letter-spacing: 0.03em !important;
+        text-transform: uppercase !important;
+        white-space: nowrap !important;
+    }
+
+    /* Mega Menu Grid Body */
+    .bk-mega-body {
+        display: grid !important;
+        grid-template-columns: repeat(var(--mega-cols, 3), minmax(0, 1fr)) !important;
+        gap: 16px 20px !important;
+        padding: 16px 20px !important;
+    }
+    .bk-mega-col {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    .bk-mega-col-heading {
+        font-size: 10.5px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        color: #185333 !important;
+        margin-bottom: 6px !important;
+        padding-bottom: 4px !important;
+        border-bottom: 1.5px solid #E8F0EA !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+    .bk-mega-col-list {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+    }
+
+    /* Mega Menu Links */
+    .bk-mega-link {
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+        padding: 6px 8px !important;
+        border-radius: 10px !important;
+        text-decoration: none !important;
+        transition: all 0.15s ease !important;
+        background-color: transparent !important;
+        position: relative !important;
+        line-height: 1.25 !important;
+    }
+    .bk-mega-link:hover {
+        background-color: #FAF8F5 !important;
+        transform: translateX(3px) !important;
+    }
+    .bk-mega-link.is-active {
+        background-color: #E8F0EA !important;
+    }
+    .bk-mega-link-icon {
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+        border-radius: 6px !important;
+        background-color: #F1F5F2 !important;
+        color: #0D3B22 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-shrink: 0 !important;
+        margin-top: 1px !important;
+        transition: all 0.15s ease !important;
+    }
+    .bk-mega-link:hover .bk-mega-link-icon,
+    .bk-mega-link.is-active .bk-mega-link-icon {
+        background-color: #0D3B22 !important;
+        color: #F5B82E !important;
+    }
+    .bk-mega-link-text {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+    .bk-mega-link-title {
+        font-size: 12.5px !important;
+        font-weight: 600 !important;
+        color: #1f2937 !important;
+        line-height: 1.3 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        flex-wrap: wrap !important;
+    }
+    .bk-mega-link:hover .bk-mega-link-title {
+        color: #0D3B22 !important;
+    }
+    .bk-mega-link.is-active .bk-mega-link-title {
+        color: #0D3B22 !important;
+        font-weight: 700 !important;
+    }
+    .bk-mega-link-sub {
+        font-size: 10.5px !important;
+        font-weight: 400 !important;
+        color: #64748b !important;
+        line-height: 1.25 !important;
+        margin-top: 2px !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 1 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+    }
+    .bk-mega-item-badge {
+        display: inline-block !important;
+        font-size: 9px !important;
+        font-weight: 700 !important;
+        padding: 1px 5px !important;
+        border-radius: 4px !important;
+        background: rgba(245, 184, 46, 0.2) !important;
+        color: #92400e !important;
+        border: 1px solid rgba(245, 184, 46, 0.4) !important;
+        line-height: 1.2 !important;
+    }
+
+    /* Spotlight Footer Bar */
+    .bk-mega-spotlight {
+        background: linear-gradient(135deg, #0D3B22 0%, #185333 100%) !important;
+        color: #ffffff !important;
+        padding: 10px 18px !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 12px !important;
+    }
+    .bk-mega-spotlight-badge {
+        display: inline-block !important;
+        background: rgba(245, 184, 46, 0.22) !important;
+        color: #F5B82E !important;
+        border: 1px solid rgba(245, 184, 46, 0.45) !important;
+        font-size: 9.5px !important;
+        font-weight: 700 !important;
+        padding: 2px 7px !important;
+        border-radius: 4px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.04em !important;
+        flex-shrink: 0 !important;
+    }
+    .bk-mega-spotlight-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        background: #F5B82E !important;
+        color: #0D3B22 !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        padding: 5px 12px !important;
+        border-radius: 6px !important;
+        text-decoration: none !important;
+        white-space: nowrap !important;
+        transition: all 0.15s ease !important;
+        flex-shrink: 0 !important;
+    }
+    .bk-mega-spotlight-btn:hover {
+        background: #fcd34d !important;
+        transform: translateY(-1px) !important;
     }
     
     /* BULLETPROOF NAVBAR & DROPDOWN DISPLAY RULES (Immune to CDN delays or offline states) */
@@ -601,6 +902,14 @@ $akreditasi_menu = array(
     array('url' => home_url('/akreditasi/sertifikat/'), 'path' => 'akreditasi/sertifikat', 'label' => 'Sertifikat Akreditasi S1, S2, S3'),
     array('url' => home_url('/akreditasi/upm/'), 'path' => 'akreditasi/upm', 'label' => 'Renstra, Renop & Penjaminan Mutu (UPM)'),
 );
+// PPB Dynamic Mega Menu Module Safeguard
+$mega_menu_inc = get_template_directory() . '/inc/ppb-mega-menu.php';
+if (file_exists($mega_menu_inc)) {
+    require_once $mega_menu_inc;
+}
+
+// Build Navigation Tree (Reads WP-Admin Appearance > Menus or falls back to complete default dataset)
+$nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path, $is_home) : [];
 ?>
 
 <!-- FIXED NAVBAR (Original Left/Right Layout: w-full px-4 sm:px-8 lg:px-12) -->
@@ -635,145 +944,123 @@ $akreditasi_menu = array(
             </div>
         </a>
 
-        <!-- Desktop Navigation -->
+        <!-- Desktop Navigation: Modern Mega Menu & Tautan Dinamis WP-Admin -->
         <div id="bk-desktop-nav" class="bk-desktop-nav items-center gap-1 xl:gap-1.5 text-xs font-semibold">
-            
-            <!-- Beranda -->
-            <a href="<?php echo esc_url(home_url('/')); ?>" class="bk-nav-btn <?php echo $is_home ? 'is-active-btn' : ''; ?>">
-                Beranda
-            </a>
+            <?php foreach ($nav_tree as $item) : 
+                $has_sub   = !empty($item['sections']);
+                $is_active = !empty($item['is_active']);
+                $item_url  = !empty($item['url']) ? $item['url'] : '#';
+                $badge     = !empty($item['badge']) ? $item['badge'] : '';
+                $cols      = !empty($item['mega_cols']) ? (int)$item['mega_cols'] : (count($item['sections'] ?? []) > 1 ? count($item['sections']) : 2);
+                $align     = !empty($item['align']) ? $item['align'] : 'left';
+                $is_ext    = (!empty($item['target']) && $item['target'] === '_blank');
+            ?>
+                <?php if ($has_sub) : ?>
+                    <!-- Mega Menu Dropdown: <?php echo esc_attr($item['title']); ?> -->
+                    <div class="relative group dropdown-container bk-nav-item-wrap">
+                        <button type="button" class="bk-nav-btn dropdown-trigger flex items-center gap-1 rounded-full <?php echo $is_active ? 'is-active-dropdown' : ''; ?>" aria-expanded="false" aria-haspopup="true">
+                            <span><?php echo esc_html($item['title']); ?></span>
+                            <?php if (!empty($badge) && in_array($badge, ['OBE 2025', 'Unggul', 'Baru', '25 Dosen', 'Prestasi', 'MIS PNBP'])) : ?>
+                                <span class="bk-nav-pill-badge"><?php echo esc_html($badge); ?></span>
+                            <?php endif; ?>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-200 group-hover:rotate-180" style="<?php echo $is_active ? 'color:#F5B82E;' : 'color:inherit;'; ?>"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        
+                        <!-- Panel Mega Menu -->
+                        <div class="bk-mega-dropdown dropdown-menu animate-fadeIn <?php echo esc_attr('mega-cols-' . $cols . ' align-' . $align); ?>">
+                            
+                            <!-- Header Bar -->
+                            <?php if (!empty($item['subtitle']) || !empty($item['spotlight'])) : ?>
+                                <div class="bk-mega-header">
+                                    <div class="flex items-center gap-2.5">
+                                        <?php if (!empty($item['icon'])) : ?>
+                                            <div class="bk-mega-header-icon">
+                                                <?php echo ppb_get_menu_icon_svg($item['icon'], 16); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div>
+                                            <div class="bk-mega-header-title"><?php echo esc_html($item['title']); ?></div>
+                                            <?php if (!empty($item['subtitle'])) : ?>
+                                                <div class="bk-mega-header-sub"><?php echo esc_html($item['subtitle']); ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <?php if (!empty($badge)) : ?>
+                                        <span class="bk-mega-badge-pill"><?php echo esc_html($badge); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
 
-                <!-- Dropdown: Profil -->
-                <div class="relative group dropdown-container">
-                    <button type="button" class="bk-nav-btn dropdown-trigger flex items-center gap-1 rounded-full <?php echo $is_profil ? 'is-active-dropdown' : ''; ?>">
-                        <span>Profil</span>
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-180" style="<?php echo $is_profil ? 'color:#F5B82E;' : 'color:inherit;'; ?>"></i>
-                    </button>
-                    <div class="dropdown-menu absolute left-0 mt-0 w-64 bg-white rounded-2xl shadow-xl shadow-black/20 p-2 border border-gray-100 z-50 text-gray-800 animate-fadeIn" style="background:#ffffff !important;">
-                        <?php foreach ($profil_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path'] || (empty($current_path) && $item['path'] === 'profil'));
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="bk-dropdown-link <?php echo $is_item_active ? 'is-active' : ''; ?>" style="<?php echo $is_item_active ? 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;color:#0D3B22 !important;background-color:#E8F0EA !important;text-decoration:none;line-height:1.25;position:relative;' : 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:500;color:#374151 !important;background-color:transparent;text-decoration:none;line-height:1.25;position:relative;'; ?>">
-                                <span class="bk-dropdown-indicator" style="<?php echo $is_item_active ? 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:#0D3B22 !important;' : 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:transparent;'; ?>"></span>
-                                <span class="bk-dropdown-label" style="color:inherit;"><?php echo esc_html($item['label']); ?></span>
-                            </a>
-                        <?php endforeach; ?>
+                            <!-- Kolom-Kolom Menu -->
+                            <div class="bk-mega-body" style="--mega-cols: <?php echo (int)$cols; ?>;">
+                                <?php foreach ($item['sections'] as $sec) : ?>
+                                    <div class="bk-mega-col">
+                                        <?php if (!empty($sec['heading'])) : ?>
+                                            <div class="bk-mega-col-heading">
+                                                <?php if (!empty($sec['icon'])) : ?>
+                                                    <?php echo ppb_get_menu_icon_svg($sec['icon'], 13); ?>
+                                                <?php endif; ?>
+                                                <span><?php echo esc_html($sec['heading']); ?></span>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <div class="bk-mega-col-list">
+                                            <?php foreach ($sec['items'] as $link) : 
+                                                $is_link_active = !empty($link['is_active']);
+                                                $link_target = (!empty($link['target']) && $link['target'] === '_blank') ? ' target="_blank" rel="noopener"' : '';
+                                            ?>
+                                                <a href="<?php echo esc_url($link['url']); ?>" class="bk-mega-link <?php echo $is_link_active ? 'is-active' : ''; ?>"<?php echo $link_target; ?>>
+                                                    <div class="bk-mega-link-icon">
+                                                        <?php echo ppb_get_menu_icon_svg(!empty($link['icon']) ? $link['icon'] : 'chevron-right', 13); ?>
+                                                    </div>
+                                                    <div class="bk-mega-link-text">
+                                                        <div class="bk-mega-link-title">
+                                                            <span><?php echo esc_html($link['title']); ?></span>
+                                                            <?php if (!empty($link['badge'])) : ?>
+                                                                <span class="bk-mega-item-badge"><?php echo esc_html($link['badge']); ?></span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        <?php if (!empty($link['subtitle'])) : ?>
+                                                            <div class="bk-mega-link-sub"><?php echo esc_html($link['subtitle']); ?></div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </a>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <!-- Kartu Spotlight Aksi Cepat Bawah -->
+                            <?php if (!empty($item['spotlight'])) : 
+                                $sp = $item['spotlight'];
+                                $sp_target = (!empty($sp['target']) && $sp['target'] === '_blank') ? ' target="_blank" rel="noopener"' : '';
+                            ?>
+                                <div class="bk-mega-spotlight">
+                                    <div class="flex items-center gap-3">
+                                        <?php if (!empty($sp['badge'])) : ?>
+                                            <span class="bk-mega-spotlight-badge"><?php echo esc_html($sp['badge']); ?></span>
+                                        <?php endif; ?>
+                                        <div>
+                                            <strong class="text-white text-xs block"><?php echo esc_html($sp['title']); ?></strong>
+                                            <span class="text-white/80 text-[11px] block line-clamp-1"><?php echo esc_html($sp['description']); ?></span>
+                                        </div>
+                                    </div>
+                                    <a href="<?php echo esc_url($sp['url']); ?>" class="bk-mega-spotlight-btn"<?php echo $sp_target; ?>>
+                                        <?php echo esc_html(!empty($sp['action_text']) ? $sp['action_text'] : 'Buka &rarr;'); ?>
+                                    </a>
+                                </div>
+                            <?php endif; ?>
+
+                        </div>
                     </div>
-                </div>
-
-                <!-- Dropdown: Akademik -->
-                <div class="relative group dropdown-container">
-                    <button type="button" class="bk-nav-btn dropdown-trigger flex items-center gap-1 rounded-full <?php echo $is_akademik ? 'is-active-dropdown' : ''; ?>">
-                        <span>Akademik</span>
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-180" style="<?php echo $is_akademik ? 'color:#F5B82E;' : 'color:inherit;'; ?>"></i>
-                    </button>
-                    <div class="dropdown-menu absolute left-0 mt-0 w-64 bg-white rounded-2xl shadow-xl shadow-black/20 p-2 border border-gray-100 z-50 text-gray-800 animate-fadeIn" style="background:#ffffff !important;">
-                        <?php foreach ($akademik_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path']);
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="bk-dropdown-link <?php echo $is_item_active ? 'is-active' : ''; ?>" style="<?php echo $is_item_active ? 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;color:#0D3B22 !important;background-color:#E8F0EA !important;text-decoration:none;line-height:1.25;position:relative;' : 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:500;color:#374151 !important;background-color:transparent;text-decoration:none;line-height:1.25;position:relative;'; ?>">
-                                <span class="bk-dropdown-indicator" style="<?php echo $is_item_active ? 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:#0D3B22 !important;' : 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:transparent;'; ?>"></span>
-                                <span class="bk-dropdown-label" style="color:inherit;"><?php echo esc_html($item['label']); ?></span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Dropdown: Kemahasiswaan -->
-                <div class="relative group dropdown-container">
-                    <button type="button" class="bk-nav-btn dropdown-trigger flex items-center gap-1 rounded-full <?php echo $is_kemahasiswaan ? 'is-active-dropdown' : ''; ?>">
-                        <span>Kemahasiswaan</span>
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-180" style="<?php echo $is_kemahasiswaan ? 'color:#F5B82E;' : 'color:inherit;'; ?>"></i>
-                    </button>
-                    <div class="dropdown-menu absolute left-0 mt-0 w-64 bg-white rounded-2xl shadow-xl shadow-black/20 p-2 border border-gray-100 z-50 text-gray-800 animate-fadeIn" style="background:#ffffff !important;">
-                        <?php foreach ($kemahasiswaan_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path']);
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="bk-dropdown-link <?php echo $is_item_active ? 'is-active' : ''; ?>" style="<?php echo $is_item_active ? 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;color:#0D3B22 !important;background-color:#E8F0EA !important;text-decoration:none;line-height:1.25;position:relative;' : 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:500;color:#374151 !important;background-color:transparent;text-decoration:none;line-height:1.25;position:relative;'; ?>">
-                                <span class="bk-dropdown-indicator" style="<?php echo $is_item_active ? 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:#0D3B22 !important;' : 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:transparent;'; ?>"></span>
-                                <span class="bk-dropdown-label" style="color:inherit;"><?php echo esc_html($item['label']); ?></span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Dropdown: Laboratorium (Baru) -->
-                <div class="relative group dropdown-container">
-                    <button type="button" class="bk-nav-btn dropdown-trigger flex items-center gap-1 rounded-full <?php echo $is_lab ? 'is-active-dropdown' : ''; ?>">
-                        <span>Laboratorium</span>
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-180" style="<?php echo $is_lab ? 'color:#F5B82E;' : 'color:inherit;'; ?>"></i>
-                    </button>
-                    <div class="dropdown-menu absolute left-0 mt-0 w-64 bg-white rounded-2xl shadow-xl shadow-black/20 p-2 border border-gray-100 z-50 text-gray-800 animate-fadeIn" style="background:#ffffff !important;">
-                        <?php foreach ($lab_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path']);
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="bk-dropdown-link <?php echo $is_item_active ? 'is-active' : ''; ?>" style="<?php echo $is_item_active ? 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;color:#0D3B22 !important;background-color:#E8F0EA !important;text-decoration:none;line-height:1.25;position:relative;' : 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:500;color:#374151 !important;background-color:transparent;text-decoration:none;line-height:1.25;position:relative;'; ?>">
-                                <span class="bk-dropdown-indicator" style="<?php echo $is_item_active ? 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:#0D3B22 !important;' : 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:transparent;'; ?>"></span>
-                                <span class="bk-dropdown-label" style="color:inherit;"><?php echo esc_html($item['label']); ?></span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Dropdown: Riset & PkM (MIS PNBP) (Baru) -->
-                <div class="relative group dropdown-container">
-                    <button type="button" class="bk-nav-btn dropdown-trigger flex items-center gap-1 rounded-full <?php echo $is_riset ? 'is-active-dropdown' : ''; ?>">
-                        <span>Riset &amp; PkM</span>
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-180" style="<?php echo $is_riset ? 'color:#F5B82E;' : 'color:inherit;'; ?>"></i>
-                    </button>
-                    <div class="dropdown-menu absolute left-0 mt-0 w-64 bg-white rounded-2xl shadow-xl shadow-black/20 p-2 border border-gray-100 z-50 text-gray-800 animate-fadeIn" style="background:#ffffff !important;">
-                        <?php foreach ($riset_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path']);
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="bk-dropdown-link <?php echo $is_item_active ? 'is-active' : ''; ?>" style="<?php echo $is_item_active ? 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;color:#0D3B22 !important;background-color:#E8F0EA !important;text-decoration:none;line-height:1.25;position:relative;' : 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:500;color:#374151 !important;background-color:transparent;text-decoration:none;line-height:1.25;position:relative;'; ?>">
-                                <span class="bk-dropdown-indicator" style="<?php echo $is_item_active ? 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:#0D3B22 !important;' : 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:transparent;'; ?>"></span>
-                                <span class="bk-dropdown-label" style="color:inherit;"><?php echo esc_html($item['label']); ?></span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Dropdown: Layanan -->
-                <div class="relative group dropdown-container">
-                    <button type="button" class="bk-nav-btn dropdown-trigger flex items-center gap-1 rounded-full <?php echo $is_layanan ? 'is-active-dropdown' : ''; ?>">
-                        <span>Layanan</span>
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-180" style="<?php echo $is_layanan ? 'color:#F5B82E;' : 'color:inherit;'; ?>"></i>
-                    </button>
-                    <div class="dropdown-menu absolute left-0 mt-0 w-64 bg-white rounded-2xl shadow-xl shadow-black/20 p-2 border border-gray-100 z-50 text-gray-800 animate-fadeIn" style="background:#ffffff !important;">
-                        <?php foreach ($layanan_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path'] || ($item['path'] === 'e-library' && $is_elib_active));
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="bk-dropdown-link <?php echo $is_item_active ? 'is-active' : ''; ?>" style="<?php echo $is_item_active ? 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;color:#0D3B22 !important;background-color:#E8F0EA !important;text-decoration:none;line-height:1.25;position:relative;' : 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:500;color:#374151 !important;background-color:transparent;text-decoration:none;line-height:1.25;position:relative;'; ?>">
-                                <span class="bk-dropdown-indicator" style="<?php echo $is_item_active ? 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:#0D3B22 !important;' : 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:transparent;'; ?>"></span>
-                                <span class="bk-dropdown-label" style="color:inherit;"><?php echo esc_html($item['label']); ?></span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Dropdown: Akreditasi 9 Kriteria (Baru) -->
-                <div class="relative group dropdown-container">
-                    <button type="button" class="bk-nav-btn dropdown-trigger flex items-center gap-1 rounded-full <?php echo $is_akreditasi ? 'is-active-dropdown' : ''; ?>" style="<?php echo $is_akreditasi ? 'background:rgba(245,184,46,0.2);color:#F5B82E;' : ''; ?>">
-                        <span style="font-weight:700;color:#F5B82E;">Akreditasi</span>
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-180" style="color:#F5B82E;"></i>
-                    </button>
-                    <div class="dropdown-menu absolute right-0 mt-0 w-64 bg-white rounded-2xl shadow-xl shadow-black/20 p-2 border border-gray-100 z-50 text-gray-800 animate-fadeIn" style="background:#ffffff !important;">
-                        <?php foreach ($akreditasi_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path']);
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="bk-dropdown-link <?php echo $is_item_active ? 'is-active' : ''; ?>" style="<?php echo $is_item_active ? 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;color:#0D3B22 !important;background-color:#E8F0EA !important;text-decoration:none;line-height:1.25;position:relative;' : 'display:flex;align-items:center;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:500;color:#374151 !important;background-color:transparent;text-decoration:none;line-height:1.25;position:relative;'; ?>">
-                                <span class="bk-dropdown-indicator" style="<?php echo $is_item_active ? 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:#0D3B22 !important;' : 'width:4px;height:12px;border-radius:2px;margin-right:8px;display:inline-block;flex-shrink:0;background-color:transparent;'; ?>"></span>
-                                <span class="bk-dropdown-label" style="color:inherit;"><?php echo esc_html($item['label']); ?></span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Berita & Pengumuman -->
-                <a href="<?php echo esc_url(home_url('/berita/')); ?>" class="bk-nav-btn <?php echo $is_berita ? 'is-active-btn' : ''; ?>">
-                    Berita
-                </a>
-
+                <?php else : ?>
+                    <!-- Tautan Tunggal Tanpa Submenu -->
+                    <a href="<?php echo esc_url($item_url); ?>" class="bk-nav-btn <?php echo $is_active ? 'is-active-btn' : ''; ?>"<?php echo $is_ext ? ' target="_blank" rel="noopener"' : ''; ?>>
+                        <?php echo esc_html($item['title']); ?>
+                    </a>
+                <?php endif; ?>
+            <?php endforeach; ?>
         </div>
 
         <!-- Mobile Menu Toggle Button (Bulletproof Native SVG & OnClick) -->
@@ -799,134 +1086,67 @@ $akreditasi_menu = array(
 
     </div>
 
-    <!-- Mobile Dropdown Navigation Menu -->
+    <!-- Mobile Dropdown Navigation Menu: Accordion Mega Menu -->
     <div id="mobile-nav-menu" class="bg-[#0D3B22] border-b border-white/10 px-6 py-4 space-y-3 transition-all duration-300 max-h-[85vh] overflow-y-auto">
         <div class="space-y-1">
-            
-            <!-- Beranda -->
-            <a href="<?php echo esc_url(home_url('/')); ?>" class="block text-sm font-bold py-2 <?php echo $is_home ? 'text-[#F5B82E]' : 'text-white/90 hover:text-[#F5B82E]'; ?>" style="<?php echo $is_home ? 'color:#F5B82E !important;' : 'color:rgba(255,255,255,0.9) !important;'; ?>">Beranda</a>
-                
-                <!-- Mobile Accordion: Profil -->
-                <div class="py-2 border-b border-white/10">
-                    <button type="button" onclick="bkToggleAccordion(this)" class="mobile-acc-btn w-full flex items-center justify-between text-sm font-semibold py-2 px-1 rounded-lg <?php echo $is_profil ? 'text-[#F5B82E]' : 'text-white/90 hover:text-[#F5B82E]'; ?>" style="cursor:pointer;background:transparent;border:none;">
-                        <span>Profil</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;color:#F5B82E;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                    <div class="mobile-acc-content pl-4 pt-2 space-y-2 border-l-2 border-white/20 ml-2 mt-2">
-                        <?php foreach ($profil_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path'] || (empty($current_path) && $item['path'] === 'profil'));
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="block text-sm py-1 <?php echo $is_item_active ? 'text-[#F5B82E] font-bold' : 'text-white/70 hover:text-[#F5B82E]'; ?>" style="<?php echo $is_item_active ? 'color:#F5B82E !important; font-weight:700;' : 'color:rgba(255,255,255,0.8) !important;'; ?>">
-                                <?php echo esc_html($item['label']); ?>
-                            </a>
-                        <?php endforeach; ?>
+            <?php foreach ($nav_tree as $item) : 
+                $has_sub   = !empty($item['sections']);
+                $is_active = !empty($item['is_active']);
+                $item_url  = !empty($item['url']) ? $item['url'] : '#';
+                $badge     = !empty($item['badge']) ? $item['badge'] : '';
+                $is_ext    = (!empty($item['target']) && $item['target'] === '_blank');
+            ?>
+                <?php if ($has_sub) : ?>
+                    <!-- Accordion Submenu: <?php echo esc_attr($item['title']); ?> -->
+                    <div class="py-2 border-b border-white/10">
+                        <button type="button" onclick="bkToggleAccordion(this)" class="mobile-acc-btn w-full flex items-center justify-between text-sm font-semibold py-2 px-1 rounded-lg <?php echo $is_active ? 'text-[#F5B82E]' : 'text-white/90 hover:text-[#F5B82E]'; ?>" style="cursor:pointer;background:transparent;border:none;">
+                            <span class="flex items-center gap-2">
+                                <?php if (!empty($item['icon'])) : ?>
+                                    <span style="opacity:0.85;"><?php echo ppb_get_menu_icon_svg($item['icon'], 16); ?></span>
+                                <?php endif; ?>
+                                <span><?php echo esc_html($item['title']); ?></span>
+                                <?php if (!empty($badge)) : ?>
+                                    <span style="background:rgba(245,184,46,0.22);color:#F5B82E;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:700;"><?php echo esc_html($badge); ?></span>
+                                <?php endif; ?>
+                            </span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;color:#F5B82E;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <div class="mobile-acc-content pl-2 pt-2 space-y-3 border-l-2 border-white/20 ml-2 mt-2">
+                            <?php foreach ($item['sections'] as $sec) : ?>
+                                <div class="mobile-sec-group">
+                                    <?php if (!empty($sec['heading']) && count($item['sections']) > 1) : ?>
+                                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#F5B82E;opacity:0.9;margin-bottom:4px;padding-left:4px;display:flex;align-items:center;gap:4px;">
+                                            📁 <?php echo esc_html($sec['heading']); ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="space-y-1">
+                                        <?php foreach ($sec['items'] as $link) : 
+                                            $is_link_active = !empty($link['is_active']);
+                                            $link_target = (!empty($link['target']) && $link['target'] === '_blank') ? ' target="_blank" rel="noopener"' : '';
+                                        ?>
+                                            <a href="<?php echo esc_url($link['url']); ?>" class="block text-sm py-1.5 px-2 rounded-lg transition-colors <?php echo $is_link_active ? 'text-[#F5B82E] font-bold bg-white/10' : 'text-white/80 hover:text-[#F5B82E] hover:bg-white/5'; ?>"<?php echo $link_target; ?> style="text-decoration:none;">
+                                                <div class="flex items-center justify-between">
+                                                    <span><?php echo esc_html($link['title']); ?></span>
+                                                    <?php if (!empty($link['badge'])) : ?>
+                                                        <span style="background:rgba(245,184,46,0.25);color:#F5B82E;font-size:9.5px;padding:1px 5px;border-radius:3px;font-weight:700;"><?php echo esc_html($link['badge']); ?></span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <?php if (!empty($link['subtitle'])) : ?>
+                                                    <div style="font-size:11px;color:rgba(255,255,255,0.55);line-height:1.2;margin-top:2px;"><?php echo esc_html($link['subtitle']); ?></div>
+                                                <?php endif; ?>
+                                            </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Mobile Accordion: Akademik -->
-                <div class="py-2 border-b border-white/10">
-                    <button type="button" onclick="bkToggleAccordion(this)" class="mobile-acc-btn w-full flex items-center justify-between text-sm font-semibold py-2 px-1 rounded-lg <?php echo $is_akademik ? 'text-[#F5B82E]' : 'text-white/90 hover:text-[#F5B82E]'; ?>" style="cursor:pointer;background:transparent;border:none;">
-                        <span>Akademik</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;color:#F5B82E;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                    <div class="mobile-acc-content pl-4 pt-2 space-y-2 border-l-2 border-white/20 ml-2 mt-2">
-                        <?php foreach ($akademik_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path']);
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="block text-sm py-1 <?php echo $is_item_active ? 'text-[#F5B82E] font-bold' : 'text-white/70 hover:text-[#F5B82E]'; ?>" style="<?php echo $is_item_active ? 'color:#F5B82E !important; font-weight:700;' : 'color:rgba(255,255,255,0.8) !important;'; ?>">
-                                <?php echo esc_html($item['label']); ?>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Mobile Accordion: Kemahasiswaan -->
-                <div class="py-2 border-b border-white/10">
-                    <button type="button" onclick="bkToggleAccordion(this)" class="mobile-acc-btn w-full flex items-center justify-between text-sm font-semibold py-2 px-1 rounded-lg <?php echo $is_kemahasiswaan ? 'text-[#F5B82E]' : 'text-white/90 hover:text-[#F5B82E]'; ?>" style="cursor:pointer;background:transparent;border:none;">
-                        <span>Kemahasiswaan</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;color:#F5B82E;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                    <div class="mobile-acc-content pl-4 pt-2 space-y-2 border-l-2 border-white/20 ml-2 mt-2">
-                        <?php foreach ($kemahasiswaan_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path']);
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="block text-sm py-1 <?php echo $is_item_active ? 'text-[#F5B82E] font-bold' : 'text-white/70 hover:text-[#F5B82E]'; ?>" style="<?php echo $is_item_active ? 'color:#F5B82E !important; font-weight:700;' : 'color:rgba(255,255,255,0.8) !important;'; ?>">
-                                <?php echo esc_html($item['label']); ?>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Mobile Accordion: Laboratorium (Baru) -->
-                <div class="py-2 border-b border-white/10">
-                    <button type="button" onclick="bkToggleAccordion(this)" class="mobile-acc-btn w-full flex items-center justify-between text-sm font-semibold py-2 px-1 rounded-lg <?php echo $is_lab ? 'text-[#F5B82E]' : 'text-white/90 hover:text-[#F5B82E]'; ?>" style="cursor:pointer;background:transparent;border:none;">
-                        <span>Laboratorium</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;color:#F5B82E;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                    <div class="mobile-acc-content pl-4 pt-2 space-y-2 border-l-2 border-white/20 ml-2 mt-2">
-                        <?php foreach ($lab_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path']);
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="block text-sm py-1 <?php echo $is_item_active ? 'text-[#F5B82E] font-bold' : 'text-white/70 hover:text-[#F5B82E]'; ?>" style="<?php echo $is_item_active ? 'color:#F5B82E !important; font-weight:700;' : 'color:rgba(255,255,255,0.8) !important;'; ?>">
-                                <?php echo esc_html($item['label']); ?>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Mobile Accordion: Riset & PkM (MIS PNBP) (Baru) -->
-                <div class="py-2 border-b border-white/10">
-                    <button type="button" onclick="bkToggleAccordion(this)" class="mobile-acc-btn w-full flex items-center justify-between text-sm font-semibold py-2 px-1 rounded-lg <?php echo $is_riset ? 'text-[#F5B82E]' : 'text-white/90 hover:text-[#F5B82E]'; ?>" style="cursor:pointer;background:transparent;border:none;">
-                        <span>Riset &amp; PkM (MIS PNBP)</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;color:#F5B82E;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                    <div class="mobile-acc-content pl-4 pt-2 space-y-2 border-l-2 border-white/20 ml-2 mt-2">
-                        <?php foreach ($riset_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path']);
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="block text-sm py-1 <?php echo $is_item_active ? 'text-[#F5B82E] font-bold' : 'text-white/70 hover:text-[#F5B82E]'; ?>" style="<?php echo $is_item_active ? 'color:#F5B82E !important; font-weight:700;' : 'color:rgba(255,255,255,0.8) !important;'; ?>">
-                                <?php echo esc_html($item['label']); ?>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Mobile Accordion: Layanan -->
-                <div class="py-2 border-b border-white/10">
-                    <button type="button" onclick="bkToggleAccordion(this)" class="mobile-acc-btn w-full flex items-center justify-between text-sm font-semibold py-2 px-1 rounded-lg <?php echo $is_layanan ? 'text-[#F5B82E]' : 'text-white/90 hover:text-[#F5B82E]'; ?>" style="cursor:pointer;background:transparent;border:none;">
-                        <span>Layanan</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;color:#F5B82E;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                    <div class="mobile-acc-content pl-4 pt-2 space-y-2 border-l-2 border-white/20 ml-2 mt-2">
-                        <?php foreach ($layanan_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path'] || ($item['path'] === 'e-library' && $is_elib_active));
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="block text-sm py-1 <?php echo $is_item_active ? 'text-[#F5B82E] font-bold' : 'text-white/70 hover:text-[#F5B82E]'; ?>" style="<?php echo $is_item_active ? 'color:#F5B82E !important; font-weight:700;' : 'color:rgba(255,255,255,0.8) !important;'; ?>">
-                                <?php echo esc_html($item['label']); ?>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Mobile Accordion: Akreditasi 9 Kriteria (Baru) -->
-                <div class="py-2 border-b border-white/10">
-                    <button type="button" onclick="bkToggleAccordion(this)" class="mobile-acc-btn w-full flex items-center justify-between text-sm font-semibold py-2 px-1 rounded-lg <?php echo $is_akreditasi ? 'text-[#F5B82E]' : 'text-[#F5B82E]/90 hover:text-[#F5B82E]'; ?>" style="cursor:pointer;background:transparent;border:none;">
-                        <span style="font-weight:700;color:#F5B82E;">Akreditasi 9 Kriteria</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;color:#F5B82E;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                    <div class="mobile-acc-content pl-4 pt-2 space-y-2 border-l-2 border-white/20 ml-2 mt-2">
-                        <?php foreach ($akreditasi_menu as $item) : 
-                            $is_item_active = ($current_path === $item['path']);
-                        ?>
-                            <a href="<?php echo esc_url($item['url']); ?>" class="block text-sm py-1 <?php echo $is_item_active ? 'text-[#F5B82E] font-bold' : 'text-white/70 hover:text-[#F5B82E]'; ?>" style="<?php echo $is_item_active ? 'color:#F5B82E !important; font-weight:700;' : 'color:rgba(255,255,255,0.8) !important;'; ?>">
-                                <?php echo esc_html($item['label']); ?>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <a href="<?php echo esc_url(home_url('/berita/')); ?>" class="block text-sm font-semibold py-2 <?php echo $is_berita ? 'text-[#F5B82E]' : 'text-white/90 hover:text-[#F5B82E]'; ?>" style="<?php echo $is_berita ? 'color:#F5B82E !important;' : 'color:rgba(255,255,255,0.9) !important;'; ?>">Berita &amp; Pengumuman</a>
-
+                <?php else : ?>
+                    <a href="<?php echo esc_url($item_url); ?>" class="block text-sm font-bold py-2 <?php echo $is_active ? 'text-[#F5B82E]' : 'text-white/90 hover:text-[#F5B82E]'; ?>" style="<?php echo $is_active ? 'color:#F5B82E !important;' : 'color:rgba(255,255,255,0.9) !important;'; ?>"<?php echo $is_ext ? ' target="_blank" rel="noopener"' : ''; ?>>
+                        <?php echo esc_html($item['title']); ?>
+                    </a>
+                <?php endif; ?>
+            <?php endforeach; ?>
         </div>
     </div>
 </nav>

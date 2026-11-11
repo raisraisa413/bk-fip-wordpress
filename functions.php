@@ -360,7 +360,11 @@ if (!function_exists('ppb_get_spotlight_slides')) {
     }
 }
 
-
+// PPB Dynamic Mega Menu Module & WP-Admin Manager
+$mega_menu_inc = get_template_directory() . '/inc/ppb-mega-menu.php';
+if (file_exists($mega_menu_inc)) {
+    require_once $mega_menu_inc;
+}
 
 function bk_fip_theme_setup() {
 
@@ -376,7 +380,7 @@ function bk_fip_theme_setup() {
 
     register_nav_menus(array(
 
-        'primary-menu' => __('Menu Utama (Navbar)', 'bk-fip'),
+        'primary-menu' => __('Menu Utama (Navbar Mega Menu)', 'bk-fip'),
 
         'footer-menu'  => __('Menu Footer', 'bk-fip'),
 
