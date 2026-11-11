@@ -156,6 +156,15 @@ body {
   width: 100% !important;
   margin: 0 auto !important;
   box-sizing: border-box !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.bk-subnav-sticky-wrap > div::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Prevent any stray <br> or <p> tags from injecting space */
@@ -296,10 +305,51 @@ main,
 
 /* ==========================================================================
    DOSEN DIRECTORY & SINGLE DOSEN PROFILE BUTTON / CARD REFINEMENTS
-   Memastikan card simetris & tombol tidak ada space kosong di atas teks
+   Memastikan grid rapi & simetris di desktop, tablet, dan mobile
    ========================================================================== */
+#bk-dosen-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 20px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  align-items: stretch !important;
+}
+
+@media (min-width: 640px) {
+  #bk-dosen-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  #bk-dosen-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 24px !important;
+  }
+}
+
+@media (min-width: 1400px) {
+  #bk-dosen-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 24px !important;
+  }
+}
+
+@media (min-width: 1800px) {
+  #bk-dosen-grid {
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 24px !important;
+  }
+}
+
 .bk-dosen-card-item {
   box-sizing: border-box !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
 }
 
 .bk-dosen-card-item *,
@@ -308,8 +358,31 @@ main,
   box-sizing: border-box !important;
 }
 
-.bk-dosen-card-item a,
-.bk-dosen-card-item button,
+/* Lecturer Name Link - Preserve Natural Left Alignment and Typography */
+.bk-dosen-card-item h3 {
+  margin-top: 0 !important;
+  margin-bottom: 5px !important;
+  line-height: 1.35 !important;
+}
+
+.bk-dosen-card-item h3 a {
+  display: inline !important;
+  text-align: left !important;
+  line-height: 1.35 !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  text-decoration: none !important;
+}
+
+.bk-dosen-card-item h3 a:hover {
+  color: #0D3B22 !important;
+}
+
+.bk-dosen-card-item p {
+  margin-top: 0 !important;
+}
+
+/* Buttons inside dosen cards and single profile tabs */
 .dosen-tab-btn,
 .bk-card-btn {
   display: inline-flex !important;
@@ -329,12 +402,4 @@ main,
   vertical-align: middle !important;
   margin: 0 !important;
   padding: 0 !important;
-}
-
-.bk-dosen-card-item p {
-  margin-top: 0 !important;
-}
-
-.bk-dosen-card-item h3 {
-  margin-top: 0 !important;
 }
