@@ -336,25 +336,43 @@
         overflow-y: auto !important;
     }
 
-    /* Open States (Controlled cleanly by Click & Mouseenter via JS) */
+    /* Open States (Controlled strictly by .is-open class on wrap or menu) */
     .bk-nav-item-wrap.is-open > .bk-mega-dropdown,
     .bk-mega-dropdown.is-open {
         display: block !important;
     }
 
-    /* Trigger Button Active & Open Highlight */
-    .bk-nav-item-wrap.is-open > .bk-nav-btn {
-        background: rgba(255, 255, 255, 0.16) !important;
-        color: #F5B82E !important;
-        border-color: rgba(245, 184, 46, 0.5) !important;
+    /* Arrow Icon Base & Deterministic Rotation */
+    .bk-dropdown-arrow {
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        transform: rotate(0deg) !important;
     }
-    .bk-nav-item-wrap.is-open > .bk-nav-btn svg {
+    .bk-nav-item-wrap.is-open .bk-dropdown-arrow {
         transform: rotate(180deg) !important;
         color: #F5B82E !important;
     }
+    .bk-nav-item-wrap:not(.is-open) .bk-dropdown-arrow {
+        transform: rotate(0deg) !important;
+    }
+
+    /* Trigger Button: Closed State (Hover & Active Page) */
     .bk-nav-item-wrap:not(.is-open) > .bk-nav-btn:hover {
-        background: rgba(255, 255, 255, 0.1) !important;
+        background: rgba(255, 255, 255, 0.12) !important;
         color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.25) !important;
+    }
+    .bk-nav-item-wrap:not(.is-open) > .bk-nav-btn.is-active-dropdown {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: #F5B82E !important;
+        border-color: rgba(245, 184, 46, 0.35) !important;
+    }
+
+    /* Trigger Button: OPEN State (When Mega Menu is Active) */
+    .bk-nav-item-wrap.is-open > .bk-nav-btn {
+        background: rgba(255, 255, 255, 0.2) !important;
+        color: #F5B82E !important;
+        border: 1px solid rgba(245, 184, 46, 0.6) !important;
+        box-shadow: 0 0 12px rgba(245, 184, 46, 0.25) !important;
     }
 
     /* Invisible Hover Bridge */
@@ -904,7 +922,7 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
                             <?php if (!empty($badge) && in_array($badge, ['OBE 2025', 'Unggul', 'Baru', '25 Dosen', 'Prestasi', 'MIS PNBP'])) : ?>
                                 <span class="bk-nav-pill-badge"><?php echo esc_html($badge); ?></span>
                             <?php endif; ?>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-200 group-hover:rotate-180" style="<?php echo $is_active ? 'color:#F5B82E;' : 'color:inherit;'; ?>"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="bk-dropdown-arrow" style="<?php echo $is_active ? 'color:#F5B82E;' : 'color:inherit;'; ?>"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </button>
                         
                         <!-- Panel Mega Menu (Full-Width Screen Width) -->
@@ -1188,20 +1206,57 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
         }
     };
 
-    // 2b. Desktop Mega Menu Deterministic Click Toggle & Hover Controller
+    // 2b. Desktop Mega Menu Deterministic Click Toggle & Conflict-Free Hover Controller
     function initDesktopMegaMenu() {
         var wraps = document.querySelectorAll("#bk-desktop-nav .bk-nav-item-wrap");
         if (!wraps.length) return;
 
+        var hoverTimer = null;
+
         function closeAllMenus() {
             wraps.forEach(function(w) {
                 w.classList.remove("is-open");
-                w.classList.remove("is-manually-closed");
+                delete w.dataset.closedByClick;
                 var m = w.querySelector(".bk-mega-dropdown");
                 if (m) m.classList.remove("is-open");
                 var b = w.querySelector(".dropdown-trigger");
-                if (b) b.setAttribute("aria-expanded", "false");
+                if (b) {
+                    b.setAttribute("aria-expanded", "false");
+                    b.blur();
+                }
             });
+        }
+
+        function openMenu(wrap) {
+            wraps.forEach(function(w) {
+                if (w !== wrap) {
+                    w.classList.remove("is-open");
+                    delete w.dataset.closedByClick;
+                    var otherM = w.querySelector(".bk-mega-dropdown");
+                    if (otherM) otherM.classList.remove("is-open");
+                    var otherB = w.querySelector(".dropdown-trigger");
+                    if (otherB) otherB.setAttribute("aria-expanded", "false");
+                }
+            });
+
+            delete wrap.dataset.closedByClick;
+            wrap.classList.add("is-open");
+            var menu = wrap.querySelector(".bk-mega-dropdown");
+            if (menu) menu.classList.add("is-open");
+            var btn = wrap.querySelector(".dropdown-trigger");
+            if (btn) btn.setAttribute("aria-expanded", "true");
+        }
+
+        function closeMenu(wrap) {
+            wrap.classList.remove("is-open");
+            wrap.dataset.closedByClick = "true";
+            var menu = wrap.querySelector(".bk-mega-dropdown");
+            if (menu) menu.classList.remove("is-open");
+            var btn = wrap.querySelector(".dropdown-trigger");
+            if (btn) {
+                btn.setAttribute("aria-expanded", "false");
+                btn.blur();
+            }
         }
 
         wraps.forEach(function(wrap) {
@@ -1209,7 +1264,8 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
             var menu = wrap.querySelector(".bk-mega-dropdown");
             if (!btn || !menu) return;
 
-            // Click Handler: Deterministic Toggle (1st click = Open, 2nd click = Close)
+            // 1. DETERMINISTIC CLICK TOGGLE
+            // 1st click = Open, 2nd click on same menu = Close immediately!
             btn.onclick = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1217,45 +1273,70 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
                 var isOpen = wrap.classList.contains("is-open");
 
                 if (isOpen) {
-                    // SECOND CLICK: Close immediately!
-                    wrap.classList.remove("is-open");
-                    wrap.classList.add("is-manually-closed");
-                    menu.classList.remove("is-open");
-                    btn.setAttribute("aria-expanded", "false");
+                    closeMenu(wrap);
                 } else {
-                    // FIRST CLICK: Close others, open this one!
-                    closeAllMenus();
-                    wrap.classList.remove("is-manually-closed");
-                    wrap.classList.add("is-open");
-                    menu.classList.add("is-open");
-                    btn.setAttribute("aria-expanded", "true");
+                    openMenu(wrap);
                 }
             };
 
-            // Desktop Hover Support (smooth hover open unless user intentionally closed via click)
-            wrap.addEventListener("mouseenter", function() {
-                if (window.innerWidth >= 1024 && !wrap.classList.contains("is-manually-closed")) {
-                    closeAllMenus();
-                    wrap.classList.add("is-open");
-                    menu.classList.add("is-open");
-                    btn.setAttribute("aria-expanded", "true");
-                }
+            // 2. CONFLICT-FREE DESKTOP HOVER SUPPORT
+            wrap.addEventListener("mouseenter", function(e) {
+                if (window.innerWidth < 1024) return;
+                if (hoverTimer) clearTimeout(hoverTimer);
+
+                // If user just closed this via click and mouse is still on it, don't reopen immediately
+                if (wrap.dataset.closedByClick === "true") return;
+
+                hoverTimer = setTimeout(function() {
+                    openMenu(wrap);
+                }, 80);
             });
 
-            // Desktop Mouseleave: Reset manually-closed flag and close menu
-            wrap.addEventListener("mouseleave", function() {
-                if (window.innerWidth >= 1024) {
-                    wrap.classList.remove("is-open");
-                    wrap.classList.remove("is-manually-closed");
-                    menu.classList.remove("is-open");
-                    btn.setAttribute("aria-expanded", "false");
+            wrap.addEventListener("mouseleave", function(e) {
+                if (window.innerWidth < 1024) return;
+                var related = e.relatedTarget;
+                if (related && (wrap.contains(related) || menu.contains(related))) {
+                    return;
                 }
+                // Reset click-closed lock when mouse completely leaves the item
+                delete wrap.dataset.closedByClick;
+
+                if (hoverTimer) clearTimeout(hoverTimer);
+                hoverTimer = setTimeout(function() {
+                    if (!wrap.matches(":hover") && !menu.matches(":hover")) {
+                        wrap.classList.remove("is-open");
+                        menu.classList.remove("is-open");
+                        btn.setAttribute("aria-expanded", "false");
+                    }
+                }, 150);
+            });
+
+            // Prevent menu from disappearing when cursor moves into the dropdown panel
+            menu.addEventListener("mouseenter", function() {
+                if (window.innerWidth < 1024) return;
+                if (hoverTimer) clearTimeout(hoverTimer);
+            });
+
+            menu.addEventListener("mouseleave", function(e) {
+                if (window.innerWidth < 1024) return;
+                var related = e.relatedTarget;
+                if (related && (wrap.contains(related) || menu.contains(related))) {
+                    return;
+                }
+                if (hoverTimer) clearTimeout(hoverTimer);
+                hoverTimer = setTimeout(function() {
+                    if (!wrap.matches(":hover") && !menu.matches(":hover")) {
+                        wrap.classList.remove("is-open");
+                        menu.classList.remove("is-open");
+                        btn.setAttribute("aria-expanded", "false");
+                    }
+                }, 150);
             });
         });
 
         // Click outside closes any open mega menu
         document.addEventListener("click", function(e) {
-            if (!e.target.closest("#bk-desktop-nav")) {
+            if (!e.target.closest("#bk-desktop-nav") && !e.target.closest(".bk-mega-dropdown")) {
                 closeAllMenus();
             }
         });
