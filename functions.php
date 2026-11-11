@@ -2351,35 +2351,35 @@ function bk_fip_rebuild_dosen_roster_html($dosen_list) {
             $sinta_quick = '<span style="color:#D1D5DB;">&bull;</span><a href="' . esc_url($sinta_url) . '" target="_blank" rel="noopener" style="color:#0D3B22;font-weight:700;font-size:11px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;transition:color 0.2s;" onmouseover="this.style.color=\'#185333\'" onmouseout="this.style.color=\'#0D3B22\'" title="Buka profil SINTA Dikti"><span>SINTA</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></a>';
         }
 
-        $nip_block = $nip_display ? '<p style="font-family:monospace;font-size:11px;color:#6B7280;margin:0 0 12px 0;line-height:1.2;">' . $nip_display . '</p>' : '<div style="margin-bottom:12px;"></div>';
+        $nip_block = $nip_display ? '<p class="bk-dosen-card-nip" style="font-family:monospace;font-size:11px;color:#6B7280;margin:0 0 10px 0;line-height:1.2;height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' . $nip_display . '</p>' : '<div class="bk-dosen-card-nip" style="height:16px;margin-bottom:10px;"></div>';
 
-        $cards_html .= '<div class="bk-dosen-card-item" data-text="' . $search_text . '" style="background:#ffffff;border:1.5px solid #D4E3D8;border-radius:20px;padding:22px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 16px rgba(13,59,34,0.04);position:relative;overflow:hidden;transition:all 0.25s cubic-bezier(0.16, 1, 0.3, 1);" onmouseover="this.style.transform=\'translateY(-4px)\';this.style.borderColor=\'#185333\';this.style.boxShadow=\'0 12px 28px rgba(13,59,34,0.12)\';" onmouseout="this.style.transform=\'translateY(0)\';this.style.borderColor=\'#D4E3D8\';this.style.boxShadow=\'0 4px 16px rgba(13,59,34,0.04)\';">
+        $cards_html .= '<div class="bk-dosen-card-item" data-text="' . $search_text . '" style="background:#ffffff;border:1.5px solid #D4E3D8;border-radius:20px;padding:22px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 16px rgba(13,59,34,0.04);position:relative;overflow:hidden;transition:all 0.25s cubic-bezier(0.16, 1, 0.3, 1);box-sizing:border-box;height:100%;min-height:395px;" onmouseover="this.style.transform=\'translateY(-4px)\';this.style.borderColor=\'#185333\';this.style.boxShadow=\'0 12px 28px rgba(13,59,34,0.12)\';" onmouseout="this.style.transform=\'translateY(0)\';this.style.borderColor=\'#D4E3D8\';this.style.boxShadow=\'0 4px 16px rgba(13,59,34,0.04)\';">
             <div style="position:absolute;top:0;left:0;right:0;height:4px;background:#0D3B22;"></div>
-            <div style="margin-top:6px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+            <div class="bk-dosen-card-top" style="margin-top:4px;display:flex;flex-direction:column;flex:1 1 auto;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;height:54px;">
                     ' . $avatar_html . '
-                    <span style="font-size:9.5px;font-weight:800;background:' . $badge_bg . ';color:' . $badge_color . ';border:1px solid ' . $badge_border . ';padding:4px 10px;border-radius:9999px;letter-spacing:0.04em;text-transform:uppercase;line-height:1;display:inline-block;">' . $badge_label . '</span>
+                    <span style="font-size:9.5px;font-weight:800;background:' . $badge_bg . ';color:' . $badge_color . ';border:1px solid ' . $badge_border . ';padding:4px 10px;border-radius:9999px;letter-spacing:0.04em;text-transform:uppercase;line-height:1;display:inline-block;white-space:nowrap;">' . $badge_label . '</span>
                 </div>
-                <h3 style="font-family:Fraunces,Georgia,serif;font-size:16px;font-weight:700;color:#111827;line-height:1.35;margin:0 0 5px 0;min-height:44px;display:flex;align-items:flex-start;">
+                <h3 class="bk-dosen-card-name" style="font-family:Fraunces,Georgia,serif;font-size:15.5px;font-weight:700;color:#111827;line-height:1.35;margin:0 0 4px 0;height:46px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;">
                     <a href="' . esc_url($profile_url) . '" style="color:inherit;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color=\'#0D3B22\'" onmouseout="this.style.color=\'#111827\'">' . esc_html($nama) . '</a>
                 </h3>
-                <p style="font-size:12px;color:#0D3B22;font-weight:600;margin:0 0 3px 0;line-height:1.3;">' . esc_html($jabatan) . '</p>
+                <p class="bk-dosen-card-role" style="font-size:12px;color:#0D3B22;font-weight:600;margin:0 0 3px 0;line-height:1.3;height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' . esc_html($jabatan) . '</p>
                 ' . $nip_block . '
-                <div style="border-top:1px solid #F3F4F6;padding-top:10px;margin-bottom:14px;">
+                <div class="bk-dosen-card-tags-wrap" style="border-top:1px solid #F3F4F6;padding-top:10px;margin-top:auto;margin-bottom:12px;">
                     <span style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;line-height:1;">Fokus Kepakaran:</span>
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;min-height:26px;">' . $tags_html . '</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;height:48px;overflow:hidden;align-content:flex-start;">' . $tags_html . '</div>
                 </div>
             </div>
-            <div style="border-top:1px solid #F3F4F6;padding-top:12px;margin-top:auto;">
-                <div style="display:flex;justify-content:space-between;align-items:center;background:#FAF8F5;border:1px solid #E5E7EB;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:11.5px;color:#0D3B22;line-height:1;box-sizing:border-box;">
+            <div class="bk-dosen-card-bottom" style="border-top:1px solid #F3F4F6;padding-top:12px;margin-top:auto;flex-shrink:0;">
+                <div class="dosen-stats-row" style="display:flex;justify-content:space-between;align-items:center;background:#FAF8F5;border:1px solid #E5E7EB;border-radius:10px;padding:7px 10px;margin-bottom:10px;font-size:11px;color:#0D3B22;line-height:1;box-sizing:border-box;height:34px;">
                     <span>Publikasi: <strong style="color:#0D3B22;font-weight:700;">' . $pub_cnt . '</strong></span>
                     <span style="color:#D1D5DB;">&bull;</span>
                     <span>Riset: <strong style="color:#0D3B22;font-weight:700;">' . $pen_cnt . '</strong></span>
                     ' . $sinta_quick . '
                 </div>
-                <a href="' . esc_url($profile_url) . '" class="bk-card-btn" style="width:100%;height:40px;display:flex;align-items:center;justify-content:center;gap:8px;background:#0D3B22;color:#F5B82E;border:1.5px solid #0D3B22;border-radius:12px;font-size:12.5px;font-weight:700;text-decoration:none;box-sizing:border-box;line-height:1;transition:all 0.2s;" onmouseover="this.style.background=\'#185333\';this.style.borderColor=\'#185333\';this.style.color=\'#ffffff\';" onmouseout="this.style.background=\'#0D3B22\';this.style.borderColor=\'#0D3B22\';this.style.color=\'#F5B82E\';">
+                <a href="' . esc_url($profile_url) . '" class="bk-card-btn" style="width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;background:#0D3B22;color:#F5B82E;border:1.5px solid #0D3B22;border-radius:12px;font-size:12px;font-weight:700;text-decoration:none;box-sizing:border-box;line-height:1;transition:all 0.2s;" onmouseover="this.style.background=\'#185333\';this.style.borderColor=\'#185333\';this.style.color=\'#ffffff\';" onmouseout="this.style.background=\'#0D3B22\';this.style.borderColor=\'#0D3B22\';this.style.color=\'#F5B82E\';">
                     <span>Lihat Profil &amp; Rekam Jejak</span>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </a>
             </div>
         </div>' . "\n";
@@ -2440,7 +2440,7 @@ function bk_fip_rebuild_dosen_roster_html($dosen_list) {
 
 <section style="padding:0 var(--bk-edge-pad, 1rem) 45px;font-family:\'Poppins\',sans-serif">
     <div style="max-width:100%;width:100%;margin:0 auto">
-        <div id="bk-dosen-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(310px, 1fr));gap:24px;">
+        <div id="bk-dosen-grid" class="bk-dosen-grid-container">
 ' . $cards_html . '
         </div>
 

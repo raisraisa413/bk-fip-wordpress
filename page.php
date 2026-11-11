@@ -20,7 +20,7 @@ if (have_posts()) : while (have_posts()) : the_post();
     $has_modern_markup = (strpos($content, 'bk-page-wrapper') !== false || strpos($content, 'elementor') !== false);
     $is_empty = empty(trim(strip_tags($content))) || strlen(trim($content)) < 100;
     $is_dosen = (strpos($current_slug, 'dosen') !== false);
-    $needs_dosen_refresh = ($is_dosen && (strpos($content, 'bk-dosen-grid') === false || strlen($content) < 1000 || isset($_GET['refresh_dosen'])));
+    $needs_dosen_refresh = ($is_dosen && (strpos($content, 'bk-dosen-card-name') === false || strlen($content) < 1000 || isset($_GET['refresh_dosen'])));
     if (!$has_modern_markup || $is_empty || $needs_dosen_refresh) {
         $json_file = get_template_directory() . '/pages-data.json';
         if (file_exists($json_file)) {

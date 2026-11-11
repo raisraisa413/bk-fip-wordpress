@@ -305,41 +305,38 @@ main,
 
 /* ==========================================================================
    DOSEN DIRECTORY & SINGLE DOSEN PROFILE BUTTON / CARD REFINEMENTS
-   Memastikan grid rapi & simetris di desktop, tablet, dan mobile
+   Memastikan grid rapi & 100% simetris (equal heights) di desktop, tablet, dan mobile
    ========================================================================== */
-#bk-dosen-grid {
+#bk-dosen-grid,
+.bk-dosen-grid-container {
   display: grid !important;
   grid-template-columns: 1fr !important;
-  gap: 20px !important;
+  gap: 16px !important;
   width: 100% !important;
   box-sizing: border-box !important;
   align-items: stretch !important;
 }
 
 @media (min-width: 640px) {
-  #bk-dosen-grid {
+  #bk-dosen-grid,
+  .bk-dosen-grid-container {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 20px !important;
+    gap: 18px !important;
   }
 }
 
 @media (min-width: 1024px) {
-  #bk-dosen-grid {
+  #bk-dosen-grid,
+  .bk-dosen-grid-container {
     grid-template-columns: repeat(3, 1fr) !important;
-    gap: 24px !important;
+    gap: 22px !important;
   }
 }
 
-@media (min-width: 1400px) {
-  #bk-dosen-grid {
+@media (min-width: 1440px) {
+  #bk-dosen-grid,
+  .bk-dosen-grid-container {
     grid-template-columns: repeat(4, 1fr) !important;
-    gap: 24px !important;
-  }
-}
-
-@media (min-width: 1800px) {
-  #bk-dosen-grid {
-    grid-template-columns: repeat(5, 1fr) !important;
     gap: 24px !important;
   }
 }
@@ -347,9 +344,28 @@ main,
 .bk-dosen-card-item {
   box-sizing: border-box !important;
   height: 100% !important;
+  min-height: 395px !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-between !important;
+  background: #ffffff !important;
+  border: 1.5px solid #D4E3D8 !important;
+  border-radius: 20px !important;
+  padding: 20px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@media (max-width: 639px) {
+  .bk-dosen-card-item {
+    padding: 18px 16px !important;
+    border-radius: 16px !important;
+    min-height: 380px !important;
+  }
+  .bk-faculty-card {
+    flex: 0 0 280px !important;
+  }
 }
 
 .bk-dosen-card-item *,
@@ -358,13 +374,33 @@ main,
   box-sizing: border-box !important;
 }
 
-/* Lecturer Name Link - Preserve Natural Left Alignment and Typography */
-.bk-dosen-card-item h3 {
-  margin-top: 0 !important;
-  margin-bottom: 5px !important;
-  line-height: 1.35 !important;
+.bk-dosen-card-top {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
 }
 
+/* Lecturer Name Link - Calibrated 46px Height for Uniform 2-Line Baseline */
+.bk-dosen-card-name,
+.bk-dosen-card-item h3 {
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin-top: 0 !important;
+  margin-bottom: 4px !important;
+  line-height: 1.35 !important;
+  font-family: Fraunces, Georgia, serif !important;
+  font-size: 15.5px !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+}
+
+.bk-dosen-card-name a,
 .bk-dosen-card-item h3 a {
   display: inline !important;
   text-align: left !important;
@@ -374,12 +410,63 @@ main,
   text-decoration: none !important;
 }
 
+.bk-dosen-card-name a:hover,
 .bk-dosen-card-item h3 a:hover {
   color: #0D3B22 !important;
 }
 
+/* Role / Jabatan - Single Line Calibrated */
+.bk-dosen-card-role,
 .bk-dosen-card-item p {
-  margin-top: 0 !important;
+  height: 18px !important;
+  line-height: 18px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 0 0 3px 0 !important;
+  font-size: 12px !important;
+  color: #0D3B22 !important;
+  font-weight: 600 !important;
+}
+
+/* NIP Display Line */
+.bk-dosen-card-nip {
+  height: 16px !important;
+  line-height: 16px !important;
+  margin: 0 0 10px 0 !important;
+}
+
+/* Tags Container - Pushed to Bottom of Top Section with Fixed Height */
+.bk-dosen-card-tags-wrap {
+  margin-top: auto !important;
+  border-top: 1px solid #F3F4F6 !important;
+  padding-top: 10px !important;
+  margin-bottom: 12px !important;
+}
+
+/* Card Bottom Action Area */
+.bk-dosen-card-bottom {
+  margin-top: auto !important;
+  border-top: 1px solid #F3F4F6 !important;
+  padding-top: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Stats Row */
+.dosen-stats-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  background: #FAF8F5 !important;
+  border: 1px solid #E5E7EB !important;
+  border-radius: 10px !important;
+  padding: 7px 10px !important;
+  margin-bottom: 10px !important;
+  font-size: 11px !important;
+  color: #0D3B22 !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  height: 34px !important;
 }
 
 /* Buttons inside dosen cards and single profile tabs */
@@ -402,21 +489,6 @@ main,
   vertical-align: middle !important;
   margin: 0 !important;
   padding: 0 !important;
-}
-
-/* Card Dosen Mobile Polish & Equal Heights */
-@media (max-width: 639px) {
-  #bk-dosen-grid {
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
-  }
-  .bk-dosen-card-item {
-    padding: 18px 16px !important;
-    border-radius: 16px !important;
-  }
-  .bk-faculty-card {
-    flex: 0 0 280px !important;
-  }
 }
 
 .bk-faculty-card {
