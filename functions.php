@@ -1199,7 +1199,7 @@ function ppb_auto_sync_pages_content() {
 
 
 
-    if ($synced_version === '16.0' && !$force) {
+    if ($synced_version === '17.0' && !$force) {
         return;
     }
 
@@ -1605,7 +1605,7 @@ function ppb_auto_sync_pages_content() {
         }
     }
 
-    update_option('ppb_content_synced_version', '16.0');
+    update_option('ppb_content_synced_version', '17.0');
 
 
 
@@ -1628,7 +1628,8 @@ add_action('after_switch_theme', 'ppb_auto_sync_pages_content');
 
 
 
-// Bulletproof URL routing: ensure /profil/dosen/{slug}, /profil/dosen/, and /dosen/ always resolve smoothly
+// Bulletproof URL routing: ensure /profil/dosen/{slug}, /profil/dosen/, /dosen/, /e-library/, /mis-pnbp/#anchors,
+// and all 26+ pages always resolve cleanly, while preventing any 404 from rendering Warta & Berita.
 add_filter('template_include', function($template) {
     if (!is_admin()) {
         $req_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
@@ -1641,14 +1642,7 @@ add_filter('template_include', function($template) {
             $path = '';
         }
 
-        // Bulletproof Berita Page Routing - ONLY when path is 'berita' or page template
-        if ($path === 'berita' || is_page('berita') || is_page_template('page-berita.php')) {
-            $berita_tpl = get_template_directory() . '/page-berita.php';
-            if (file_exists($berita_tpl)) {
-                return $berita_tpl;
-            }
-        }
-
+        // 1. FRONT PAGE / HOME
         if (is_front_page() || empty($path)) {
             $front_tpl = get_template_directory() . '/front-page.php';
             if (file_exists($front_tpl)) {
@@ -1656,7 +1650,42 @@ add_filter('template_include', function($template) {
             }
         }
 
-        // 1. SINGLE DOSEN PROFILE ROUTING
+        // 2. BULLETPROOF BERITA PAGE ROUTING - ONLY when path is 'berita' or page template
+        if ($path === 'berita' || is_page('berita') || is_page_template('page-berita.php')) {
+            $berita_tpl = get_template_directory() . '/page-berita.php';
+            if (file_exists($berita_tpl)) {
+                return $berita_tpl;
+            }
+        }
+
+        // 3. E-LIBRARY REPOSITORY ROUTING (/e-library/, /elibrary/, /layanan/e-library/, /layanan/elibrary/)
+        if ($path === 'e-library' || $path === 'elibrary' || $path === 'layanan/e-library' || $path === 'layanan/elibrary') {
+            global $wp_query;
+            $wp_query->is_404 = false;
+            $wp_query->is_page = true;
+            $wp_query->is_singular = true;
+            $wp_query->is_home = false;
+            $wp_query->is_archive = false;
+            $wp_query->is_post_type_archive = false;
+            status_header(200);
+
+            $elib_tpl = get_template_directory() . '/page-elibrary.php';
+            if (file_exists($elib_tpl)) {
+                return $elib_tpl;
+            }
+        }
+
+        // 4. MIS PNBP SUB-TAB REDIRECTIONS (Safely redirect to anchor tabs on /mis-pnbp/)
+        if ($path === 'mis-pnbp/penelitian' || $path === 'mis-pnbp/penelitian/') {
+            wp_safe_redirect(home_url('/mis-pnbp/#penelitian'), 301);
+            exit;
+        }
+        if ($path === 'mis-pnbp/pkm' || $path === 'mis-pnbp/pkm/') {
+            wp_safe_redirect(home_url('/mis-pnbp/#pkm'), 301);
+            exit;
+        }
+
+        // 5. SINGLE DOSEN PROFILE ROUTING (/profil/dosen/{slug}, /dosen/{slug}, or ?dosen={slug})
         $dosen_slug = '';
         if (isset($_GET['dosen']) && !empty($_GET['dosen'])) {
             $dosen_slug = sanitize_title($_GET['dosen']);
@@ -1702,7 +1731,7 @@ add_filter('template_include', function($template) {
             }
         }
 
-        // 2. MAIN DOSEN ROSTER DIRECTORY ROUTING
+        // 6. MAIN DOSEN ROSTER DIRECTORY ROUTING (/profil/dosen, /dosen)
         if ($path === 'profil/dosen' || $path === 'dosen') {
             global $wpdb, $post, $wp_query;
 
@@ -1749,6 +1778,7 @@ add_filter('template_include', function($template) {
 
             if ($dosen_id) {
                 $post = get_post($dosen_id);
+                setup_postdata($post);
                 $wp_query->posts = array($post);
                 $wp_query->post_count = 1;
                 $wp_query->is_404 = false;
@@ -1759,6 +1789,7 @@ add_filter('template_include', function($template) {
                 $wp_query->is_home = false;
                 $wp_query->queried_object = $post;
                 $wp_query->queried_object_id = $dosen_id;
+                status_header(200);
 
                 $page_template = get_template_directory() . '/page.php';
                 if (file_exists($page_template)) {
@@ -1767,7 +1798,7 @@ add_filter('template_include', function($template) {
             }
         }
 
-        // 3. UNIVERSAL ROUTING FOR ALL PAGES IN pages-data.json
+        // 7. UNIVERSAL INTELLIGENT ROUTING FOR ALL PRODI PAGES
         if (!empty($path)) {
             $json_file = get_template_directory() . '/pages-data.json';
             if (file_exists($json_file)) {
@@ -1775,49 +1806,146 @@ add_filter('template_include', function($template) {
                 if (is_array($pages_data)) {
                     $parts = explode('/', trim($path, '/'));
                     $slug_target = end($parts);
+                    $parent_target = (count($parts) > 1) ? $parts[count($parts) - 2] : '';
+
+                    $matched_page = null;
+
+                    // Pass A: Exact full slug match (e.g. "kemahasiswaan/statistik" vs "akademik/statistik")
                     foreach ($pages_data as $p) {
                         $full_slug = !empty($p['parent_slug']) ? $p['parent_slug'] . '/' . $p['slug'] : $p['slug'];
-                        if ($p['slug'] === $slug_target || $full_slug === $path || $p['slug'] === $path) {
-                            global $wpdb, $post, $wp_query;
-                            $post_id = $wpdb->get_var($wpdb->prepare("SELECT ID FROM $wpdb->posts WHERE post_name = %s AND post_type = 'page' AND post_status != 'trash' LIMIT 1", $p['slug']));
-                            if (!$post_id) {
-                                $now = current_time('mysql');
-                                $wpdb->insert($wpdb->posts, array(
-                                    'post_title'     => $p['title'],
-                                    'post_name'      => $p['slug'],
-                                    'post_content'   => $p['content'],
-                                    'post_status'    => 'publish',
-                                    'post_type'      => 'page',
-                                    'comment_status' => 'closed',
-                                    'ping_status'    => 'closed',
-                                    'post_date'      => $now,
-                                    'post_date_gmt'  => current_time('mysql', 1),
-                                    'post_modified'  => $now,
-                                    'post_modified_gmt' => current_time('mysql', 1)
-                                ));
-                                $post_id = $wpdb->insert_id;
-                            }
-                            if ($post_id) {
-                                $post = get_post($post_id);
-                                $wp_query->posts = array($post);
-                                $wp_query->post_count = 1;
-                                $wp_query->is_404 = false;
-                                $wp_query->is_page = true;
-                                $wp_query->is_singular = true;
-                                $wp_query->is_home = false;
-                                $wp_query->is_archive = false;
-                                $wp_query->is_post_type_archive = false;
-                                $wp_query->queried_object = $post;
-                                $wp_query->queried_object_id = $post_id;
-                                status_header(200);
-                                $page_template = get_template_directory() . '/page.php';
-                                if (file_exists($page_template)) {
-                                    return $page_template;
+                        if ($full_slug === $path) {
+                            $matched_page = $p;
+                            break;
+                        }
+                    }
+
+                    // Pass B: Target slug with parent disambiguation
+                    if (!$matched_page) {
+                        foreach ($pages_data as $p) {
+                            if ($p['slug'] === $slug_target) {
+                                if (!empty($parent_target) && !empty($p['parent_slug']) && $p['parent_slug'] === $parent_target) {
+                                    $matched_page = $p;
+                                    break;
+                                } elseif (empty($parent_target) && empty($p['parent_slug'])) {
+                                    $matched_page = $p;
+                                    break;
+                                } elseif (!$matched_page) {
+                                    $matched_page = $p; // soft fallback
                                 }
                             }
                         }
                     }
+
+                    if ($matched_page) {
+                        global $wpdb, $post, $wp_query;
+
+                        $parent_id = 0;
+                        if (!empty($matched_page['parent_slug'])) {
+                            $parent_id = (int)$wpdb->get_var($wpdb->prepare(
+                                "SELECT ID FROM $wpdb->posts WHERE post_name = %s AND post_parent = 0 AND post_type = 'page' AND post_status != 'trash' LIMIT 1",
+                                $matched_page['parent_slug']
+                            ));
+                        }
+
+                        $post_id = 0;
+                        if ($parent_id > 0) {
+                            $post_id = (int)$wpdb->get_var($wpdb->prepare(
+                                "SELECT ID FROM $wpdb->posts WHERE post_name = %s AND post_parent = %d AND post_type = 'page' AND post_status != 'trash' LIMIT 1",
+                                $matched_page['slug'],
+                                $parent_id
+                            ));
+                        }
+                        if (!$post_id) {
+                            $post_id = (int)$wpdb->get_var($wpdb->prepare(
+                                "SELECT ID FROM $wpdb->posts WHERE post_name = %s AND post_type = 'page' AND post_status != 'trash' LIMIT 1",
+                                $matched_page['slug']
+                            ));
+                        }
+
+                        // Auto-create page if not present in DB
+                        if (!$post_id) {
+                            $now = current_time('mysql');
+                            $wpdb->insert($wpdb->posts, array(
+                                'post_title'     => $matched_page['title'],
+                                'post_name'      => $matched_page['slug'],
+                                'post_content'   => $matched_page['content'],
+                                'post_status'    => 'publish',
+                                'post_type'      => 'page',
+                                'post_parent'    => $parent_id,
+                                'comment_status' => 'closed',
+                                'ping_status'    => 'closed',
+                                'post_date'      => $now,
+                                'post_date_gmt'  => current_time('mysql', 1),
+                                'post_modified'  => $now,
+                                'post_modified_gmt' => current_time('mysql', 1)
+                            ));
+                            $post_id = $wpdb->insert_id;
+                            clean_post_cache($post_id);
+                        }
+
+                        if ($post_id) {
+                            $post = get_post($post_id);
+                            setup_postdata($post);
+                            $wp_query->posts = array($post);
+                            $wp_query->post_count = 1;
+                            $wp_query->is_404 = false;
+                            $wp_query->is_page = true;
+                            $wp_query->is_singular = true;
+                            $wp_query->is_home = false;
+                            $wp_query->is_archive = false;
+                            $wp_query->is_post_type_archive = false;
+                            $wp_query->queried_object = $post;
+                            $wp_query->queried_object_id = $post_id;
+                            status_header(200);
+
+                            $page_template = get_template_directory() . '/page.php';
+                            if (file_exists($page_template)) {
+                                return $page_template;
+                            }
+                        }
+                    }
                 }
+            }
+
+            // Fallback: Check if any published page matches $slug_target directly in wp_posts
+            global $wpdb, $post, $wp_query;
+            $slug_parts = explode('/', trim($path, '/'));
+            $fallback_target = end($slug_parts);
+            $db_page_id = (int)$wpdb->get_var($wpdb->prepare(
+                "SELECT ID FROM $wpdb->posts WHERE post_name = %s AND post_type = 'page' AND post_status = 'publish' LIMIT 1",
+                $fallback_target
+            ));
+            if ($db_page_id) {
+                $post = get_post($db_page_id);
+                setup_postdata($post);
+                $wp_query->posts = array($post);
+                $wp_query->post_count = 1;
+                $wp_query->is_404 = false;
+                $wp_query->is_page = true;
+                $wp_query->is_singular = true;
+                $wp_query->is_home = false;
+                $wp_query->is_archive = false;
+                $wp_query->is_post_type_archive = false;
+                $wp_query->queried_object = $post;
+                $wp_query->queried_object_id = $db_page_id;
+                status_header(200);
+
+                $page_template = get_template_directory() . '/page.php';
+                if (file_exists($page_template)) {
+                    return $page_template;
+                }
+            }
+        }
+
+        // 8. FAILSAFE: Intercept 404 or rogue index.php fallback (Never display Warta & Berita on broken URLs!)
+        global $wp_query;
+        $is_rogue_index = (basename($template) === 'index.php' && !is_home() && !is_archive() && !is_category() && !is_tag() && !is_search());
+        if ($wp_query->is_404 || $is_rogue_index) {
+            $wp_query->is_404 = true;
+            status_header(404);
+            $tpl_404 = get_template_directory() . '/404.php';
+            if (file_exists($tpl_404)) {
+                return $tpl_404;
             }
         }
     }

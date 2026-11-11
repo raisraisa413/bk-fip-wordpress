@@ -6,6 +6,16 @@
 
 if (!defined('ABSPATH')) exit;
 
+// CRITICAL GUARD: Never display Warta & Berita for 404 Not Found requests!
+if (is_404()) {
+    status_header(404);
+    $tpl_404 = get_template_directory() . '/404.php';
+    if (file_exists($tpl_404)) {
+        include $tpl_404;
+        exit;
+    }
+}
+
 get_header();
 
 $page_title = 'Warta, Berita &amp; Artikel';

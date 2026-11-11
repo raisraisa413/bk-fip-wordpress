@@ -343,8 +343,8 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                         'icon'    => 'database',
                         'items'   => [
                             ['title' => 'Pusat MIS PNBP', 'url' => home_url('/mis-pnbp/'), 'subtitle' => 'Dashboard integrasi riset & PkM', 'icon' => 'database', 'badge' => 'Hub'],
-                            ['title' => 'Hibah Penelitian PNBP', 'url' => home_url('/mis-pnbp/penelitian/'), 'subtitle' => 'Proposal, laporan & luaran riset', 'icon' => 'search', 'badge' => 'Hibah'],
-                            ['title' => 'Pengabdian kepada Masyarakat (PkM)', 'url' => home_url('/mis-pnbp/pkm/'), 'subtitle' => 'Pemberdayaan sekolah & mitra komunitas', 'icon' => 'heart-handshake', 'badge' => 'PkM'],
+                            ['title' => 'Hibah Penelitian PNBP', 'url' => home_url('/mis-pnbp/#penelitian'), 'subtitle' => 'Proposal, laporan & luaran riset', 'icon' => 'search', 'badge' => 'Hibah'],
+                            ['title' => 'Pengabdian kepada Masyarakat (PkM)', 'url' => home_url('/mis-pnbp/#pkm'), 'subtitle' => 'Pemberdayaan sekolah & mitra komunitas', 'icon' => 'heart-handshake', 'badge' => 'PkM'],
                         ],
                     ],
                     [
