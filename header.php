@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html <?php language_attributes(); ?> class="scroll-smooth">
 <head>
-    <!-- BK_THEME_VER: 2.2.0_20261111_MEGAMENU -->
+    <!-- BK_THEME_VER: 2.3.0_20261111_FULLWIDTH_MEGAMENU -->
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php wp_head(); ?>
@@ -283,10 +283,14 @@
     }
 
     /* =========================================================================
-       BK MEGA MENU & DROPDOWN STYLES (ACADEMIC EDITORIAL AESTHETIC)
+       BK FULL-WIDTH MEGA MENU & DROPDOWN STYLES (ACADEMIC EDITORIAL AESTHETIC)
        ========================================================================= */
+    #bk-desktop-nav,
+    .bk-desktop-nav {
+        position: static !important;
+    }
     .bk-nav-item-wrap {
-        position: relative !important;
+        position: static !important;
     }
 
     /* Pill Badge on Navbar Trigger Button (e.g. OBE 2025, Unggul) */
@@ -304,111 +308,35 @@
         flex-shrink: 0 !important;
     }
 
-    /* Fallback Standard Dropdown Menu */
-    .dropdown-menu {
-        background-color: #ffffff !important;
-        border-radius: 18px !important;
-        box-shadow: 0 20px 45px -10px rgba(13, 59, 34, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
-        border: 1px solid rgba(212, 227, 216, 0.9) !important;
-        padding: 6px !important;
-        min-width: 240px !important;
-    }
-    .dropdown-menu a.bk-dropdown-link {
-        display: flex !important;
-        align-items: center !important;
-        padding: 8px 12px !important;
-        border-radius: 10px !important;
-        font-size: 13px !important;
-        font-weight: 500 !important;
-        color: #374151 !important;
-        background-color: transparent !important;
-        text-decoration: none !important;
-        line-height: 1.25 !important;
-        position: relative !important;
-        transition: all 0.15s ease !important;
-    }
-    .dropdown-menu a.bk-dropdown-link:hover {
-        background-color: #FAF8F5 !important;
-        color: #0D3B22 !important;
-    }
-    .dropdown-menu a.bk-dropdown-link.is-active {
-        background-color: #E8F0EA !important;
-        color: #0D3B22 !important;
-        font-weight: 700 !important;
-    }
-    .dropdown-menu a.bk-dropdown-link .bk-dropdown-indicator {
-        width: 4px !important;
-        height: 12px !important;
-        border-radius: 2px !important;
-        margin-right: 8px !important;
-        display: inline-block !important;
-        flex-shrink: 0 !important;
-        background-color: transparent !important;
-    }
-    .dropdown-menu a.bk-dropdown-link.is-active .bk-dropdown-indicator {
-        background-color: #0D3B22 !important;
-    }
-    .dropdown-menu a::before,
-    .dropdown-menu a::after {
-        content: none !important;
-        display: none !important;
-    }
-
-    /* =========================================================================
-       MODERN MEGA MENU DROPDOWN PANEL
-       ========================================================================= */
+    /* Full-Width Mega Menu Dropdown Panel (100% Screen Width) */
     .bk-mega-dropdown {
         display: none !important;
         position: absolute !important;
         top: 100% !important;
-        margin-top: 6px !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin: 0 !important;
         background-color: #ffffff !important;
-        border-radius: 20px !important;
-        box-shadow: 0 25px 50px -12px rgba(13, 59, 34, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
-        border: 1px solid rgba(212, 227, 216, 0.95) !important;
+        border-radius: 0 0 24px 24px !important;
+        box-shadow: 0 30px 60px -15px rgba(13, 59, 34, 0.32), 0 10px 25px -5px rgba(0, 0, 0, 0.08) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-bottom: 3.5px solid #F5B82E !important;
+        border-left: none !important;
+        border-right: none !important;
         overflow: hidden !important;
         z-index: 99999 !important;
         text-align: left !important;
         color: #1f2937 !important;
         box-sizing: border-box !important;
         padding: 0 !important;
-        max-width: calc(100vw - 32px) !important;
+        max-height: calc(100vh - 84px) !important;
+        overflow-y: auto !important;
     }
 
-    /* Alignment Modes */
-    .bk-mega-dropdown.align-left {
-        left: 0 !important;
-        right: auto !important;
-    }
-    .bk-mega-dropdown.align-right {
-        right: 0 !important;
-        left: auto !important;
-    }
-    .bk-mega-dropdown.align-center {
-        left: 50% !important;
-        right: auto !important;
-        transform: translateX(-50%) !important;
-    }
-
-    /* Dimension Presets Based on Columns */
-    .bk-mega-dropdown.mega-cols-3 {
-        width: 760px !important;
-        max-width: min(800px, calc(100vw - 40px)) !important;
-    }
-    .bk-mega-dropdown.mega-cols-2 {
-        width: 580px !important;
-        max-width: min(620px, calc(100vw - 40px)) !important;
-    }
-    .bk-mega-dropdown.mega-cols-1 {
-        width: 320px !important;
-        max-width: min(340px, calc(100vw - 40px)) !important;
-    }
-    .bk-mega-dropdown.mega-cols-4 {
-        width: 880px !important;
-        max-width: min(940px, calc(100vw - 40px)) !important;
-    }
-
-    /* Hover & Focus Interaction */
+    /* Hover & Open States */
     .dropdown-container:hover > .bk-mega-dropdown,
     .group:hover > .bk-mega-dropdown,
     .dropdown-container:focus-within > .bk-mega-dropdown,
@@ -417,7 +345,20 @@
         display: block !important;
     }
 
-    /* Invisible Bridge between button and mega menu */
+    /* Trigger Button Active & Hover Highlight */
+    .dropdown-container:hover > .bk-nav-btn,
+    .dropdown-container.is-open > .bk-nav-btn {
+        background: rgba(255, 255, 255, 0.16) !important;
+        color: #F5B82E !important;
+        border-color: rgba(245, 184, 46, 0.5) !important;
+    }
+    .dropdown-container:hover > .bk-nav-btn svg,
+    .dropdown-container.is-open > .bk-nav-btn svg {
+        transform: rotate(180deg) !important;
+        color: #F5B82E !important;
+    }
+
+    /* Invisible Hover Bridge */
     .bk-mega-dropdown::before {
         content: "" !important;
         display: block !important;
@@ -958,7 +899,7 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
             ?>
                 <?php if ($has_sub) : ?>
                     <!-- Mega Menu Dropdown: <?php echo esc_attr($item['title']); ?> -->
-                    <div class="relative group dropdown-container bk-nav-item-wrap">
+                    <div class="group dropdown-container bk-nav-item-wrap">
                         <button type="button" class="bk-nav-btn dropdown-trigger flex items-center gap-1 rounded-full <?php echo $is_active ? 'is-active-dropdown' : ''; ?>" aria-expanded="false" aria-haspopup="true">
                             <span><?php echo esc_html($item['title']); ?></span>
                             <?php if (!empty($badge) && in_array($badge, ['OBE 2025', 'Unggul', 'Baru', '25 Dosen', 'Prestasi', 'MIS PNBP'])) : ?>
@@ -967,92 +908,115 @@ $nav_tree = function_exists('ppb_get_nav_tree') ? ppb_get_nav_tree($current_path
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-200 group-hover:rotate-180" style="<?php echo $is_active ? 'color:#F5B82E;' : 'color:inherit;'; ?>"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </button>
                         
-                        <!-- Panel Mega Menu -->
-                        <div class="bk-mega-dropdown animate-fadeIn <?php echo esc_attr('mega-cols-' . $cols . ' align-' . $align); ?>">
-                            
-                            <!-- Header Bar -->
-                            <?php if (!empty($item['subtitle']) || !empty($item['spotlight'])) : ?>
-                                <div class="bk-mega-header">
-                                    <div class="flex items-center gap-2.5">
-                                        <?php if (!empty($item['icon'])) : ?>
-                                            <div class="bk-mega-header-icon">
-                                                <?php echo ppb_get_menu_icon_svg($item['icon'], 16); ?>
+                        <!-- Panel Mega Menu (Full-Width Screen Width) -->
+                        <div class="bk-mega-dropdown animate-fadeIn">
+                            <div class="bk-mega-inner-wrap w-full px-4 sm:px-8 lg:px-12 py-5 sm:py-6" style="padding-left:var(--bk-edge-pad, 1rem);padding-right:var(--bk-edge-pad, 1rem);box-sizing:border-box;">
+                                <div class="max-w-[1400px] mx-auto">
+                                    
+                                    <!-- Header Bar -->
+                                    <?php if (!empty($item['subtitle']) || !empty($item['spotlight'])) : ?>
+                                        <div class="bk-mega-header mb-5 pb-3 border-b border-[#E8F0EA] flex items-center justify-between">
+                                            <div class="flex items-center gap-3">
+                                                <?php if (!empty($item['icon'])) : ?>
+                                                    <div class="bk-mega-header-icon w-8 h-8 rounded-lg bg-[#E8F0EA] text-[#0D3B22] flex items-center justify-center shrink-0">
+                                                        <?php echo ppb_get_menu_icon_svg($item['icon'], 18); ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <div>
+                                                    <div class="bk-mega-header-title font-serif text-base font-bold text-[#0D3B22] leading-tight" style="font-family:'Fraunces',Georgia,serif;">
+                                                        <?php echo esc_html($item['title']); ?>
+                                                    </div>
+                                                    <?php if (!empty($item['subtitle'])) : ?>
+                                                        <div class="bk-mega-header-sub text-[11px] text-gray-500 mt-0.5"><?php echo esc_html($item['subtitle']); ?></div>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
-                                        <?php endif; ?>
-                                        <div>
-                                            <div class="bk-mega-header-title"><?php echo esc_html($item['title']); ?></div>
-                                            <?php if (!empty($item['subtitle'])) : ?>
-                                                <div class="bk-mega-header-sub"><?php echo esc_html($item['subtitle']); ?></div>
+                                            <?php if (!empty($badge)) : ?>
+                                                <span class="bk-mega-badge-pill text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 uppercase tracking-wide">
+                                                    <?php echo esc_html($badge); ?>
+                                                </span>
                                             <?php endif; ?>
                                         </div>
-                                    </div>
-                                    <?php if (!empty($badge)) : ?>
-                                        <span class="bk-mega-badge-pill"><?php echo esc_html($badge); ?></span>
                                     <?php endif; ?>
-                                </div>
-                            <?php endif; ?>
 
-                            <!-- Kolom-Kolom Menu -->
-                            <div class="bk-mega-body" style="--mega-cols: <?php echo (int)$cols; ?>;">
-                                <?php foreach ($item['sections'] as $sec) : ?>
-                                    <div class="bk-mega-col">
-                                        <?php if (!empty($sec['heading'])) : ?>
-                                            <div class="bk-mega-col-heading">
-                                                <?php if (!empty($sec['icon'])) : ?>
-                                                    <?php echo ppb_get_menu_icon_svg($sec['icon'], 13); ?>
-                                                <?php endif; ?>
-                                                <span><?php echo esc_html($sec['heading']); ?></span>
+                                    <!-- Content Grid: Left Columns + Right Spotlight -->
+                                    <div class="grid grid-cols-12 gap-6 lg:gap-8 items-start">
+                                        <!-- Columns Grid -->
+                                        <div class="<?php echo !empty($item['spotlight']) ? 'col-span-12 lg:col-span-8 xl:col-span-9' : 'col-span-12'; ?>">
+                                            <div class="grid gap-6 lg:gap-8" style="grid-template-columns: repeat(<?php echo (int)$cols; ?>, minmax(0, 1fr));">
+                                                <?php foreach ($item['sections'] as $sec) : ?>
+                                                    <div class="bk-mega-col flex flex-col">
+                                                        <?php if (!empty($sec['heading'])) : ?>
+                                                            <div class="bk-mega-col-heading text-[11px] font-bold uppercase tracking-wider text-[#0D3B22] mb-2.5 pb-1.5 border-b-2 border-[#E8F0EA] flex items-center gap-1.5">
+                                                                <?php if (!empty($sec['icon'])) : ?>
+                                                                    <span class="text-[#185333]"><?php echo ppb_get_menu_icon_svg($sec['icon'], 13); ?></span>
+                                                                <?php endif; ?>
+                                                                <span><?php echo esc_html($sec['heading']); ?></span>
+                                                            </div>
+                                                        <?php endif; ?>
+
+                                                        <div class="bk-mega-col-list flex flex-col gap-1">
+                                                            <?php foreach ($sec['items'] as $link) : 
+                                                                $is_link_active = !empty($link['is_active']);
+                                                                $link_target = (!empty($link['target']) && $link['target'] === '_blank') ? ' target="_blank" rel="noopener"' : '';
+                                                            ?>
+                                                                <a href="<?php echo esc_url($link['url']); ?>" class="bk-mega-link <?php echo $is_link_active ? 'is-active' : ''; ?>"<?php echo $link_target; ?>>
+                                                                    <div class="bk-mega-link-icon">
+                                                                        <?php echo ppb_get_menu_icon_svg(!empty($link['icon']) ? $link['icon'] : 'chevron-right', 13); ?>
+                                                                    </div>
+                                                                    <div class="bk-mega-link-text">
+                                                                        <div class="bk-mega-link-title">
+                                                                            <span><?php echo esc_html($link['title']); ?></span>
+                                                                            <?php if (!empty($link['badge'])) : ?>
+                                                                                <span class="bk-mega-item-badge"><?php echo esc_html($link['badge']); ?></span>
+                                                                            <?php endif; ?>
+                                                                        </div>
+                                                                        <?php if (!empty($link['subtitle'])) : ?>
+                                                                            <div class="bk-mega-link-sub"><?php echo esc_html($link['subtitle']); ?></div>
+                                                                        <?php endif; ?>
+                                                                    </div>
+                                                                </a>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+
+                                        <!-- Spotlight Card Showcase (Right Side) -->
+                                        <?php if (!empty($item['spotlight'])) : 
+                                            $sp = $item['spotlight'];
+                                            $sp_target = (!empty($sp['target']) && $sp['target'] === '_blank') ? ' target="_blank" rel="noopener"' : '';
+                                        ?>
+                                            <div class="col-span-12 lg:col-span-4 xl:col-span-3">
+                                                <div class="bk-mega-spotlight-card rounded-2xl p-5 text-white bg-gradient-to-br from-[#0D3B22] via-[#14482a] to-[#185333] border border-[#F5B82E]/30 shadow-md flex flex-col justify-between relative overflow-hidden" style="min-height: 200px;">
+                                                    <div class="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/5 pointer-events-none"></div>
+                                                    <div>
+                                                        <div class="flex items-center justify-between mb-2.5">
+                                                            <?php if (!empty($sp['badge'])) : ?>
+                                                                <span class="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-[#F5B82E]/20 text-[#F5B82E] border border-[#F5B82E]/40 uppercase tracking-wider">
+                                                                    <?php echo esc_html($sp['badge']); ?>
+                                                                </span>
+                                                            <?php endif; ?>
+                                                            <span class="text-white/40 text-[10px] uppercase font-bold tracking-wider">Sorotan Utama</span>
+                                                        </div>
+                                                        <h4 class="text-white text-sm font-bold font-serif mb-1 leading-snug" style="font-family:'Fraunces',Georgia,serif;">
+                                                            <?php echo esc_html($sp['title']); ?>
+                                                        </h4>
+                                                        <p class="text-white/80 text-[11px] leading-relaxed mb-4">
+                                                            <?php echo esc_html($sp['description']); ?>
+                                                        </p>
+                                                    </div>
+                                                    <a href="<?php echo esc_url($sp['url']); ?>" class="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3.5 rounded-xl bg-[#F5B82E] hover:bg-amber-300 text-[#0D3B22] font-bold text-xs shadow-sm transition-all transform hover:-translate-y-0.5"<?php echo $sp_target; ?> style="text-decoration:none;">
+                                                        <span><?php echo esc_html(!empty($sp['action_text']) ? $sp['action_text'] : 'Buka Halaman &rarr;'); ?></span>
+                                                    </a>
+                                                </div>
                                             </div>
                                         <?php endif; ?>
 
-                                        <div class="bk-mega-col-list">
-                                            <?php foreach ($sec['items'] as $link) : 
-                                                $is_link_active = !empty($link['is_active']);
-                                                $link_target = (!empty($link['target']) && $link['target'] === '_blank') ? ' target="_blank" rel="noopener"' : '';
-                                            ?>
-                                                <a href="<?php echo esc_url($link['url']); ?>" class="bk-mega-link <?php echo $is_link_active ? 'is-active' : ''; ?>"<?php echo $link_target; ?>>
-                                                    <div class="bk-mega-link-icon">
-                                                        <?php echo ppb_get_menu_icon_svg(!empty($link['icon']) ? $link['icon'] : 'chevron-right', 13); ?>
-                                                    </div>
-                                                    <div class="bk-mega-link-text">
-                                                        <div class="bk-mega-link-title">
-                                                            <span><?php echo esc_html($link['title']); ?></span>
-                                                            <?php if (!empty($link['badge'])) : ?>
-                                                                <span class="bk-mega-item-badge"><?php echo esc_html($link['badge']); ?></span>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                        <?php if (!empty($link['subtitle'])) : ?>
-                                                            <div class="bk-mega-link-sub"><?php echo esc_html($link['subtitle']); ?></div>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                </a>
-                                            <?php endforeach; ?>
-                                        </div>
                                     </div>
-                                <?php endforeach; ?>
-                            </div>
-
-                            <!-- Kartu Spotlight Aksi Cepat Bawah -->
-                            <?php if (!empty($item['spotlight'])) : 
-                                $sp = $item['spotlight'];
-                                $sp_target = (!empty($sp['target']) && $sp['target'] === '_blank') ? ' target="_blank" rel="noopener"' : '';
-                            ?>
-                                <div class="bk-mega-spotlight">
-                                    <div class="flex items-center gap-3">
-                                        <?php if (!empty($sp['badge'])) : ?>
-                                            <span class="bk-mega-spotlight-badge"><?php echo esc_html($sp['badge']); ?></span>
-                                        <?php endif; ?>
-                                        <div>
-                                            <strong class="text-white text-xs block"><?php echo esc_html($sp['title']); ?></strong>
-                                            <span class="text-white/80 text-[11px] block line-clamp-1"><?php echo esc_html($sp['description']); ?></span>
-                                        </div>
-                                    </div>
-                                    <a href="<?php echo esc_url($sp['url']); ?>" class="bk-mega-spotlight-btn"<?php echo $sp_target; ?>>
-                                        <?php echo esc_html(!empty($sp['action_text']) ? $sp['action_text'] : 'Buka &rarr;'); ?>
-                                    </a>
                                 </div>
-                            <?php endif; ?>
-
+                            </div>
                         </div>
                     </div>
                 <?php else : ?>
