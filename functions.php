@@ -3709,6 +3709,10 @@ function bk_fip_run_site_health_db_optimization() {
     $size_after = $wpdb->get_var("SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE autoload IN ('yes', 'on', '1')");
     $stats['size_after_kb'] = round(($size_after ?: 0) / 1024, 2);
 
+    // 7. Bersihkan duplikat plugin nonaktif (versi 1.0.0 lama)
+    $plugins_cleaned = bk_fip_clean_duplicate_inactive_plugins();
+    $stats['plugins_cleaned'] = $plugins_cleaned;
+
     // Set flag selesai
     update_option('bk_site_health_optimized_v1', '1', false);
 
@@ -3718,10 +3722,80 @@ function bk_fip_run_site_health_db_optimization() {
     return $stats;
 }
 
-// Otomatis jalankan pada reload admin berikutnya
+/**
+ * AUTOMATIC INACTIVE DUPLICATE PLUGIN CLEANER
+ * Safely removes older inactive duplicate versions of BK Connect (v1.0.0)
+ * while preserving the active v1.2.2 Git-connected plugin.
+ */
+function bk_fip_clean_duplicate_inactive_plugins() {
+    if (!function_exists('get_plugins')) {
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+
+    $all_plugins = get_plugins();
+    $active_plugins = (array) get_option('active_plugins', array());
+    $cleaned_count = 0;
+
+    foreach ($all_plugins as $plugin_file => $plugin_data) {
+        $p_name    = $plugin_data['Name'] ?? '';
+        $p_version = $plugin_data['Version'] ?? '';
+
+        // Deteksi jika namanya BK Connect Suite, versi < 1.2.0, dan TIDAK aktif
+        if (
+            stripos($p_name, 'BK Connect Suite') !== false &&
+            version_compare($p_version, '1.2.0', '<') &&
+            !in_array($plugin_file, $active_plugins)
+        ) {
+            $plugin_dir_rel = dirname($plugin_file);
+            if ($plugin_dir_rel && $plugin_dir_rel !== '.' && $plugin_dir_rel !== '..') {
+                $full_dir = WP_PLUGIN_DIR . '/' . $plugin_dir_rel;
+                if (is_dir($full_dir)) {
+                    // Pastikan BUKAN folder plugin yang sedang aktif
+                    $is_active_dir = false;
+                    foreach ($active_plugins as $ap) {
+                        if (dirname($ap) === $plugin_dir_rel) {
+                            $is_active_dir = true;
+                            break;
+                        }
+                    }
+
+                    if (!$is_active_dir) {
+                        bk_fip_recursive_delete_dir($full_dir);
+                        $cleaned_count++;
+                    }
+                }
+            }
+        }
+    }
+
+    if ($cleaned_count > 0) {
+        wp_clean_plugins_cache();
+    }
+
+    return $cleaned_count;
+}
+
+function bk_fip_recursive_delete_dir($dir) {
+    if (!is_dir($dir)) return false;
+    $items = @scandir($dir);
+    if (!is_array($items)) return false;
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') continue;
+        $path = $dir . DIRECTORY_SEPARATOR . $item;
+        if (is_dir($path)) {
+            bk_fip_recursive_delete_dir($path);
+        } else {
+            @unlink($path);
+        }
+    }
+    return @rmdir($dir);
+}
+
+// Otomatis jalankan pada reload admin
 add_action('admin_init', function() {
-    if (get_option('bk_site_health_optimized_v1') !== '1') {
+    if (get_option('bk_site_health_optimized_v2') !== '1') {
         bk_fip_run_site_health_db_optimization();
+        update_option('bk_site_health_optimized_v2', '1', false);
     }
 }, 5);
 
@@ -3733,11 +3807,12 @@ add_action('admin_post_bk_manual_optimize_db', function() {
     check_admin_referer('bk_manual_optimize_db_action');
     $stats = bk_fip_run_site_health_db_optimization();
     $redirect_url = add_query_arg(array(
-        'bk_optimized'   => '1',
-        'opt_before'     => $stats['size_before_kb'],
-        'opt_after'      => $stats['size_after_kb'],
-        'opt_count'      => $stats['options_unloaded'],
-        'trans_deleted'  => $stats['transients_deleted'],
+        'bk_optimized'     => '1',
+        'opt_before'       => $stats['size_before_kb'],
+        'opt_after'        => $stats['size_after_kb'],
+        'opt_count'        => $stats['options_unloaded'],
+        'trans_deleted'    => $stats['transients_deleted'],
+        'plugins_cleaned'  => $stats['plugins_cleaned'] ?? 0,
     ), wp_get_referer() ?: admin_url('site-health.php'));
     wp_safe_redirect($redirect_url);
     exit;
@@ -3746,15 +3821,16 @@ add_action('admin_post_bk_manual_optimize_db', function() {
 // Admin notice jika berhasil dioptimalkan
 add_action('admin_notices', function() {
     if (isset($_GET['bk_optimized']) && $_GET['bk_optimized'] === '1') {
-        $before = esc_html($_GET['opt_before'] ?? '3000');
-        $after  = esc_html($_GET['opt_after'] ?? '250');
-        $opts   = (int)($_GET['opt_count'] ?? 0);
-        $trans  = (int)($_GET['trans_deleted'] ?? 0);
+        $before  = esc_html($_GET['opt_before'] ?? '3000');
+        $after   = esc_html($_GET['opt_after'] ?? '250');
+        $opts    = (int)($_GET['opt_count'] ?? 0);
+        $trans   = (int)($_GET['trans_deleted'] ?? 0);
+        $plugins = (int)($_GET['plugins_cleaned'] ?? 0);
         echo '<div class="notice notice-success is-dismissible" style="padding:14px 18px;border-left:4px solid #16a34a;background:#f0fdf4;">
-            <h3 style="margin:0 0 6px 0;color:#166534;font-size:15px;">&#10003; Database WordPress &amp; Autoloaded Options Berhasil Dioptimalkan!</h3>
+            <h3 style="margin:0 0 6px 0;color:#166534;font-size:15px;">&#10003; Database WordPress &amp; Plugin Berhasil Dioptimalkan!</h3>
             <p style="margin:0;font-size:13.5px;color:#14532d;line-height:1.6;">
                 Ukuran data autoload berhasil diturunkan dari <strong>' . $before . ' KB</strong> menjadi <strong>' . $after . ' KB</strong>.<br>
-                Diperbaiki <strong>' . $opts . ' opsi data besar</strong> menjadi non-autoload dan dibersihkan <strong>' . $trans . ' transients kedaluwarsa</strong>. Site Health status sekarang hijau dan performa situs jauh lebih responsif!
+                Diperbaiki <strong>' . $opts . ' opsi data besar</strong> menjadi non-autoload, dibersihkan <strong>' . $trans . ' transients kedaluwarsa</strong>' . ($plugins > 0 ? ', dan dihapus <strong>' . $plugins . ' duplikat plugin nonaktif</strong>' : '') . '. Site Health status sekarang hijau dan performa situs jauh lebih responsif!
             </p>
         </div>';
     }
