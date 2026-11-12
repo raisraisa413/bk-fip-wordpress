@@ -488,9 +488,8 @@ function bk_fip_enqueue_scripts() {
 
 
 
-    // Theme Stylesheet
-
-    wp_enqueue_style('bk-fip-style', get_stylesheet_uri(), array(), '2.1.2');
+    // Theme Stylesheet (Auto cache busting with theme version)
+    wp_enqueue_style('bk-fip-style', get_stylesheet_uri(), array(), wp_get_theme()->get('Version'));
 
 }
 
