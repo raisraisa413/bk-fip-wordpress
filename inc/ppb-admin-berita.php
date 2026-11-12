@@ -761,11 +761,16 @@ add_shortcode('ppb_berita_grid', 'ppb_render_berita_grid_swiss');
 /* Swiss Modernism 2.0 + Academic Editorial + shadcn/ui                       */
 /* ========================================================================== */
 if (!function_exists('ppb_shortcode_home_news')) {
-function ppb_shortcode_home_news() {
+function ppb_shortcode_home_news($atts = []) {
+    $a = shortcode_atts([
+        'count' => 6,
+    ], $atts, 'ppb_home_news');
+    $count = intval($a['count']) > 0 ? intval($a['count']) : 6;
+
     $query = new WP_Query([
         'post_type'      => 'post',
         'post_status'    => 'publish',
-        'posts_per_page' => 3,
+        'posts_per_page' => $count,
         'orderby'        => 'date',
         'order'          => 'DESC',
     ]);
@@ -789,9 +794,13 @@ function ppb_shortcode_home_news() {
             ];
         }
         wp_reset_postdata();
-    } elseif (function_exists('ppb_get_sample_berita_items')) {
-        $sample_items = array_slice(ppb_get_sample_berita_items(), 0, 3);
+    }
+
+    // Supplement with sample items if DB has fewer than $count items to guarantee an active 6-item overview
+    if (count($items) < $count && function_exists('ppb_get_sample_berita_items')) {
+        $sample_items = ppb_get_sample_berita_items();
         foreach ($sample_items as $s) {
+            if (count($items) >= $count) break;
             $items[] = [
                 'title'          => $s['title'] ?? '',
                 'url'            => $s['url'] ?? '#',
@@ -809,7 +818,28 @@ function ppb_shortcode_home_news() {
 
     ob_start();
     ?>
-    <div class="bk-news-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:24px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;width:100%;">
+    <style>
+    .bk-news-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 24px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    @media (max-width: 1024px) {
+        .bk-news-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 20px !important;
+        }
+    }
+    @media (max-width: 640px) {
+        .bk-news-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+        }
+    }
+    </style>
+    <div class="bk-news-grid" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;">
         <?php foreach ($items as $idx => $item) :
             $num = sprintf('%02d', $idx + 1);
         ?>

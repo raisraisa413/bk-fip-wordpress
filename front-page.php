@@ -517,19 +517,16 @@ $featured_dosen = !empty($dosen_all) ? array_slice($dosen_all, 0, 10) : array();
         padding: 20px;
     }
     .bk-news-grid {
-        grid-template-columns: 1fr !important;
-        gap: 0 !important;
-    }
-    .bk-news-editorial-col {
-        border-right: none !important;
-        border-bottom: 1px solid var(--bk-border) !important;
-    }
-    .bk-news-editorial-col:last-child {
-        border-bottom: none !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 20px !important;
     }
 }
 
 @media (max-width: 640px) {
+    .bk-news-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
     .bk-ledger-strip {
         grid-template-columns: 1fr;
     }
@@ -1169,9 +1166,34 @@ $mobile_h_class = (($spotlight_settings['mobile_height_mode'] ?? 'fullscreen') =
 </section>
 
 <!-- =====================================================================
-     SECTION 3: PROGRAM STUDI TERINTEGRASI (SHADCN TABS + ARCHITECTURAL MATRIX)
+     SECTION 3: WARTA AKADEMIK & PENGABDIAN (EDITORIAL DISPATCH - 6 OVERVIEW)
      ===================================================================== -->
-<section id="prodi_unified_section" class="bk-section-prodi_unified_section relative w-full" style="background-color: var(--bk-bg-warm); padding-top: 44px; padding-bottom: 56px;">
+<section id="news_unified_section" class="bk-section-news_unified_section relative w-full" style="background-color: var(--bk-bg-warm); padding-top: 36px; padding-bottom: 56px; border-bottom: 1px solid var(--bk-border);">
+    <div class="bk-container">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:28px;">
+            <div style="max-width:640px;">
+                <div class="bk-sec-kicker">Warta Jurusan &amp; Diseminasi</div>
+                <h2 class="bk-serif" style="font-size:clamp(26px, 3vw, 34px);color:var(--bk-ink);margin:0 0 6px 0;font-weight:500;letter-spacing:-0.02em;">
+                    Kabar Akademik, Riset &amp; Pengabdian
+                </h2>
+                <p style="font-size:13.5px;color:var(--bk-ink-muted);margin:0;line-height:1.6;">
+                    Dokumentasi kegiatan tridharma, kuliah tamu, seminar nasional, pengukuhan guru besar, serta capaian prestasi mahasiswa PPB FIP UNM.
+                </p>
+            </div>
+            <a href="<?php echo esc_url(home_url('/berita/')); ?>" class="bk-btn-outline-dark">
+                <span>Indeks Arsip Berita</span>
+                <span aria-hidden="true">&rarr;</span>
+            </a>
+        </div>
+
+        <?php echo do_shortcode('[ppb_home_news count="6"]'); ?>
+    </div>
+</section>
+
+<!-- =====================================================================
+     SECTION 4: PROGRAM STUDI TERINTEGRASI (SHADCN TABS + ARCHITECTURAL MATRIX)
+     ===================================================================== -->
+<section id="prodi_unified_section" class="bk-section-prodi_unified_section relative w-full" style="background-color: var(--bk-bg-warm); padding-top: 48px; padding-bottom: 56px;">
     <div class="bk-container" id="prodi-section">
         
         <!-- Section Header + shadcn Tabs Switcher -->
@@ -1388,7 +1410,7 @@ $mobile_h_class = (($spotlight_settings['mobile_height_mode'] ?? 'fullscreen') =
 </section>
 
 <!-- =====================================================================
-     SECTION 4: VISI KEILMUAN & PILAR KELEMBAGAAN (SWISS HAIRLINE INDEX)
+     SECTION 5: VISI KEILMUAN & PILAR KELEMBAGAAN (SWISS HAIRLINE INDEX)
      ===================================================================== -->
 <section id="about_section" class="bk-section-about_section relative w-full" style="background-color: #FFFFFF; padding-top: 60px; padding-bottom: 64px; border-top: 1px solid var(--bk-border); border-bottom: 1px solid var(--bk-border);">
     <div class="bk-container">
@@ -1512,7 +1534,7 @@ $mobile_h_class = (($spotlight_settings['mobile_height_mode'] ?? 'fullscreen') =
 </section>
 
 <!-- =====================================================================
-     SECTION 5: PROSPEK PROFESI & KARIER LULUSAN (SHADCN DATA TABLE LEDGER)
+     SECTION 6: PROSPEK PROFESI & KARIER LULUSAN (SHADCN DATA TABLE LEDGER)
      ===================================================================== -->
 <section id="lulusan_unified_section" class="bk-section-lulusan_unified_section relative w-full" style="background-color: var(--bk-bg-warm); padding-top: 56px; padding-bottom: 60px;">
     <div class="bk-container">
@@ -1627,7 +1649,7 @@ $mobile_h_class = (($spotlight_settings['mobile_height_mode'] ?? 'fullscreen') =
 </section>
 
 <!-- =====================================================================
-     SECTION 6: DIREKTORI DOSEN & KEPAKARAN AKADEMIK (DYNAMIC ROSTER)
+     SECTION 7: DIREKTORI DOSEN & KEPAKARAN AKADEMIK (DYNAMIC ROSTER)
      ===================================================================== -->
 <section id="dosen_animated_section" class="bk-section-dosen_animated_section relative w-full" style="background-color: var(--bk-bg-sage); padding-top: 56px; padding-bottom: 60px; border-top: 1px solid var(--bk-border); border-bottom: 1px solid var(--bk-border);">
     <div class="bk-container">
@@ -1828,7 +1850,7 @@ $mobile_h_class = (($spotlight_settings['mobile_height_mode'] ?? 'fullscreen') =
 </section>
 
 <!-- =====================================================================
-     SECTION 7: LABORATORIUM BK TERPADU (ASYMMETRIC BENTO ARCHITECTURAL SPLIT)
+     SECTION 8: LABORATORIUM BK TERPADU (ASYMMETRIC BENTO ARCHITECTURAL SPLIT)
      ===================================================================== -->
 <section id="lab_unified_section" class="bk-section-lab_unified_section relative w-full" style="background-color: #FFFFFF; padding-top: 60px; padding-bottom: 64px; border-bottom: 1px solid var(--bk-border);">
     <div class="bk-container">
@@ -1948,30 +1970,6 @@ $mobile_h_class = (($spotlight_settings['mobile_height_mode'] ?? 'fullscreen') =
     </div>
 </section>
 
-<!-- =====================================================================
-     SECTION 8: WARTA AKADEMIK & PENGABDIAN (EDITORIAL DISPATCH)
-     ===================================================================== -->
-<section id="news_unified_section" class="bk-section-news_unified_section relative w-full" style="background-color: var(--bk-bg-warm); padding-top: 56px; padding-bottom: 64px;">
-    <div class="bk-container">
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:28px;">
-            <div style="max-width:640px;">
-                <div class="bk-sec-kicker">Warta Jurusan &amp; Diseminasi</div>
-                <h2 class="bk-serif" style="font-size:clamp(26px, 3vw, 34px);color:var(--bk-ink);margin:0 0 6px 0;font-weight:500;letter-spacing:-0.02em;">
-                    Kabar Akademik, Riset &amp; Pengabdian
-                </h2>
-                <p style="font-size:13.5px;color:var(--bk-ink-muted);margin:0;line-height:1.6;">
-                    Dokumentasi kegiatan tridharma, kuliah tamu, seminar nasional, pengukuhan guru besar, serta capaian prestasi mahasiswa PPB FIP UNM.
-                </p>
-            </div>
-            <a href="<?php echo esc_url(home_url('/berita/')); ?>" class="bk-btn-outline-dark">
-                <span>Indeks Arsip Berita</span>
-                <span aria-hidden="true">&rarr;</span>
-            </a>
-        </div>
-
-        <?php echo do_shortcode('[ppb_home_news]'); ?>
-    </div>
-</section>
 
 <!-- =====================================================================
      SECTION 9: ARCHITECTURAL ADMISSION LEDGER BANNER (PMB UNM)

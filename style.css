@@ -2,8 +2,8 @@
 Theme Name: BK FIP UNM (Scholaro Theme)
 Theme URI: https://bk-fip.unm.ac.id/
 Author: Program Studi Bimbingan dan Konseling FIP UNM
-Description: Tema resmi Program Studi Bimbingan dan Konseling FIP Universitas Negeri Makassar, terintegrasi dengan ekosistem digital BK-Connect, 5-Pillar Full-Width Mega Menu, Conflict-Free Deterministic Click/Tap Toggle, Isolated Single Leaf Active Highlight for Profil & All Pillars, Responsive Dosen Card Carousel & Desktop Grid Engine, Complete Multi-Section Restoration & Bagan Kepemimpinan Hierarchy Across All Prodi Pages, Bulletproof Hierarchical Router & 404 Guard, Site Health Database Auto-Optimizer, serta Inactive Plugin Auto-Cleaner.
-Version: 2.5.8
+Description: Tema resmi Program Studi Bimbingan dan Konseling FIP Universitas Negeri Makassar, terintegrasi dengan ekosistem digital BK-Connect, 5-Pillar Full-Width Mega Menu, Conflict-Free Deterministic Click/Tap Toggle, Isolated Single Leaf Active Highlight for Profil & All Pillars, Responsive Dosen Card Carousel & Desktop Grid Engine, Complete Multi-Section Restoration & Bagan Kepemimpinan Hierarchy Across All Prodi Pages, Bulletproof Hierarchical Router & 404 Guard, Berita Beranda 6 Overview Aktif & Posisi Prioritas Teratas, Site Health Database Auto-Optimizer, serta Inactive Plugin Auto-Cleaner.
+Version: 2.5.9
 Text Domain: bk-fip
 */
 
@@ -298,7 +298,25 @@ main,
 }
 
 /* Berita grid card image & typography enhancements */
-.bk-news-grid,
+.bk-news-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 24px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+@media (max-width: 1024px) {
+  .bk-news-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 20px !important;
+  }
+}
+@media (max-width: 640px) {
+  .bk-news-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
 #bk-berita-grid {
   width: 100% !important;
   box-sizing: border-box !important;
