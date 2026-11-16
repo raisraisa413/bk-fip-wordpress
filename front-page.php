@@ -118,7 +118,7 @@ $total_dosen_count = !empty($dosen_all) ? count($dosen_all) : 25;
 $featured_dosen = !empty($dosen_all) ? array_slice($dosen_all, 0, 12) : array();
 
 // Spotlight slides & settings
-$spotlight_slides = function_exists('ppb_get_spotlight_slides') ? ppb_get_spotlight_slides() : array();
+$raw_spotlight_slides = function_exists('ppb_get_spotlight_slides') ? ppb_get_spotlight_slides() : array();
 $spotlight_settings = function_exists('ppb_get_spotlight_settings') ? ppb_get_spotlight_settings() : array(
     'autoplay'           => '1',
     'speed'              => 8,
@@ -126,8 +126,14 @@ $spotlight_settings = function_exists('ppb_get_spotlight_settings') ? ppb_get_sp
     'height_mode'        => 'fullscreen',
     'mobile_height_mode' => 'fullscreen',
 );
-if (empty($spotlight_slides) && function_exists('ppb_get_default_spotlight_slides')) {
-    $spotlight_slides = ppb_get_default_spotlight_slides();
+if (empty($raw_spotlight_slides) && function_exists('ppb_get_default_spotlight_slides')) {
+    $raw_spotlight_slides = ppb_get_default_spotlight_slides();
+}
+$spotlight_slides = array_values(array_filter($raw_spotlight_slides, function($s) {
+    return !isset($s['active']) || !empty($s['active']);
+}));
+if (empty($spotlight_slides) && !empty($raw_spotlight_slides)) {
+    $spotlight_slides = array($raw_spotlight_slides[0]);
 }
 $total_slides = count($spotlight_slides);
 
@@ -228,13 +234,31 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                 $h_tag        = $is_first ? 'h1' : 'h2';
                 $s_type       = $sl['type'] ?? 'image';
                 $s_device     = $sl['device_target'] ?? 'all';
-                $mode_tag     = !empty($sl['mode_tag']) ? $sl['mode_tag'] : ($s_type === 'video' ? 'VIDEO PROFIL' : ($s_type === 'card' ? 'AKREDITASI UNGGUL' : 'SOROTAN UTAMA'));
+                $mode_tag     = !empty($sl['mode_tag']) ? $sl['mode_tag'] : ($s_type === 'video' ? 'VIDEO PROFIL' : ($s_type === 'card' ? 'AKREDITASI UNGGUL' : ($s_type === 'pinned_post' ? 'WARTA UTAMA' : 'SOROTAN UTAMA')));
                 $kicker       = !empty($sl['kicker']) ? $sl['kicker'] : ('Sorotan 0' . ($s_idx + 1) . ' · ' . $mode_tag);
                 $eyebrow      = !empty($sl['eyebrow']) ? $sl['eyebrow'] : 'AKREDITASI UNGGUL · LAMDIK';
-                $headline     = !empty($sl['headline']) ? $sl['headline'] : (!empty($sl['caption_title']) ? $sl['caption_title'] : 'Membentuk Konselor Humanis, Adaptif, dan Berintegritas.');
-                $summary      = !empty($sl['summary']) ? $sl['summary'] : 'Jurusan PPB / Prodi Bimbingan & Konseling FIP UNM memadukan sains perilaku, kearifan Bugis-Makassar, dan teknologi asesmen sejak 1969.';
+
+                // Pinned post fallback when admin chooses Berita Tersemat
+                $pinned_title = '';
+                $pinned_link  = '';
+                $pinned_thumb = '';
+                if ($s_type === 'pinned_post' && !empty($sl['pinned_post_id']) && function_exists('get_post')) {
+                    $pp_obj = get_post((int) $sl['pinned_post_id']);
+                    if ($pp_obj && $pp_obj->post_status === 'publish') {
+                        $pinned_title = get_the_title($pp_obj->ID);
+                        $pinned_link  = get_permalink($pp_obj->ID);
+                        if (function_exists('get_the_post_thumbnail_url')) {
+                            $pinned_thumb = (string) get_the_post_thumbnail_url($pp_obj->ID, 'large');
+                        }
+                    }
+                }
+
+                $headline_fallback = $pinned_title ?: (!empty($sl['caption_title']) ? $sl['caption_title'] : (($is_first || $s_type === 'card') ? 'Membentuk Konselor Humanis, Adaptif, dan Berintegritas.' : ''));
+                $headline     = !empty($sl['headline']) ? $sl['headline'] : $headline_fallback;
+                $summary_fallback = ($is_first || $s_type === 'card') ? 'Jurusan PPB / Prodi Bimbingan & Konseling FIP UNM memadukan sains perilaku, kearifan Bugis-Makassar, dan teknologi asesmen sejak 1969.' : '';
+                $summary      = !empty($sl['summary']) ? $sl['summary'] : $summary_fallback;
                 $action_text  = !empty($sl['action_text']) ? $sl['action_text'] : 'Jelajahi Selengkapnya';
-                $target_url   = !empty($sl['target_url']) ? $sl['target_url'] : home_url('/akademik/kurikulum/');
+                $target_url   = !empty($sl['target_url']) ? $sl['target_url'] : ($pinned_link ?: home_url('/akademik/kurikulum/'));
                 $prompt_text  = !empty($sl['prompt_text']) ? $sl['prompt_text'] : $action_text;
                 $prompt_url   = !empty($sl['prompt_url']) ? $sl['prompt_url'] : $target_url;
                 $metrics      = (!empty($sl['metrics']) && is_array($sl['metrics'])) ? $sl['metrics'] : array(
@@ -243,10 +267,13 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                     array('label' => 'S3 Doktoral', 'value' => 'Baik Sekali · Riset Indigenos'),
                 );
 
-                $raw_img = $sl['image_url'] ?? '';
+                $raw_img = !empty($sl['image_url']) ? $sl['image_url'] : $pinned_thumb;
                 $img_url = !empty($raw_img)
                     ? (function_exists('bk_parse_spotlight_image_url') ? bk_parse_spotlight_image_url($raw_img) : $raw_img)
                     : (get_template_directory_uri() . '/assets/img/hero-campus.jpg');
+                $img_gd_id = (!empty($raw_img) && function_exists('bk_extract_gdrive_id')) ? bk_extract_gdrive_id($raw_img) : '';
+                $img_gd_fallback = $img_gd_id !== '' ? ('https://lh3.googleusercontent.com/d/' . $img_gd_id . '=w1920') : '';
+
                 $raw_mob = $sl['image_mobile_url'] ?? '';
                 $mob_url = !empty($raw_mob)
                     ? (function_exists('bk_parse_spotlight_image_url') ? bk_parse_spotlight_image_url($raw_mob) : $raw_mob)
@@ -280,7 +307,9 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                         <div class="bk-sp-card-inner">
                             <div class="bk-sp-card-eyebrow"><?php echo esc_html($eyebrow); ?></div>
                             <<?php echo $h_tag; ?>><?php echo esc_html($headline); ?></<?php echo $h_tag; ?>>
+                            <?php if ($summary !== '') : ?>
                             <p><?php echo esc_html($summary); ?></p>
+                            <?php endif; ?>
                             <div class="bk-sp-card-metrics">
                                 <?php foreach ($metrics as $m) :
                                     $m_lbl = $m['label'] ?? ($m[0] ?? '');
@@ -312,7 +341,13 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                             <?php if (!empty($mob_url)) : ?>
                                 <source media="(max-width: 768px)" srcset="<?php echo esc_url($mob_url); ?>">
                             <?php endif; ?>
-                            <img src="<?php echo esc_url($img_url); ?>" alt="<?php echo esc_attr($headline); ?>" loading="<?php echo $is_first ? 'eager' : 'lazy'; ?>">
+                            <img src="<?php echo esc_url($img_url); ?>"
+                                 alt="<?php echo esc_attr($headline !== '' ? $headline : ($mode_tag ?: 'Sorotan Jurusan PPB FIP UNM')); ?>"
+                                 loading="<?php echo $is_first ? 'eager' : 'lazy'; ?>"
+                                 <?php if ($img_gd_fallback !== '') : ?>
+                                 data-gdrive-fallback="<?php echo esc_attr($img_gd_fallback); ?>"
+                                 onerror="if(this.dataset.gdriveFallback && this.src !== this.dataset.gdriveFallback){this.src=this.dataset.gdriveFallback;}"
+                                 <?php endif; ?>>
                         </picture>
                     <?php endif; ?>
 
@@ -321,15 +356,27 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                     <div class="bk-sp-caption-overlay">
                         <div class="bk-sp-caption-inner">
                             <div class="bk-sp-caption-box">
+                                <?php if ($headline !== '') : ?>
                                 <<?php echo $h_tag; ?>><?php echo esc_html($headline); ?></<?php echo $h_tag; ?>>
+                                <?php endif; ?>
+                                <?php if ($summary !== '') : ?>
                                 <p class="bk-sp-caption-lead"><?php echo esc_html($summary); ?></p>
+                                <?php endif; ?>
                                 <div class="bk-sp-cta-row">
                                     <a href="<?php echo esc_url($target_url); ?>" class="bk-btn bk-btn-gold">
                                         <span><?php echo esc_html($action_text); ?></span>
                                         <span aria-hidden="true">&rarr;</span>
                                     </a>
                                     <?php if ($s_type === 'video') : ?>
-                                    <button type="button" class="bk-btn bk-btn-glass" data-open-vchap="0">
+                                    <button type="button" class="bk-btn bk-btn-glass"
+                                            data-open-vchap="0"
+                                            <?php if ($video_url !== '') : ?>
+                                            data-open-vurl="<?php echo esc_attr($video_url); ?>"
+                                            data-open-vtitle="<?php echo esc_attr($headline !== '' ? $headline : 'Video Profil Jurusan PPB'); ?>"
+                                            data-open-vbadge="<?php echo esc_attr($mode_tag); ?>"
+                                            data-open-vdesc="<?php echo esc_attr($summary); ?>"
+                                            data-open-vposter="<?php echo esc_attr($img_url); ?>"
+                                            <?php endif; ?>>
                                         <span>Tonton Video Profil</span>
                                         <span aria-hidden="true">&#9654;</span>
                                     </button>
@@ -348,7 +395,16 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
 
                 <!-- Top-Right Video Modal Trigger (on video slides) -->
                 <?php if ($s_type === 'video') : ?>
-                <button type="button" class="bk-sp-video-btn" data-open-vchap="0" aria-label="Tonton Video Profil Jurusan">
+                <button type="button" class="bk-sp-video-btn"
+                        data-open-vchap="0"
+                        <?php if ($video_url !== '') : ?>
+                        data-open-vurl="<?php echo esc_attr($video_url); ?>"
+                        data-open-vtitle="<?php echo esc_attr($headline !== '' ? $headline : 'Video Profil Jurusan PPB'); ?>"
+                        data-open-vbadge="<?php echo esc_attr($mode_tag); ?>"
+                        data-open-vdesc="<?php echo esc_attr($summary); ?>"
+                        data-open-vposter="<?php echo esc_attr($img_url); ?>"
+                        <?php endif; ?>
+                        aria-label="Tonton Video Profil Jurusan">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>
                     <span class="bk-sp-video-btn-text">Tonton Video</span>
                 </button>
@@ -547,7 +603,9 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
     if (!empty($video_chapters) && is_array($video_chapters)) {
         foreach ($video_chapters as $vc_i => $vc_item) {
             $raw_poster = !empty($vc_item['poster']) ? $vc_item['poster'] : (!empty($vc_item['thumb']) ? $vc_item['thumb'] : 'assets/img/hero-campus.jpg');
-            $video_chapters[$vc_i]['poster'] = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($raw_poster) : $raw_poster;
+            $video_chapters[$vc_i]['poster'] = function_exists('bk_parse_spotlight_image_url')
+                ? bk_parse_spotlight_image_url($raw_poster)
+                : (function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($raw_poster) : $raw_poster);
             $video_chapters[$vc_i]['meta']   = !empty($vc_item['meta']) ? $vc_item['meta'] : ($vc_item['date'] ?? 'Profil Jurusan · Kampus Tidung');
         }
     }
@@ -945,6 +1003,41 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
         });
     }
 
+    function renderVideoEmbed(vUrl, embedMount) {
+        if (!embedMount) return;
+        embedMount.innerHTML = '';
+        embedMount.style.display = 'none';
+        vUrl = (vUrl || '').trim();
+        if (!vUrl) return;
+
+        var ytMatch = vUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i);
+        if (ytMatch && ytMatch[1]) {
+            embedMount.style.display = 'block';
+            embedMount.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + ytMatch[1] + '?autoplay=1&rel=0&playsinline=1" style="width:100%;height:100%;border:0;" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
+            return;
+        }
+
+        var gdMatch = vUrl.match(/drive\.google\.com\/(?:file\/d\/|thumbnail\?id=|open\?id=|uc\?(?:[^&]*&)*id=)([a-zA-Z0-9_-]{10,})/i)
+            || vUrl.match(/drive\.google\.com\/[^\s]*?\/d\/([a-zA-Z0-9_-]{10,})/i);
+        if (gdMatch && gdMatch[1]) {
+            embedMount.style.display = 'block';
+            embedMount.innerHTML = '<iframe src="https://drive.google.com/file/d/' + gdMatch[1] + '/preview" style="width:100%;height:100%;border:0;" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+            return;
+        }
+
+        var vimMatch = vUrl.match(/vimeo\.com\/(?:video\/)?([0-9]+)/i);
+        if (vimMatch && vimMatch[1]) {
+            embedMount.style.display = 'block';
+            embedMount.innerHTML = '<iframe src="https://player.vimeo.com/video/' + vimMatch[1] + '?autoplay=1&byline=0&title=0" style="width:100%;height:100%;border:0;" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+            return;
+        }
+
+        if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(vUrl)) {
+            embedMount.style.display = 'block';
+            embedMount.innerHTML = '<video src="' + vUrl.replace(/"/g, '&quot;') + '" controls autoplay playsinline style="width:100%;height:100%;object-fit:contain;background:#000;"></video>';
+        }
+    }
+
     function setModalChap(idx) {
         if (!vChapters.length) return;
         var cIdx = ((Number(idx) % vChapters.length) + vChapters.length) % vChapters.length;
@@ -954,28 +1047,30 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
         if ($('bk-vmod-desc')) $('bk-vmod-desc').textContent = ch.desc || '';
         if ($('bk-vmod-img') && ch.poster) $('bk-vmod-img').src = ch.poster;
 
-        var embedMount = $('bk-vmod-embed-mount');
-        if (embedMount) {
-            embedMount.innerHTML = '';
-            embedMount.style.display = 'none';
-            var vUrl = (ch.video_url || '').trim();
-            if (vUrl) {
-                var ytMatch = vUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/);
-                if (ytMatch && ytMatch[1]) {
-                    embedMount.style.display = 'block';
-                    embedMount.innerHTML = '<iframe src="https://www.youtube.com/embed/' + ytMatch[1] + '?autoplay=1&rel=0" style="width:100%;height:100%;border:0;" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
-                } else if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(vUrl)) {
-                    embedMount.style.display = 'block';
-                    embedMount.innerHTML = '<video src="' + vUrl.replace(/"/g, '&quot;') + '" controls autoplay playsinline style="width:100%;height:100%;object-fit:contain;background:#000;"></video>';
-                }
-            }
-        }
+        renderVideoEmbed(ch.video_url || '', $('bk-vmod-embed-mount'));
 
         document.querySelectorAll('#bk-video-modal [data-vchap]').forEach(function(b) {
             var act = Number(b.getAttribute('data-vchap')) === cIdx;
             b.classList.toggle('bk-btn-gold', act);
             b.classList.toggle('bk-btn-secondary', !act);
         });
+    }
+
+    function openCustomVideoModal(opts) {
+        stopSpotlight();
+        if ($('bk-vmod-badge')) $('bk-vmod-badge').textContent = opts.badge || 'VIDEO PROFIL';
+        if ($('bk-vmod-title')) $('bk-vmod-title').textContent = opts.title || 'Video Spotlight';
+        if ($('bk-vmod-desc')) $('bk-vmod-desc').textContent = opts.desc || '';
+        if ($('bk-vmod-img') && opts.poster) $('bk-vmod-img').src = opts.poster;
+
+        renderVideoEmbed(opts.url || '', $('bk-vmod-embed-mount'));
+
+        document.querySelectorAll('#bk-video-modal [data-vchap]').forEach(function(b) {
+            b.classList.remove('bk-btn-gold');
+            b.classList.add('bk-btn-secondary');
+        });
+        if ($('bk-vid-backdrop')) $('bk-vid-backdrop').classList.add('is-open');
+        if ($('bk-video-modal')) $('bk-video-modal').classList.add('is-open');
     }
 
     function openVideoModal(chapIdx) {
@@ -1003,10 +1098,21 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
     });
 
     document.addEventListener('click', function(e) {
-        var openBtn = e.target.closest('[data-open-vchap]');
+        var openBtn = e.target.closest('[data-open-vurl], [data-open-vchap]');
         if (openBtn) {
             e.preventDefault();
-            openVideoModal(Number(openBtn.getAttribute('data-open-vchap') || 0));
+            var customUrl = openBtn.getAttribute('data-open-vurl') || '';
+            if (customUrl) {
+                openCustomVideoModal({
+                    url: customUrl,
+                    title: openBtn.getAttribute('data-open-vtitle') || '',
+                    badge: openBtn.getAttribute('data-open-vbadge') || '',
+                    desc: openBtn.getAttribute('data-open-vdesc') || '',
+                    poster: openBtn.getAttribute('data-open-vposter') || ''
+                });
+            } else {
+                openVideoModal(Number(openBtn.getAttribute('data-open-vchap') || 0));
+            }
             return;
         }
         var chapBtn = e.target.closest('#bk-video-modal [data-vchap]');

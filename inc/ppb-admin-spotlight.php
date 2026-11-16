@@ -16,16 +16,57 @@ if (!defined('ABSPATH')) exit;
 /* ========================================================================== */
 /* 1. DATA DEFAULT & HELPER RETRIEVAL                                         */
 /* ========================================================================== */
-if (!function_exists('ppb_spotlight_sanitize_asset_or_url')) {
-    function ppb_spotlight_sanitize_asset_or_url($val) {
-        if (function_exists('bk_sanitize_asset_or_url')) {
-            return bk_sanitize_asset_or_url($val);
+if (!function_exists('ppb_spotlight_extract_gdrive_id')) {
+    function ppb_spotlight_extract_gdrive_id($url) {
+        $url = trim((string) $url);
+        if ($url === '') return '';
+        if (preg_match('#drive\.google\.com/(?:file/d/|thumbnail\?id=|open\?id=|uc\?(?:[^&]*&)*id=)([a-zA-Z0-9_-]{10,})#i', $url, $m)) {
+            return $m[1];
         }
+        if (preg_match('#drive\.google\.com/[^\s]*?/d/([a-zA-Z0-9_-]{10,})#i', $url, $m)) {
+            return $m[1];
+        }
+        if (preg_match('#lh3\.googleusercontent\.com/d/([a-zA-Z0-9_-]{10,})#i', $url, $m)) {
+            return $m[1];
+        }
+        return '';
+    }
+}
+
+if (!function_exists('ppb_spotlight_resolve_preview_url')) {
+    function ppb_spotlight_resolve_preview_url($url) {
+        $url = trim((string) $url);
+        if ($url === '') return '';
+        $gd_id = ppb_spotlight_extract_gdrive_id($url);
+        if ($gd_id !== '') {
+            return 'https://drive.google.com/thumbnail?id=' . $gd_id . '&sz=w1200';
+        }
+        if (strpos($url, 'dropbox.com') !== false) {
+            $url = str_replace('www.dropbox.com', 'dl.dropboxusercontent.com', $url);
+            return preg_replace('/\?dl=[01]$/', '', $url);
+        }
+        return function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($url) : $url;
+    }
+}
+
+if (!function_exists('ppb_spotlight_sanitize_asset_or_url')) {
+    /**
+     * Sanitasi URL/path sambil mempertahankan link Google Drive asli (untuk gambar, video, dan CTA),
+     * link YouTube/Vimeo, anchor (#section), URL penuh, maupun path relatif tema (assets/...).
+     */
+    function ppb_spotlight_sanitize_asset_or_url($val) {
         $val = trim(wp_strip_all_tags((string) $val));
         if ($val === '') return '';
-        if (preg_match('#^(https?:)?//#i', $val)) return esc_url_raw($val);
-        if (strpos($val, '..') !== false || preg_match('#^[a-z0-9+.-]+:#i', $val)) return '';
-        return preg_replace('#[^A-Za-z0-9/_\-.%~]#', '', $val);
+        if ($val[0] === '#') {
+            return preg_replace('/[^A-Za-z0-9_\-#]/', '', $val);
+        }
+        if (preg_match('#^(https?:)?//#i', $val)) {
+            return esc_url_raw($val);
+        }
+        if (strpos($val, '..') !== false || preg_match('#^[a-z0-9+.-]+:#i', $val)) {
+            return '';
+        }
+        return preg_replace('#[^A-Za-z0-9/_\-.%~?=&]#', '', $val);
     }
 }
 
@@ -108,20 +149,62 @@ function ppb_get_default_spotlight_slides() {
 
 if (!function_exists('ppb_get_spotlight_slides')) {
 function ppb_get_spotlight_slides() {
-    // One-time migration to v2 defaults if legacy slides lack `headline`
+    // Migrasi non-destruktif v2: PERTAHANKAN semua slide lama user, hanya lengkapi metadata v2
+    // dan tambahkan slide default Editorial Calm yang belum ada (tidak pernah menimpa/menghapus).
     if (get_option('ppb_spotlight_defaults_v2') !== '1') {
         $existing = get_option('ppb_spotlight_slides', null);
-        $has_v2 = false;
-        if (is_array($existing)) {
-            foreach ($existing as $ex) {
-                if (!empty($ex['headline'])) {
-                    $has_v2 = true;
-                    break;
+        $defaults = ppb_get_default_spotlight_slides();
+        $default_by_id = [];
+        foreach ($defaults as $def) {
+            $default_by_id[$def['id']] = $def;
+        }
+
+        if (is_array($existing) && !empty($existing)) {
+            if (get_option('ppb_spotlight_slides_legacy_backup', null) === null) {
+                update_option('ppb_spotlight_slides_legacy_backup', $existing, false);
+            }
+            $merged = [];
+            $seen_ids = [];
+            foreach ($existing as $idx => $ex) {
+                if (!is_array($ex)) continue;
+                $sid = (string) ($ex['id'] ?? ('slide-legacy-' . $idx));
+                $seen_ids[$sid] = true;
+                if (isset($default_by_id[$sid])) {
+                    $def = $default_by_id[$sid];
+                    foreach (['mode_tag', 'kicker', 'eyebrow', 'headline', 'summary', 'caption_title', 'prompt_text', 'prompt_url'] as $k) {
+                        if (empty($ex[$k]) && !empty($def[$k])) {
+                            $ex[$k] = $def[$k];
+                        }
+                    }
+                    if (empty($ex['metrics']) && !empty($def['metrics'])) {
+                        $ex['metrics'] = $def['metrics'];
+                    }
+                } else {
+                    if (empty($ex['headline']) && !empty($ex['caption_title'])) {
+                        $ex['headline'] = $ex['caption_title'];
+                    }
+                    if (empty($ex['prompt_text']) && !empty($ex['action_text'])) {
+                        $ex['prompt_text'] = $ex['action_text'];
+                    }
+                    if (empty($ex['prompt_url']) && !empty($ex['target_url'])) {
+                        $ex['prompt_url'] = $ex['target_url'];
+                    }
+                }
+                if (!isset($ex['order'])) {
+                    $ex['order'] = $idx + 1;
+                }
+                $merged[] = $ex;
+            }
+            $next_order = count($merged) + 1;
+            foreach ($defaults as $def) {
+                if (!isset($seen_ids[$def['id']])) {
+                    $def['order'] = $next_order++;
+                    $merged[] = $def;
                 }
             }
-        }
-        if (!$has_v2) {
-            update_option('ppb_spotlight_slides', ppb_get_default_spotlight_slides(), false);
+            update_option('ppb_spotlight_slides', $merged, false);
+        } else {
+            update_option('ppb_spotlight_slides', $defaults, false);
         }
         update_option('ppb_spotlight_defaults_v2', '1', false);
     }
@@ -150,7 +233,7 @@ function ppb_get_spotlight_settings() {
 }
 
 /* ========================================================================== */
-/* 2. REGISTRASI MENU ADMIN: SPOTLIGHT BERANDA                                */
+/* 2. REGISTRASI MENU ADMIN & ENQUEUE MEDIA LIBRARY SPOTLIGHT                 */
 /* ========================================================================== */
 if (!function_exists('ppb_register_spotlight_menu')) {
 function ppb_register_spotlight_menu() {
@@ -164,6 +247,16 @@ function ppb_register_spotlight_menu() {
     );
 }
 }
+
+if (!function_exists('ppb_spotlight_enqueue_admin_assets')) {
+function ppb_spotlight_enqueue_admin_assets($hook_suffix = '') {
+    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+    if ($page === 'ppb-spotlight-beranda' || strpos((string) $hook_suffix, 'ppb-spotlight-beranda') !== false) {
+        wp_enqueue_media();
+    }
+}
+}
+add_action('admin_enqueue_scripts', 'ppb_spotlight_enqueue_admin_assets');
 
 /* ========================================================================== */
 /* 3. PROSES SUBMIT & ACTION ADMIN SPOTLIGHT                                   */
@@ -249,9 +342,36 @@ function ppb_handle_spotlight_admin_actions() {
 
         add_settings_error('ppb_spotlight_notices', 'saved', 'Semua perubahan Spotlight Beranda berhasil disimpan!', 'success');
     } elseif ($action === 'reset_default') {
+        $current = get_option('ppb_spotlight_slides', []);
+        if (is_array($current) && !empty($current)) {
+            update_option('ppb_spotlight_slides_legacy_backup', $current, false);
+        }
         update_option('ppb_spotlight_slides', ppb_get_default_spotlight_slides(), false);
         update_option('ppb_spotlight_defaults_v2', '1', false);
         add_settings_error('ppb_spotlight_notices', 'reset', 'Spotlight Beranda dikembalikan ke 3 slide bawaan Editorial Calm.', 'info');
+    } elseif ($action === 'restore_legacy_backup') {
+        $backup = get_option('ppb_spotlight_slides_legacy_backup', null);
+        if (is_array($backup) && !empty($backup)) {
+            $current = ppb_get_spotlight_slides();
+            $existing_ids = [];
+            $merged = [];
+            foreach ($backup as $b_idx => $b) {
+                if (!is_array($b)) continue;
+                $bid = (string) ($b['id'] ?? ('slide-restored-' . $b_idx));
+                $existing_ids[$bid] = true;
+                $merged[] = $b;
+            }
+            $ord = count($merged) + 1;
+            foreach ($current as $c) {
+                $cid = (string) ($c['id'] ?? '');
+                if ($cid === '' || !isset($existing_ids[$cid])) {
+                    $c['order'] = $ord++;
+                    $merged[] = $c;
+                }
+            }
+            update_option('ppb_spotlight_slides', $merged, false);
+            add_settings_error('ppb_spotlight_notices', 'restored', 'Slide spotlight sebelumnya berhasil dipulihkan dan digabungkan!', 'success');
+        }
     }
 }
 }
@@ -260,6 +380,271 @@ add_action('admin_init', 'ppb_handle_spotlight_admin_actions');
 /* ========================================================================== */
 /* 4. TAMPILAN ADMIN PAGE SPOTLIGHT (EDITORIAL CALM v3.0)                     */
 /* ========================================================================== */
+if (!function_exists('ppb_render_spotlight_slide_card')) {
+function ppb_render_spotlight_slide_card($index, $slide, $recent_posts, $is_template = false) {
+    $idx_attr    = $is_template ? '__INDEX__' : (int) $index;
+    $num_display = $is_template ? '__NUM__' : ((int) $index + 1);
+    $slide_type  = $slide['type'] ?? 'image';
+    $slide_id    = $is_template ? '__SLIDE_ID__' : ($slide['id'] ?? ('slide-' . $index));
+    $device      = $slide['device_target'] ?? 'all';
+    $action_text = !empty($slide['action_text']) ? $slide['action_text'] : 'Lihat lebih lanjut';
+    $prompt_text = $slide['prompt_text'] ?? $action_text;
+    $img_raw     = $slide['image_url'] ?? '';
+    $img_prev    = ppb_spotlight_resolve_preview_url($img_raw);
+    $img_gd_id   = ppb_spotlight_extract_gdrive_id($img_raw);
+    $img_mobile  = $slide['image_mobile_url'] ?? '';
+    $img_mob_p   = ppb_spotlight_resolve_preview_url($img_mobile);
+    $mob_gd_id   = ppb_spotlight_extract_gdrive_id($img_mobile);
+    $video_raw   = $slide['video_url'] ?? '';
+    $vid_gd_id   = ppb_spotlight_extract_gdrive_id($video_raw);
+    $metrics     = isset($slide['metrics']) && is_array($slide['metrics']) ? $slide['metrics'] : [];
+    ?>
+    <div class="ppb-slide-card" data-index="<?php echo esc_attr($idx_attr); ?>" style="background:#FFFFFF;border:1px solid #CBD5E1;border-radius:10px;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,0.04);">
+        <!-- Slide Header Bar -->
+        <div style="background:#F8FAFC;padding:12px 18px;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <span class="slide-handle" style="cursor:move;color:#94A3B8;font-size:18px;line-height:1;">&#9776;</span>
+                <span style="font-family:monospace;font-weight:700;font-size:13px;background:#0D3B22;color:#F5B82E;padding:3px 8px;border-radius:4px;">
+                    SLIDE #<span class="slide-number-display"><?php echo esc_html($num_display); ?></span>
+                </span>
+                <span class="slide-type-badge" style="font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:4px;background:#E8F0EA;color:#0D3B22;text-transform:uppercase;">
+                    <?php echo esc_html($slide_type); ?>
+                </span>
+                <span class="slide-headline-preview" style="font-size:13px;color:#0F172A;font-weight:700;">
+                    <?php echo esc_html($slide['headline'] ?? ($slide['caption_title'] ?? '')); ?>
+                </span>
+                <span style="font-size:12.5px;color:#475569;">
+                    &middot; CTA: <strong class="slide-action-preview" style="color:#0D3B22;">&ldquo;<?php echo esc_html($action_text); ?>&rdquo;</strong>
+                </span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;">
+                <label style="font-size:12.5px;color:#334155;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;">
+                    <input type="checkbox" name="slides[<?php echo esc_attr($idx_attr); ?>][active]" value="1" <?php checked($slide['active'] ?? 1, 1); ?>>
+                    <span>Tampilkan</span>
+                </label>
+                <input type="hidden" name="slides[<?php echo esc_attr($idx_attr); ?>][id]" class="slide-id-input" value="<?php echo esc_attr($slide_id); ?>">
+                <input type="hidden" name="slides[<?php echo esc_attr($idx_attr); ?>][order]" class="slide-order-input" value="<?php echo esc_attr($is_template ? '__NUM__' : ($slide['order'] ?? ($index + 1))); ?>">
+                <button type="button" class="btn-toggle-slide button button-small" style="font-size:11.5px;font-weight:600;">Tutup &uarr;</button>
+                <button type="button" class="btn-delete-slide button button-small button-link-delete" style="color:#DC2626;font-size:11.5px;">Hapus</button>
+            </div>
+        </div>
+
+        <!-- Slide Body -->
+        <div class="slide-body" style="padding:20px 24px;display:grid;grid-template-columns:1.15fr 0.85fr;gap:24px;">
+            <!-- Left Column: Media & Editorial Content -->
+            <div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                    <div>
+                        <label style="display:block;font-weight:600;font-size:12.5px;margin-bottom:4px;">Tipe Slide:</label>
+                        <select name="slides[<?php echo esc_attr($idx_attr); ?>][type]" class="slide-type-select" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #CBD5E1;font-weight:600;">
+                            <option value="image" <?php selected($slide_type, 'image'); ?>>🖼 Foto / Brosur Pengumuman</option>
+                            <option value="video" <?php selected($slide_type, 'video'); ?>>🎥 Video Profil / Sinematik</option>
+                            <option value="card" <?php selected($slide_type, 'card'); ?>>🏛 Kartu Panggung LAMDIK (3 Metrik)</option>
+                            <option value="pinned_post" <?php selected($slide_type, 'pinned_post'); ?>>📌 Berita Tersemat</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;font-size:12.5px;margin-bottom:4px;">Target Perangkat:</label>
+                        <select name="slides[<?php echo esc_attr($idx_attr); ?>][device_target]" class="slide-device-select" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #CBD5E1;">
+                            <option value="all" <?php selected($device, 'all'); ?>>🌐 Semua Perangkat</option>
+                            <option value="desktop_only" <?php selected($device, 'desktop_only'); ?>>🖥 Khusus Desktop</option>
+                            <option value="mobile_only" <?php selected($device, 'mobile_only'); ?>>📱 Khusus Mobile (HP)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Editorial Caption Fields -->
+                <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px;margin-bottom:14px;">
+                    <div style="font-family:monospace;font-size:11px;font-weight:700;color:#0D3B22;margin-bottom:8px;">TEKS PANGGUNG &amp; CAPTION EDITORIAL</div>
+                    <div style="display:grid;grid-template-columns:160px 1fr;gap:8px;margin-bottom:8px;">
+                        <div>
+                            <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;">Badge Pojok Kiri Atas</label>
+                            <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][mode_tag]" value="<?php echo esc_attr($slide['mode_tag'] ?? ''); ?>" placeholder="SOROTAN UTAMA" style="width:100%;">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;">Kicker / Baris Sorotan</label>
+                            <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][kicker]" value="<?php echo esc_attr($slide['kicker'] ?? ''); ?>" placeholder="Sorotan · Pengumuman / Kegiatan" style="width:100%;">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;">Judul Utama Slide (Headline)</label>
+                        <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][headline]" class="slide-headline-input" value="<?php echo esc_attr($slide['headline'] ?? ''); ?>" placeholder="Judul utama slide..." style="width:100%;font-weight:700;">
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;">Ringkasan (Summary)</label>
+                        <textarea name="slides[<?php echo esc_attr($idx_attr); ?>][summary]" rows="2" placeholder="Keterangan singkat yang tampil di overlay kiri bawah..." style="width:100%;"><?php echo esc_textarea($slide['summary'] ?? ''); ?></textarea>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;">Judul Bar Bawah (Caption Bar)</label>
+                        <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][caption_title]" value="<?php echo esc_attr($slide['caption_title'] ?? ''); ?>" style="width:100%;">
+                    </div>
+                </div>
+
+                <!-- Card Metrics (shown when type == card) -->
+                <div class="field-card-metrics" style="background:#FEF3C7;border:1px solid #F5B82E;border-radius:8px;padding:14px;margin-bottom:14px;<?php echo $slide_type === 'card' ? '' : 'display:none;'; ?>">
+                    <div style="font-family:monospace;font-size:11px;font-weight:700;color:#92400E;margin-bottom:8px;">KARTU PANGGUNG AKREDITASI (EYEBROW &amp; 3 METRIK)</div>
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block;font-size:11.5px;font-weight:600;color:#92400E;">Eyebrow Kartu</label>
+                        <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][eyebrow]" value="<?php echo esc_attr($slide['eyebrow'] ?? 'AKREDITASI UNGGUL · LAMDIK'); ?>" style="width:100%;">
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+                        <?php for ($mi = 0; $mi < 3; $mi++) :
+                            $ml = $metrics[$mi]['label'] ?? '';
+                            $mv = $metrics[$mi]['val'] ?? '';
+                        ?>
+                            <div style="background:#FFF;padding:8px;border-radius:6px;border:1px solid #FDE68A;">
+                                <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][metrics][<?php echo $mi; ?>][label]" value="<?php echo esc_attr($ml); ?>" placeholder="Jenjang (mis. S1)" style="width:100%;margin-bottom:4px;font-weight:700;font-size:12px;">
+                                <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][metrics][<?php echo $mi; ?>][val]" value="<?php echo esc_attr($mv); ?>" placeholder="Nomor SK / Status" style="width:100%;font-size:11.5px;">
+                            </div>
+                        <?php endfor; ?>
+                    </div>
+                </div>
+
+                <!-- Pinned Post Selector -->
+                <div class="field-pinned-post" style="margin-bottom:14px;<?php echo $slide_type === 'pinned_post' ? '' : 'display:none;'; ?>">
+                    <label style="display:block;font-weight:600;font-size:12.5px;color:#0D3B22;margin-bottom:4px;">Pilih Berita dari Database:</label>
+                    <select name="slides[<?php echo esc_attr($idx_attr); ?>][pinned_post_id]" class="pinned-post-select" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #CBD5E1;">
+                        <option value="">-- Pilih Berita --</option>
+                        <?php foreach ($recent_posts as $p) : ?>
+                            <option value="<?php echo (int)$p->ID; ?>" <?php selected($slide['pinned_post_id'] ?? '', $p->ID); ?> data-title="<?php echo esc_attr($p->post_title); ?>" data-url="<?php echo esc_url(get_permalink($p->ID)); ?>" data-thumb="<?php echo esc_url(get_the_post_thumbnail_url($p->ID, 'large') ?: ''); ?>">
+                                <?php echo esc_html($p->post_title); ?> (<?php echo esc_html(get_the_date('d M Y', $p->ID)); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Video URL Field -->
+                <div class="field-video-url" style="margin-bottom:14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px 14px;<?php echo $slide_type === 'video' ? '' : 'display:none;'; ?>">
+                    <label style="display:block;font-weight:700;font-size:12.5px;color:#0D3B22;margin-bottom:6px;">
+                        🎥 Sumber Video Spotlight (Unggah MP4, Link Google Drive, atau YouTube):
+                    </label>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                        <button type="button" class="btn-select-video button button-primary" style="background:#0D3B22;border-color:#0D3B22;font-weight:600;">🎞 Unggah / Pilih Video MP4</button>
+                        <button type="button" class="btn-gdrive-video button" style="font-weight:600;">☁️ Tempel Link Google Drive / YouTube</button>
+                        <button type="button" class="btn-clear-video button" style="color:#DC2626;">✕ Hapus</button>
+                    </div>
+                    <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][video_url]" class="slide-video-url" value="<?php echo esc_attr($video_raw); ?>" placeholder="https://www.youtube.com/watch?v=... | https://drive.google.com/file/d/.../view | assets/video/..." style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;">
+                    <div class="video-source-status" style="font-size:11.5px;color:#475569;margin-top:5px;">
+                        <?php
+                        if ($vid_gd_id !== '') {
+                            echo '☁️ <strong style="color:#0D3B22;">Google Drive Video terdeteksi</strong> (ID: ' . esc_html($vid_gd_id) . ') — pastikan akses <em>Siapa saja yang memiliki link</em>.';
+                        } elseif (preg_match('/youtu(\.be|be\.com)/i', $video_raw)) {
+                            echo '▶️ <strong style="color:#0D3B22;">Video YouTube terdeteksi</strong> — diputar di modal video saat diklik.';
+                        } elseif ($video_raw !== '') {
+                            echo '🎬 <strong style="color:#0D3B22;">Video MP4 / URL</strong> — jangan lupa pasang Gambar Latar/Poster Desktop di bawah sebagai sampul awal.';
+                        } else {
+                            echo 'Unggah MP4 lewat Media Library atau tempel link YouTube / Google Drive video.';
+                        }
+                        ?>
+                    </div>
+                </div>
+
+                <!-- Desktop Image Field: Upload Media Library OR Google Drive Link -->
+                <div class="field-image-url" style="margin-bottom:14px;background:#FFFFFF;border:1.5px solid #D4E3D8;border-radius:8px;padding:12px 14px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                        <label style="font-weight:700;font-size:12.5px;color:#0D3B22;margin:0;">
+                            🖼 Gambar Latar / Poster Desktop <span style="font-weight:400;color:#64748B;">(Unggah Media Library atau Link Google Drive)</span>
+                        </label>
+                        <span class="image-source-badge" style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:<?php echo $img_gd_id ? '#FEF3C7' : ($img_raw ? '#E8F0EA' : '#F1F5F9'); ?>;color:<?php echo $img_gd_id ? '#92400E' : ($img_raw ? '#0D3B22' : '#64748B'); ?>;">
+                            <?php
+                            if ($img_gd_id !== '') {
+                                echo '☁️ Google Drive';
+                            } elseif ($img_raw !== '' && strpos($img_raw, 'assets/') === 0) {
+                                echo '📁 Aset Tema';
+                            } elseif ($img_raw !== '') {
+                                echo '🖼 Media Library / URL';
+                            } else {
+                                echo 'Belum dipilih';
+                            }
+                            ?>
+                        </span>
+                    </div>
+                    <div style="display:flex;gap:12px;align-items:flex-start;">
+                        <div class="image-preview-box" style="width:148px;height:92px;background:#F1F5F9;border:1px dashed #CBD5E1;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;text-align:center;">
+                            <?php if (!empty($img_prev)) : ?>
+                                <img src="<?php echo esc_url($img_prev); ?>" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentNode.innerHTML='<span style=&quot;font-size:10px;color:#B45309;padding:4px;&quot;>Pratinjau GDrive / URL gagal dimuat. Cek izin Siapa saja yang memiliki link.</span>';">
+                            <?php else : ?>
+                                <span style="font-size:10.5px;color:#94A3B8;padding:6px;">Belum ada gambar</span>
+                            <?php endif; ?>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                                <button type="button" class="btn-select-image button button-primary" style="background:#0D3B22;border-color:#0D3B22;font-weight:600;">📷 Unggah / Pilih Gambar</button>
+                                <button type="button" class="btn-gdrive-image button" style="border-color:#F5B82E;background:#FFFBEB;color:#92400E;font-weight:600;">☁️ Pakai Link Google Drive</button>
+                                <button type="button" class="btn-clear-image button" style="color:#DC2626;<?php echo $img_raw !== '' ? '' : 'display:none;'; ?>">✕ Hapus</button>
+                            </div>
+                            <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][image_url]" class="slide-image-url" value="<?php echo esc_attr($img_raw); ?>" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;" placeholder="Tempel link Google Drive (https://drive.google.com/file/d/.../view), URL Media, atau assets/img/...">
+                            <div class="gdrive-image-hint" style="font-size:11px;color:#64748B;margin-top:4px;line-height:1.4;">
+                                Klik <strong>Unggah / Pilih Gambar</strong> untuk mengunggah file dari komputer, atau tempel link bagikan <strong>Google Drive</strong> (pastikan akses <em>Siapa saja yang memiliki link</em>).
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optional Mobile Portrait Image -->
+                <div class="field-image-mobile-url" style="background:#FAF8F5;border:1px dashed #CBD5E1;padding:12px 14px;border-radius:8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+                        <label style="font-weight:600;font-size:12.5px;color:#B45309;margin:0;">📱 Gambar Khusus Mobile / HP (Opsional — Unggah atau Link GDrive):</label>
+                        <span class="image-mobile-source-badge" style="font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:<?php echo $mob_gd_id ? '#FEF3C7' : ($img_mobile ? '#E8F0EA' : '#F1F5F9'); ?>;color:<?php echo $mob_gd_id ? '#92400E' : ($img_mobile ? '#0D3B22' : '#64748B'); ?>;">
+                            <?php echo $mob_gd_id ? '☁️ GDrive' : ($img_mobile ? '🖼 Terpasang' : 'Opsional'); ?>
+                        </span>
+                    </div>
+                    <div style="display:flex;gap:12px;align-items:flex-start;">
+                        <div class="image-mobile-preview-box" style="width:64px;height:80px;background:#FFFFFF;border:1px dashed #CBD5E1;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;text-align:center;">
+                            <?php if (!empty($img_mob_p)) : ?>
+                                <img src="<?php echo esc_url($img_mob_p); ?>" style="width:100%;height:100%;object-fit:cover;">
+                            <?php else : ?>
+                                <span style="font-size:9.5px;color:#94A3B8;">HP</span>
+                            <?php endif; ?>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                                <button type="button" class="btn-select-image-mobile button">📷 Unggah / Pilih Gambar HP</button>
+                                <button type="button" class="btn-gdrive-image-mobile button" style="font-size:12px;">☁️ Link GDrive HP</button>
+                                <button type="button" class="btn-clear-image-mobile button" style="color:#DC2626;<?php echo $img_mobile !== '' ? '' : 'display:none;'; ?>">✕ Hapus</button>
+                            </div>
+                            <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][image_mobile_url]" class="slide-image-mobile-url" value="<?php echo esc_attr($img_mobile); ?>" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;" placeholder="Opsional brosur vertikal HP atau link Google Drive...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: CTA & Anti-Misclick Prompt -->
+            <div style="background:#FAF8F5;border:1.5px solid #E5E7EB;border-radius:8px;padding:18px 20px;">
+                <div style="font-family:monospace;font-size:11px;font-weight:700;color:#0D3B22;letter-spacing:0.08em;margin-bottom:10px;">
+                    TOMBOL AKSI (CTA) &amp; KONFIRMASI KLIK TENGAH
+                </div>
+
+                <div style="margin-bottom:14px;">
+                    <label style="display:block;font-weight:600;font-size:12.5px;color:#1E293B;margin-bottom:4px;">Teks Tombol Utama (Emas):</label>
+                    <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][action_text]" class="slide-action-text-input" value="<?php echo esc_attr($action_text); ?>" style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13.5px;font-weight:600;color:#0D3B22;">
+                </div>
+
+                <div style="margin-bottom:14px;">
+                    <label style="display:block;font-weight:600;font-size:12.5px;color:#1E293B;margin-bottom:4px;">URL Tujuan Tombol Utama:</label>
+                    <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][target_url]" class="slide-target-url" value="<?php echo esc_attr($slide['target_url'] ?? ''); ?>" placeholder="/akademik/kurikulum/ atau https://..." style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;">
+                </div>
+
+                <div style="margin-bottom:14px;padding-top:10px;border-top:1px dashed #CBD5E1;">
+                    <label style="display:block;font-weight:600;font-size:12.5px;color:#1E293B;margin-bottom:4px;">Teks Prompt Konfirmasi Tengah (Saat Kanvas Diklik):</label>
+                    <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][prompt_text]" value="<?php echo esc_attr($prompt_text); ?>" placeholder="Lihat lebih lanjut" style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;">
+                </div>
+
+                <div style="margin-bottom:14px;">
+                    <label style="display:block;font-weight:600;font-size:12.5px;color:#1E293B;margin-bottom:4px;">URL Tujuan Prompt Tengah:</label>
+                    <input type="text" name="slides[<?php echo esc_attr($idx_attr); ?>][prompt_url]" value="<?php echo esc_attr($slide['prompt_url'] ?? ($slide['target_url'] ?? '')); ?>" placeholder="/profil/sejarah/ atau https://..." style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;">
+                </div>
+
+                <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:6px;padding:12px 14px;font-size:12px;color:#475569;line-height:1.45;">
+                    💡 <strong>Fitur Anti Salah-Klik:</strong> Saat pengunjung menyentuh area gambar/kanvas panggung, tombol konfirmasi emas muncul di tengah layar sebelum berpindah halaman.
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+}
+
 if (!function_exists('ppb_render_spotlight_admin_page')) {
 function ppb_render_spotlight_admin_page() {
     if (!current_user_can('manage_options')) return;
@@ -268,6 +653,18 @@ function ppb_render_spotlight_admin_page() {
 
     $slides   = ppb_get_spotlight_slides();
     $settings = ppb_get_spotlight_settings();
+    $legacy_backup = get_option('ppb_spotlight_slides_legacy_backup', null);
+    $has_unmerged_backup = false;
+    if (is_array($legacy_backup) && !empty($legacy_backup)) {
+        $curr_ids = array_map(function($s) { return (string) ($s['id'] ?? ''); }, $slides);
+        foreach ($legacy_backup as $b) {
+            $bid = (string) ($b['id'] ?? '');
+            if ($bid !== '' && !in_array($bid, $curr_ids, true)) {
+                $has_unmerged_backup = true;
+                break;
+            }
+        }
+    }
 
     $recent_posts = get_posts([
         'post_type'      => 'post',
@@ -301,6 +698,17 @@ function ppb_render_spotlight_admin_page() {
         </div>
 
         <?php settings_errors('ppb_spotlight_notices'); ?>
+
+        <?php if ($has_unmerged_backup) : ?>
+        <div class="notice notice-warning" style="padding:14px 18px;border-left:4px solid #F5B82E;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 18px;">
+            <div style="font-size:13.5px;color:#0F172A;">
+                <strong>Cadangan slide spotlight sebelumnya terdeteksi.</strong> Klik tombol di samping untuk menggabungkan slide sebelumnya ke daftar aktif tanpa menimpa slide baru.
+            </div>
+            <button type="button" id="btn-restore-legacy" class="button button-primary" style="background:#0D3B22;border-color:#0D3B22;font-weight:700;">
+                Pulihkan &amp; Gabungkan Slide Sebelumnya
+            </button>
+        </div>
+        <?php endif; ?>
 
         <form method="post" action="" id="ppb-spotlight-form">
             <?php wp_nonce_field('ppb_spotlight_nonce', 'ppb_spotlight_nonce_field'); ?>
@@ -340,11 +748,11 @@ function ppb_render_spotlight_admin_page() {
             </div>
 
             <!-- List Header -->
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
                 <h2 style="font-size:18px;font-weight:700;color:#0D3B22;margin:0;">
-                    Daftar Slide Spotlight (<?php echo count($slides); ?> Item)
+                    Daftar Slide Spotlight (<span id="ppb-slide-total-count"><?php echo count($slides); ?></span> Item)
                 </h2>
-                <div style="display:flex;gap:10px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
                     <button type="button" id="btn-add-slide" class="button button-primary" style="background:#0D3B22;border-color:#0D3B22;font-weight:600;border-radius:6px;padding:4px 14px;height:auto;display:inline-flex;align-items:center;gap:6px;">
                         <span class="dashicons dashicons-plus-alt2" style="font-size:16px;line-height:1.4;"></span>
                         <span>Tambah Slide Baru</span>
@@ -356,210 +764,8 @@ function ppb_render_spotlight_admin_page() {
             </div>
 
             <div id="slides-container" style="display:flex;flex-direction:column;gap:18px;margin-bottom:28px;">
-                <?php foreach ($slides as $index => $slide) :
-                    $slide_type  = $slide['type'] ?? 'image';
-                    $slide_id    = $slide['id'] ?? ('slide-' . $index);
-                    $device      = $slide['device_target'] ?? 'all';
-                    $action_text = $slide['action_text'] ?: 'Lihat lebih lanjut';
-                    $prompt_text = $slide['prompt_text'] ?? $action_text;
-                    $img_raw     = $slide['image_url'] ?? '';
-                    $img_prev    = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($img_raw) : $img_raw;
-                    $img_mobile  = $slide['image_mobile_url'] ?? '';
-                    $img_mob_p   = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($img_mobile) : $img_mobile;
-                    $metrics     = isset($slide['metrics']) && is_array($slide['metrics']) ? $slide['metrics'] : [];
-                ?>
-                <div class="ppb-slide-card" data-index="<?php echo (int)$index; ?>" style="background:#FFFFFF;border:1px solid #CBD5E1;border-radius:10px;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,0.04);">
-                    <!-- Slide Header Bar -->
-                    <div style="background:#F8FAFC;padding:12px 18px;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;gap:12px;">
-                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                            <span class="slide-handle" style="cursor:move;color:#94A3B8;font-size:18px;line-height:1;">&#9776;</span>
-                            <span style="font-family:monospace;font-weight:700;font-size:13px;background:#0D3B22;color:#F5B82E;padding:3px 8px;border-radius:4px;">
-                                SLIDE #<span class="slide-number-display"><?php echo (int)$index + 1; ?></span>
-                            </span>
-                            <span class="slide-type-badge" style="font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:4px;background:#E8F0EA;color:#0D3B22;text-transform:uppercase;">
-                                <?php echo esc_html($slide_type); ?>
-                            </span>
-                            <span style="font-size:13px;color:#0F172A;font-weight:700;">
-                                <?php echo esc_html($slide['headline'] ?? ($slide['caption_title'] ?? '')); ?>
-                            </span>
-                            <span style="font-size:12.5px;color:#475569;">
-                                &middot; CTA: <strong class="slide-action-preview" style="color:#0D3B22;">&ldquo;<?php echo esc_html($action_text); ?>&rdquo;</strong>
-                            </span>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:14px;">
-                            <label style="font-size:12.5px;color:#334155;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;">
-                                <input type="checkbox" name="slides[<?php echo (int)$index; ?>][active]" value="1" <?php checked($slide['active'] ?? 1, 1); ?>>
-                                <span>Tampilkan</span>
-                            </label>
-                            <input type="hidden" name="slides[<?php echo (int)$index; ?>][id]" value="<?php echo esc_attr($slide_id); ?>">
-                            <input type="hidden" name="slides[<?php echo (int)$index; ?>][order]" class="slide-order-input" value="<?php echo esc_attr($slide['order'] ?? ($index + 1)); ?>">
-                            <button type="button" class="btn-toggle-slide button button-small" style="font-size:11.5px;font-weight:600;">Edit &darr;</button>
-                            <button type="button" class="btn-delete-slide button button-small button-link-delete" style="color:#DC2626;font-size:11.5px;">Hapus</button>
-                        </div>
-                    </div>
-
-                    <!-- Slide Body -->
-                    <div class="slide-body" style="padding:20px 24px;display:grid;grid-template-columns:1.15fr 0.85fr;gap:24px;">
-                        <!-- Left Column: Media & Editorial Content -->
-                        <div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-                                <div>
-                                    <label style="display:block;font-weight:600;font-size:12.5px;margin-bottom:4px;">Tipe Slide:</label>
-                                    <select name="slides[<?php echo (int)$index; ?>][type]" class="slide-type-select" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #CBD5E1;font-weight:600;">
-                                        <option value="video" <?php selected($slide_type, 'video'); ?>>🎥 Video Profil / Sinematik</option>
-                                        <option value="card" <?php selected($slide_type, 'card'); ?>>🏛 Kartu Panggung LAMDIK (3 Metrik)</option>
-                                        <option value="image" <?php selected($slide_type, 'image'); ?>>🖼 Foto / Brosur Pengumuman</option>
-                                        <option value="pinned_post" <?php selected($slide_type, 'pinned_post'); ?>>📌 Berita Tersemat</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style="display:block;font-weight:600;font-size:12.5px;margin-bottom:4px;">Target Perangkat:</label>
-                                    <select name="slides[<?php echo (int)$index; ?>][device_target]" class="slide-device-select" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #CBD5E1;">
-                                        <option value="all" <?php selected($device, 'all'); ?>>🌐 Semua Perangkat</option>
-                                        <option value="desktop_only" <?php selected($device, 'desktop_only'); ?>>🖥 Khusus Desktop</option>
-                                        <option value="mobile_only" <?php selected($device, 'mobile_only'); ?>>📱 Khusus Mobile (HP)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Editorial Caption Fields -->
-                            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px;margin-bottom:14px;">
-                                <div style="font-family:monospace;font-size:11px;font-weight:700;color:#0D3B22;margin-bottom:8px;">TEKS PANGGUNG &amp; CAPTION EDITORIAL</div>
-                                <div style="display:grid;grid-template-columns:160px 1fr;gap:8px;margin-bottom:8px;">
-                                    <div>
-                                        <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;">Badge Pojok Kiri Atas</label>
-                                        <input type="text" name="slides[<?php echo (int)$index; ?>][mode_tag]" value="<?php echo esc_attr($slide['mode_tag'] ?? ''); ?>" placeholder="VIDEO PROFIL" style="width:100%;">
-                                    </div>
-                                    <div>
-                                        <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;">Kicker / Baris Sorotan</label>
-                                        <input type="text" name="slides[<?php echo (int)$index; ?>][kicker]" value="<?php echo esc_attr($slide['kicker'] ?? ''); ?>" placeholder="Sorotan 01 · Video Profil 1969–2025" style="width:100%;">
-                                    </div>
-                                </div>
-                                <div style="margin-bottom:8px;">
-                                    <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;">Judul Utama Slide (Headline)</label>
-                                    <input type="text" name="slides[<?php echo (int)$index; ?>][headline]" value="<?php echo esc_attr($slide['headline'] ?? ''); ?>" placeholder="Membentuk Konselor Humanis, Adaptif, dan Berintegritas." style="width:100%;font-weight:700;">
-                                </div>
-                                <div style="margin-bottom:8px;">
-                                    <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;">Ringkasan (Summary)</label>
-                                    <textarea name="slides[<?php echo (int)$index; ?>][summary]" rows="2" style="width:100%;"><?php echo esc_textarea($slide['summary'] ?? ''); ?></textarea>
-                                </div>
-                                <div>
-                                    <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;">Judul Bar Bawah (Caption Bar)</label>
-                                    <input type="text" name="slides[<?php echo (int)$index; ?>][caption_title]" value="<?php echo esc_attr($slide['caption_title'] ?? ''); ?>" style="width:100%;">
-                                </div>
-                            </div>
-
-                            <!-- Card Metrics (shown when type == card) -->
-                            <div class="field-card-metrics" style="background:#FEF3C7;border:1px solid #F5B82E;border-radius:8px;padding:14px;margin-bottom:14px;<?php echo $slide_type === 'card' ? '' : 'display:none;'; ?>">
-                                <div style="font-family:monospace;font-size:11px;font-weight:700;color:#92400E;margin-bottom:8px;">KARTU PANGGUNG AKREDITASI (EYEBROW &amp; 3 METRIK)</div>
-                                <div style="margin-bottom:8px;">
-                                    <label style="display:block;font-size:11.5px;font-weight:600;color:#92400E;">Eyebrow Kartu</label>
-                                    <input type="text" name="slides[<?php echo (int)$index; ?>][eyebrow]" value="<?php echo esc_attr($slide['eyebrow'] ?? 'AKREDITASI UNGGUL · LAMDIK'); ?>" style="width:100%;">
-                                </div>
-                                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-                                    <?php for ($mi = 0; $mi < 3; $mi++) :
-                                        $ml = $metrics[$mi]['label'] ?? '';
-                                        $mv = $metrics[$mi]['val'] ?? '';
-                                    ?>
-                                        <div style="background:#FFF;padding:8px;border-radius:6px;border:1px solid #FDE68A;">
-                                            <input type="text" name="slides[<?php echo (int)$index; ?>][metrics][<?php echo $mi; ?>][label]" value="<?php echo esc_attr($ml); ?>" placeholder="Jenjang (mis. S1)" style="width:100%;margin-bottom:4px;font-weight:700;font-size:12px;">
-                                            <input type="text" name="slides[<?php echo (int)$index; ?>][metrics][<?php echo $mi; ?>][val]" value="<?php echo esc_attr($mv); ?>" placeholder="Nomor SK / Status" style="width:100%;font-size:11.5px;">
-                                        </div>
-                                    <?php endfor; ?>
-                                </div>
-                            </div>
-
-                            <!-- Pinned Post Selector -->
-                            <div class="field-pinned-post" style="margin-bottom:14px;<?php echo $slide_type === 'pinned_post' ? '' : 'display:none;'; ?>">
-                                <label style="display:block;font-weight:600;font-size:12.5px;color:#0D3B22;margin-bottom:4px;">Pilih Berita dari Database:</label>
-                                <select name="slides[<?php echo (int)$index; ?>][pinned_post_id]" class="pinned-post-select" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #CBD5E1;">
-                                    <option value="">-- Pilih Berita --</option>
-                                    <?php foreach ($recent_posts as $p) : ?>
-                                        <option value="<?php echo (int)$p->ID; ?>" <?php selected($slide['pinned_post_id'] ?? '', $p->ID); ?> data-title="<?php echo esc_attr($p->post_title); ?>" data-url="<?php echo esc_url(get_permalink($p->ID)); ?>" data-thumb="<?php echo esc_url(get_the_post_thumbnail_url($p->ID, 'large') ?: ''); ?>">
-                                            <?php echo esc_html($p->post_title); ?> (<?php echo esc_html(get_the_date('d M Y', $p->ID)); ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-
-                            <!-- Video URL Field -->
-                            <div class="field-video-url" style="margin-bottom:14px;<?php echo $slide_type === 'video' ? '' : 'display:none;'; ?>">
-                                <label style="display:block;font-weight:600;font-size:12.5px;margin-bottom:4px;">Tautan Video (YouTube, Google Drive, atau MP4):</label>
-                                <div style="display:flex;gap:8px;">
-                                    <input type="text" name="slides[<?php echo (int)$index; ?>][video_url]" class="slide-video-url" value="<?php echo esc_attr($slide['video_url'] ?? ''); ?>" placeholder="assets/video/... atau https://..." style="flex:1;padding:6px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;">
-                                    <button type="button" class="btn-select-video button">Pilih Video</button>
-                                </div>
-                            </div>
-
-                            <!-- Desktop Image Field -->
-                            <div class="field-image-url" style="margin-bottom:14px;">
-                                <label style="display:block;font-weight:600;font-size:12.5px;margin-bottom:6px;">Gambar Latar / Poster Desktop (mendukung <code>assets/img/...</code>, Media Library &amp; Google Drive):</label>
-                                <div style="display:flex;gap:12px;align-items:flex-start;">
-                                    <div class="image-preview-box" style="width:130px;height:80px;background:#F1F5F9;border:1px dashed #CBD5E1;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                                        <?php if (!empty($img_prev)) : ?>
-                                            <img src="<?php echo esc_url($img_prev); ?>" style="width:100%;height:100%;object-fit:cover;">
-                                        <?php else : ?>
-                                            <span style="font-size:10px;color:#94A3B8;">Preview</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div style="flex:1;">
-                                        <input type="text" name="slides[<?php echo (int)$index; ?>][image_url]" class="slide-image-url" value="<?php echo esc_attr($img_raw); ?>" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;margin-bottom:6px;" placeholder="assets/img/hero-campus.jpg atau https://...">
-                                        <button type="button" class="btn-select-image button">Pilih Gambar Desktop</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Optional Mobile Image -->
-                            <div class="field-image-mobile-url" style="background:#FAF8F5;border:1px dashed #CBD5E1;padding:12px 14px;border-radius:8px;">
-                                <label style="display:block;font-weight:600;font-size:12.5px;color:#B45309;margin-bottom:6px;">📱 Gambar Khusus Mobile / HP (Opsional):</label>
-                                <div style="display:flex;gap:12px;align-items:flex-start;">
-                                    <div class="image-mobile-preview-box" style="width:64px;height:80px;background:#FFFFFF;border:1px dashed #CBD5E1;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                                        <?php if (!empty($img_mob_p)) : ?>
-                                            <img src="<?php echo esc_url($img_mob_p); ?>" style="width:100%;height:100%;object-fit:cover;">
-                                        <?php else : ?>
-                                            <span style="font-size:9.5px;color:#94A3B8;">HP</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div style="flex:1;">
-                                        <input type="text" name="slides[<?php echo (int)$index; ?>][image_mobile_url]" class="slide-image-mobile-url" value="<?php echo esc_attr($img_mobile); ?>" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;margin-bottom:6px;" placeholder="Opsional brosur vertikal HP...">
-                                        <button type="button" class="btn-select-image-mobile button">Pilih Gambar Mobile</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right Column: CTA & Anti-Misclick Prompt -->
-                        <div style="background:#FAF8F5;border:1.5px solid #E5E7EB;border-radius:8px;padding:18px 20px;">
-                            <div style="font-family:monospace;font-size:11px;font-weight:700;color:#0D3B22;letter-spacing:0.08em;margin-bottom:10px;">
-                                TOMBOL AKSI (CTA) &amp; KONFIRMASI KLIK TENGAH
-                            </div>
-
-                            <div style="margin-bottom:14px;">
-                                <label style="display:block;font-weight:600;font-size:12.5px;color:#1E293B;margin-bottom:4px;">Teks Tombol Utama (Emas):</label>
-                                <input type="text" name="slides[<?php echo (int)$index; ?>][action_text]" class="slide-action-text-input" value="<?php echo esc_attr($action_text); ?>" style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13.5px;font-weight:600;color:#0D3B22;">
-                            </div>
-
-                            <div style="margin-bottom:14px;">
-                                <label style="display:block;font-weight:600;font-size:12.5px;color:#1E293B;margin-bottom:4px;">URL Tujuan Tombol Utama:</label>
-                                <input type="text" name="slides[<?php echo (int)$index; ?>][target_url]" class="slide-target-url" value="<?php echo esc_attr($slide['target_url'] ?? ''); ?>" placeholder="/akademik/kurikulum/ atau https://..." style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;">
-                            </div>
-
-                            <div style="margin-bottom:14px;padding-top:10px;border-top:1px dashed #CBD5E1;">
-                                <label style="display:block;font-weight:600;font-size:12.5px;color:#1E293B;margin-bottom:4px;">Teks Prompt Konfirmasi Tengah (Saat Kanvas Diklik):</label>
-                                <input type="text" name="slides[<?php echo (int)$index; ?>][prompt_text]" value="<?php echo esc_attr($prompt_text); ?>" placeholder="Lihat Sejarah 1969 & Profil" style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;">
-                            </div>
-
-                            <div style="margin-bottom:14px;">
-                                <label style="display:block;font-weight:600;font-size:12.5px;color:#1E293B;margin-bottom:4px;">URL Tujuan Prompt Tengah:</label>
-                                <input type="text" name="slides[<?php echo (int)$index; ?>][prompt_url]" value="<?php echo esc_attr($slide['prompt_url'] ?? ($slide['target_url'] ?? '')); ?>" placeholder="/profil/sejarah/ atau https://..." style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid #CBD5E1;font-size:13px;">
-                            </div>
-
-                            <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:6px;padding:12px 14px;font-size:12px;color:#475569;line-height:1.45;">
-                                💡 <strong>Fitur Anti Salah-Klik:</strong> Saat pengunjung menyentuh area gambar/kanvas panggung, tombol konfirmasi emas muncul di tengah layar sebelum berpindah halaman.
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <?php foreach ($slides as $index => $slide) : ?>
+                    <?php ppb_render_spotlight_slide_card($index, $slide, $recent_posts, false); ?>
                 <?php endforeach; ?>
             </div>
 
@@ -577,9 +783,135 @@ function ppb_render_spotlight_admin_page() {
         </form>
     </div>
 
+    <?php
+    $blank_slide = [
+        'id'               => '',
+        'type'             => 'image',
+        'device_target'    => 'all',
+        'mode_tag'         => 'SOROTAN BARU',
+        'kicker'           => '',
+        'eyebrow'          => 'AKREDITASI UNGGUL · LAMDIK',
+        'headline'         => '',
+        'summary'          => '',
+        'caption_title'    => '',
+        'video_url'        => '',
+        'image_url'        => '',
+        'image_mobile_url' => '',
+        'target_url'       => '/profil/',
+        'action_text'      => 'Lihat lebih lanjut',
+        'prompt_text'      => 'Lihat lebih lanjut',
+        'prompt_url'       => '/profil/',
+        'metrics'          => [],
+        'pinned_post_id'   => '',
+        'active'           => 1,
+        'order'            => 1,
+    ];
+    ?>
+    <script type="text/html" id="tmpl-ppb-spotlight-slide">
+        <?php ppb_render_spotlight_slide_card('__INDEX__', $blank_slide, $recent_posts, true); ?>
+    </script>
+
     <script>
     jQuery(document).ready(function($) {
         var themeBase = <?php echo wp_json_encode(trailingslashit(get_template_directory_uri())); ?>;
+        var nextSlideIndex = $('.ppb-slide-card').length;
+
+        function extractGdriveId(val) {
+            if (!val) return '';
+            var m = val.match(/drive\.google\.com\/(?:file\/d\/|thumbnail\?id=|open\?id=|uc\?(?:[^&]*&)*id=)([a-zA-Z0-9_-]{10,})/i)
+                || val.match(/drive\.google\.com\/[^\s]*?\/d\/([a-zA-Z0-9_-]{10,})/i)
+                || val.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]{10,})/i);
+            return m ? m[1] : '';
+        }
+
+        function resolvePreviewUrl(val) {
+            val = (val || '').trim();
+            if (!val) return '';
+            var gdId = extractGdriveId(val);
+            if (gdId) {
+                return 'https://drive.google.com/thumbnail?id=' + gdId + '&sz=w1200';
+            }
+            if (val.indexOf('dropbox.com') !== -1) {
+                return val.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace(/\?dl=[01]$/, '');
+            }
+            return val.indexOf('assets/') === 0 ? (themeBase + val) : val;
+        }
+
+        function escHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function refreshImageField(card, isMobile) {
+            var inputSel   = isMobile ? '.slide-image-mobile-url' : '.slide-image-url';
+            var boxSel     = isMobile ? '.image-mobile-preview-box' : '.image-preview-box';
+            var badgeSel   = isMobile ? '.image-mobile-source-badge' : '.image-source-badge';
+            var clearSel   = isMobile ? '.btn-clear-image-mobile' : '.btn-clear-image';
+            var emptyLabel = isMobile ? 'HP' : 'Belum ada gambar';
+
+            var val = (card.find(inputSel).val() || '').trim();
+            var box = card.find(boxSel);
+            var badge = card.find(badgeSel);
+            var clearBtn = card.find(clearSel);
+
+            if (!val) {
+                box.html('<span style="font-size:10px;color:#94A3B8;padding:4px;">' + emptyLabel + '</span>');
+                badge.text(isMobile ? 'Opsional' : 'Belum dipilih').css({ background: '#F1F5F9', color: '#64748B' });
+                clearBtn.hide();
+                return;
+            }
+
+            clearBtn.show();
+            var gdId = extractGdriveId(val);
+            if (gdId) {
+                badge.text(isMobile ? '☁️ GDrive' : '☁️ Google Drive').css({ background: '#FEF3C7', color: '#92400E' });
+            } else if (val.indexOf('assets/') === 0) {
+                badge.text(isMobile ? '📁 Aset' : '📁 Aset Tema').css({ background: '#E8F0EA', color: '#0D3B22' });
+            } else {
+                badge.text(isMobile ? '🖼 Terpasang' : '🖼 Media Library / URL').css({ background: '#E8F0EA', color: '#0D3B22' });
+            }
+
+            var previewUrl = resolvePreviewUrl(val);
+            var fallbackAttr = gdId ? ' data-gd-fallback="' + escHtml('https://lh3.googleusercontent.com/d/' + gdId + '=w1200') + '"' : '';
+            var img = $('<img style="width:100%;height:100%;object-fit:cover;"' + fallbackAttr + '>');
+            img.on('error', function() {
+                var fb = $(this).attr('data-gd-fallback');
+                if (fb && $(this).attr('src') !== fb) {
+                    $(this).attr('src', fb);
+                } else {
+                    box.html('<span style="font-size:10px;color:#B45309;padding:4px;">Pratinjau GDrive / URL gagal dimuat. Cek izin Siapa saja yang memiliki link.</span>');
+                }
+            });
+            img.attr('src', previewUrl);
+            box.empty().append(img);
+        }
+
+        function refreshVideoStatus(card) {
+            var val = (card.find('.slide-video-url').val() || '').trim();
+            var st  = card.find('.video-source-status');
+            var gdId = extractGdriveId(val);
+            if (gdId) {
+                st.html('☁️ <strong style="color:#0D3B22;">Google Drive Video terdeteksi</strong> (ID: ' + escHtml(gdId) + ') — pastikan akses <em>Siapa saja yang memiliki link</em>.');
+            } else if (/youtu(\.be|be\.com)/i.test(val)) {
+                st.html('▶️ <strong style="color:#0D3B22;">Video YouTube terdeteksi</strong> — diputar di modal video saat diklik.');
+            } else if (val !== '') {
+                st.html('🎬 <strong style="color:#0D3B22;">Video MP4 / URL</strong> — pastikan Gambar Latar/Poster Desktop diisi sebagai sampul awal.');
+            } else {
+                st.text('Unggah MP4 lewat Media Library atau tempel link YouTube / Google Drive video.');
+            }
+        }
+
+        function openWpMediaPicker(opts, onSelect) {
+            if (typeof wp === 'undefined' || !wp.media) {
+                alert('Media Library WordPress belum termuat pada halaman ini. Muat ulang halaman atau tempel link Google Drive / URL secara langsung pada kolom isian.');
+                return;
+            }
+            var frame = wp.media(opts);
+            frame.on('select', function() {
+                var attachment = frame.state().get('selection').first().toJSON();
+                onSelect(attachment);
+            });
+            frame.open();
+        }
 
         $(document).on('click', '.btn-toggle-slide', function() {
             var body = $(this).closest('.ppb-slide-card').find('.slide-body');
@@ -609,25 +941,36 @@ function ppb_render_spotlight_admin_page() {
             var opt = $(this).find('option:selected');
             if (!opt.val()) return;
             var card = $(this).closest('.ppb-slide-card');
+            var title = opt.data('title');
             var url = opt.data('url');
             var thumb = opt.data('thumb');
+            if (title && !card.find('.slide-headline-input').val()) {
+                card.find('.slide-headline-input').val(title).trigger('input');
+            }
             if (url) card.find('.slide-target-url').val(url);
             if (thumb) {
                 card.find('.slide-image-url').val(thumb);
-                card.find('.image-preview-box').html('<img src="' + thumb + '" style="width:100%;height:100%;object-fit:cover;">');
+                refreshImageField(card, false);
             }
             if (!card.find('.slide-action-text-input').val()) {
-                card.find('.slide-action-text-input').val('Baca berita selengkapnya');
+                card.find('.slide-action-text-input').val('Baca berita selengkapnya').trigger('input');
             }
         });
 
         $(document).on('input paste change', '.slide-image-url', function() {
-            var val = $(this).val().trim();
-            var card = $(this).closest('.ppb-slide-card');
-            if (!val) return;
-            var m = val.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)([a-zA-Z0-9_-]{10,})/i);
-            var previewUrl = m ? ('https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w800') : (val.indexOf('assets/') === 0 ? themeBase + val : val);
-            card.find('.image-preview-box').html('<img src="' + previewUrl + '" style="width:100%;height:100%;object-fit:cover;">');
+            refreshImageField($(this).closest('.ppb-slide-card'), false);
+        });
+
+        $(document).on('input paste change', '.slide-image-mobile-url', function() {
+            refreshImageField($(this).closest('.ppb-slide-card'), true);
+        });
+
+        $(document).on('input paste change', '.slide-video-url', function() {
+            refreshVideoStatus($(this).closest('.ppb-slide-card'));
+        });
+
+        $(document).on('input', '.slide-headline-input', function() {
+            $(this).closest('.ppb-slide-card').find('.slide-headline-preview').text($(this).val());
         });
 
         $(document).on('input', '.slide-action-text-input', function() {
@@ -638,79 +981,144 @@ function ppb_render_spotlight_admin_page() {
         $(document).on('click', '.btn-select-image', function(e) {
             e.preventDefault();
             var card = $(this).closest('.ppb-slide-card');
-            var frame = wp.media({ title: 'Pilih Foto / Banner Desktop', button: { text: 'Gunakan Gambar Ini' }, multiple: false, library: { type: 'image' } });
-            frame.on('select', function() {
-                var attachment = frame.state().get('selection').first().toJSON();
+            openWpMediaPicker({
+                title: 'Unggah atau Pilih Gambar Spotlight Desktop',
+                button: { text: 'Gunakan Gambar Ini' },
+                multiple: false,
+                library: { type: 'image' }
+            }, function(attachment) {
                 card.find('.slide-image-url').val(attachment.url);
-                card.find('.image-preview-box').html('<img src="' + attachment.url + '" style="width:100%;height:100%;object-fit:cover;">');
+                refreshImageField(card, false);
             });
-            frame.open();
+        });
+
+        $(document).on('click', '.btn-gdrive-image', function(e) {
+            e.preventDefault();
+            var card = $(this).closest('.ppb-slide-card');
+            var inp = card.find('.slide-image-url');
+            var pasted = window.prompt('Tempel link bagikan Google Drive gambar (contoh: https://drive.google.com/file/d/.../view?usp=sharing):\n\nPastikan izin akses file Google Drive disetel ke "Siapa saja yang memiliki link" (Anyone with the link).', inp.val() || '');
+            if (pasted !== null) {
+                inp.val(pasted.trim());
+                refreshImageField(card, false);
+            } else {
+                inp.focus();
+            }
+        });
+
+        $(document).on('click', '.btn-clear-image', function(e) {
+            e.preventDefault();
+            var card = $(this).closest('.ppb-slide-card');
+            card.find('.slide-image-url').val('');
+            refreshImageField(card, false);
         });
 
         $(document).on('click', '.btn-select-image-mobile', function(e) {
             e.preventDefault();
             var card = $(this).closest('.ppb-slide-card');
-            var frame = wp.media({ title: 'Pilih Gambar Mobile', button: { text: 'Gunakan Gambar Ini' }, multiple: false, library: { type: 'image' } });
-            frame.on('select', function() {
-                var attachment = frame.state().get('selection').first().toJSON();
+            openWpMediaPicker({
+                title: 'Unggah atau Pilih Gambar Mobile / HP',
+                button: { text: 'Gunakan Gambar Ini' },
+                multiple: false,
+                library: { type: 'image' }
+            }, function(attachment) {
                 card.find('.slide-image-mobile-url').val(attachment.url);
-                card.find('.image-mobile-preview-box').html('<img src="' + attachment.url + '" style="width:100%;height:100%;object-fit:cover;">');
+                refreshImageField(card, true);
             });
-            frame.open();
+        });
+
+        $(document).on('click', '.btn-gdrive-image-mobile', function(e) {
+            e.preventDefault();
+            var card = $(this).closest('.ppb-slide-card');
+            var inp = card.find('.slide-image-mobile-url');
+            var pasted = window.prompt('Tempel link Google Drive gambar khusus HP (portrait):', inp.val() || '');
+            if (pasted !== null) {
+                inp.val(pasted.trim());
+                refreshImageField(card, true);
+            } else {
+                inp.focus();
+            }
+        });
+
+        $(document).on('click', '.btn-clear-image-mobile', function(e) {
+            e.preventDefault();
+            var card = $(this).closest('.ppb-slide-card');
+            card.find('.slide-image-mobile-url').val('');
+            refreshImageField(card, true);
         });
 
         $(document).on('click', '.btn-select-video', function(e) {
             e.preventDefault();
             var card = $(this).closest('.ppb-slide-card');
-            var frame = wp.media({ title: 'Pilih Video MP4', button: { text: 'Gunakan Video Ini' }, multiple: false, library: { type: 'video' } });
-            frame.on('select', function() {
-                var attachment = frame.state().get('selection').first().toJSON();
+            openWpMediaPicker({
+                title: 'Unggah atau Pilih Video MP4',
+                button: { text: 'Gunakan Video Ini' },
+                multiple: false,
+                library: { type: 'video' }
+            }, function(attachment) {
                 card.find('.slide-video-url').val(attachment.url);
+                refreshVideoStatus(card);
             });
-            frame.open();
+        });
+
+        $(document).on('click', '.btn-gdrive-video', function(e) {
+            e.preventDefault();
+            var card = $(this).closest('.ppb-slide-card');
+            var inp = card.find('.slide-video-url');
+            var pasted = window.prompt('Tempel link Google Drive video atau link YouTube:', inp.val() || '');
+            if (pasted !== null) {
+                inp.val(pasted.trim());
+                refreshVideoStatus(card);
+            } else {
+                inp.focus();
+            }
+        });
+
+        $(document).on('click', '.btn-clear-video', function(e) {
+            e.preventDefault();
+            var card = $(this).closest('.ppb-slide-card');
+            card.find('.slide-video-url').val('');
+            refreshVideoStatus(card);
         });
 
         $('#btn-add-slide').on('click', function() {
             var count = $('.ppb-slide-card').length;
-            var newIdx = count;
-            var template = '<div class="ppb-slide-card" data-index="' + newIdx + '" style="background:#FFFFFF;border:1.5px solid #0D3B22;border-radius:10px;overflow:hidden;margin-top:10px;">' +
-                '<div style="background:#F8FAFC;padding:12px 18px;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;">' +
-                '<div style="display:flex;align-items:center;gap:12px;"><span style="font-family:monospace;font-weight:700;font-size:13px;background:#0D3B22;color:#F5B82E;padding:3px 8px;border-radius:4px;">SLIDE #<span class="slide-number-display">' + (count + 1) + '</span></span>' +
-                '<span class="slide-type-badge" style="font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:4px;background:#E8F0EA;color:#0D3B22;">IMAGE</span></div>' +
-                '<div style="display:flex;align-items:center;gap:12px;"><label><input type="checkbox" name="slides[' + newIdx + '][active]" value="1" checked> Tampilkan</label>' +
-                '<input type="hidden" name="slides[' + newIdx + '][id]" value="slide-' + Date.now() + '">' +
-                '<input type="hidden" name="slides[' + newIdx + '][order]" class="slide-order-input" value="' + (count + 1) + '">' +
-                '<button type="button" class="btn-delete-slide button button-small button-link-delete" style="color:#DC2626;">Hapus</button></div></div>' +
-                '<div class="slide-body" style="padding:20px 24px;display:grid;grid-template-columns:1.15fr 0.85fr;gap:24px;">' +
-                '<div><p><label><strong>Tipe Slide:</strong></label> <select name="slides[' + newIdx + '][type]" class="slide-type-select"><option value="image" selected>Foto / Brosur</option><option value="video">Video</option><option value="card">Kartu Akreditasi</option><option value="pinned_post">Berita Tersemat</option></select></p>' +
-                '<p><label><strong>Badge Mode:</strong></label><br><input type="text" name="slides[' + newIdx + '][mode_tag]" value="SOROTAN" style="width:100%;"></p>' +
-                '<p><label><strong>Kicker:</strong></label><br><input type="text" name="slides[' + newIdx + '][kicker]" style="width:100%;"></p>' +
-                '<p><label><strong>Headline:</strong></label><br><input type="text" name="slides[' + newIdx + '][headline]" style="width:100%;font-weight:700;"></p>' +
-                '<p><label><strong>Ringkasan:</strong></label><br><textarea name="slides[' + newIdx + '][summary]" rows="2" style="width:100%;"></textarea></p>' +
-                '<p><label><strong>Gambar Desktop (URL / assets/img/...):</strong></label><br><input type="text" name="slides[' + newIdx + '][image_url]" class="slide-image-url" value="assets/img/hero-campus.jpg" style="width:100%;"></p></div>' +
-                '<div style="background:#FAF8F5;padding:16px;border-radius:8px;">' +
-                '<p><label><strong>Teks Tombol CTA:</strong></label><br><input type="text" name="slides[' + newIdx + '][action_text]" class="slide-action-text-input" value="Lihat lebih lanjut" style="width:100%;"></p>' +
-                '<p><label><strong>URL Tujuan:</strong></label><br><input type="text" name="slides[' + newIdx + '][target_url]" class="slide-target-url" value="/profil/" style="width:100%;"></p>' +
-                '<p><label><strong>Teks Prompt Konfirmasi Tengah:</strong></label><br><input type="text" name="slides[' + newIdx + '][prompt_text]" value="Lihat lebih lanjut" style="width:100%;"></p>' +
-                '<p><label><strong>URL Prompt Tengah:</strong></label><br><input type="text" name="slides[' + newIdx + '][prompt_url]" value="/profil/" style="width:100%;"></p></div></div></div>';
-            $('#slides-container').append(template);
+            var newIdx = nextSlideIndex++;
+            var tmpl = ($('#tmpl-ppb-spotlight-slide').html() || '')
+                .replace(/__INDEX__/g, String(newIdx))
+                .replace(/__NUM__/g, String(count + 1))
+                .replace(/__SLIDE_ID__/g, 'slide-' + Date.now());
+            var $card = $(tmpl);
+            $card.css('border', '1.5px solid #0D3B22');
+            $('#slides-container').append($card);
+            updateSlideNumbers();
+            if ($card.offset()) {
+                $('html, body').animate({ scrollTop: $card.offset().top - 60 }, 250);
+            }
         });
 
         $('#btn-reset-default').on('click', function() {
-            if (confirm('Kembalikan slide spotlight ke 3 slide standar Editorial Calm?')) {
+            if (confirm('PERHATIAN: Ini akan mengganti daftar slide aktif ke 3 slide bawaan Editorial Calm.\n\nApakah Anda yakin? (Slide sebelumnya tetap tersimpan di cadangan.)')) {
                 $('#ppb_spotlight_action').val('reset_default');
                 $('#ppb-spotlight-form').submit();
             }
         });
 
+        $('#btn-restore-legacy').on('click', function() {
+            $('#ppb_spotlight_action').val('restore_legacy_backup');
+            $('#ppb-spotlight-form').submit();
+        });
+
         function updateSlideNumbers() {
-            $('.ppb-slide-card').each(function(i) {
+            var cards = $('.ppb-slide-card');
+            cards.each(function(i) {
                 $(this).find('.slide-number-display').text(i + 1);
                 $(this).find('.slide-order-input').val(i + 1);
             });
+            $('#ppb-slide-total-count').text(cards.length);
         }
     });
     </script>
     <?php
 }
 }
+

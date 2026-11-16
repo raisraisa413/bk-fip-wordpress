@@ -1316,12 +1316,12 @@ function bk_fip_render_settings_page() {
             <!-- 5. VIDEO -->
             <div id="bk-s-video" style="<?php echo esc_attr($card); ?>">
                 <h2 style="<?php echo esc_attr($h2); ?>"><span>5. Video Profil — 3 Bab (Band Hijau Tua &amp; Modal)</span><?php echo $reset_btn('video'); ?></h2>
-                <p class="description" style="margin-top:0;">URL video mendukung YouTube / Vimeo / file MP4. Jika kosong, modal menampilkan poster thumbnail dan keterangan bab.</p>
+                <p class="description" style="margin-top:0;">URL video mendukung YouTube / Google Drive / Vimeo / file MP4. Thumbnail mendukung unggah Media Library maupun link Google Drive.</p>
                 <?php foreach ($cfg['video_chapters'] as $i => $vc) : $n = 'bk_video[' . $i . ']'; ?>
                     <div style="display:grid; grid-template-columns: 120px 1fr; gap:14px; border-top:1px dashed #E6E2DA; padding-top:12px; margin-top:12px;">
                         <div>
                             <div style="<?php echo esc_attr($mono); ?>">BAB <?php echo esc_html(sprintf('%02d', $i + 1)); ?></div>
-                            <img class="bk-media-prev" src="<?php echo esc_url(bk_resolve_theme_asset_url($vc['thumb'] ?? '')); ?>" alt="" style="width:120px;height:72px;object-fit:cover;border-radius:8px;margin-top:6px;background:#E8F0EA;">
+                            <img class="bk-media-prev" src="<?php echo esc_url(function_exists('bk_parse_spotlight_image_url') ? bk_parse_spotlight_image_url($vc['thumb'] ?? '') : bk_resolve_theme_asset_url($vc['thumb'] ?? '')); ?>" alt="" style="width:120px;height:72px;object-fit:cover;border-radius:8px;margin-top:6px;background:#E8F0EA;">
                         </div>
                         <div style="display:grid; grid-template-columns: 1fr 120px; gap:8px;">
                             <input type="text" name="<?php echo esc_attr($n); ?>[title]" value="<?php echo esc_attr($vc['title'] ?? ''); ?>" placeholder="Judul bab" style="width:100%; font-weight:600;">
@@ -1329,11 +1329,11 @@ function bk_fip_render_settings_page() {
                             <input type="text" name="<?php echo esc_attr($n); ?>[badge]" value="<?php echo esc_attr($vc['badge'] ?? ''); ?>" placeholder="Bagian 1 · ..." style="width:100%;">
                             <input type="text" name="<?php echo esc_attr($n); ?>[date]" value="<?php echo esc_attr($vc['date'] ?? ''); ?>" placeholder="Keterangan">
                             <textarea name="<?php echo esc_attr($n); ?>[desc]" rows="2" style="grid-column:span 2; width:100%;" placeholder="Deskripsi"><?php echo esc_textarea($vc['desc'] ?? ''); ?></textarea>
-                            <div style="grid-column:span 2; display:flex; gap:6px;">
-                                <input type="text" class="bk-media-input" name="<?php echo esc_attr($n); ?>[thumb]" value="<?php echo esc_attr($vc['thumb'] ?? ''); ?>" placeholder="Thumbnail: assets/img/... atau URL" style="flex:1;">
-                                <button type="button" class="button bk-media-pick">Pilih Gambar</button>
+                            <div style="grid-column:span 2; display:flex; gap:6px; flex-wrap:wrap;">
+                                <input type="text" class="bk-media-input" name="<?php echo esc_attr($n); ?>[thumb]" value="<?php echo esc_attr($vc['thumb'] ?? ''); ?>" placeholder="Thumbnail: Link Google Drive, URL Media Library, atau assets/img/..." style="flex:1;min-width:220px;">
+                                <button type="button" class="button bk-media-pick">📷 Unggah / Pilih Gambar</button>
                             </div>
-                            <input type="url" name="<?php echo esc_attr($n); ?>[video_url]" value="<?php echo esc_attr($vc['video_url'] ?? ''); ?>" placeholder="URL Video (YouTube/Vimeo/MP4)" style="grid-column:span 2; width:100%;">
+                            <input type="url" name="<?php echo esc_attr($n); ?>[video_url]" value="<?php echo esc_attr($vc['video_url'] ?? ''); ?>" placeholder="URL Video (YouTube / Google Drive / Vimeo / MP4)" style="grid-column:span 2; width:100%;">
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -1398,13 +1398,23 @@ function bk_fip_render_settings_page() {
     <script>
     (function(){
         var base = <?php echo wp_json_encode(trailingslashit(get_template_directory_uri())); ?>;
+        function resolvePrev(v) {
+            v = (v || '').trim();
+            if (!v) return '';
+            var gm = v.match(/drive\.google\.com\/(?:file\/d\/|thumbnail\?id=|open\?id=|uc\?(?:[^&]*&)*id=)([a-zA-Z0-9_-]{10,})/i);
+            if (gm) return 'https://drive.google.com/thumbnail?id=' + gm[1] + '&sz=w1200';
+            return v.indexOf('assets/') === 0 ? base + v : v;
+        }
         document.querySelectorAll('.bk-media-pick').forEach(function(btn){
             btn.addEventListener('click', function(e){
                 e.preventDefault();
-                if (typeof wp === 'undefined' || !wp.media) return;
+                if (typeof wp === 'undefined' || !wp.media) {
+                    alert('Media Library WordPress belum termuat. Muat ulang halaman atau tempel link Google Drive secara langsung.');
+                    return;
+                }
                 var wrap = btn.closest('div[style*="grid-template-columns: 120px"]');
                 var input = btn.parentNode.querySelector('.bk-media-input');
-                var frame = wp.media({ title: 'Pilih Gambar', button: { text: 'Gunakan' }, library: { type: 'image' }, multiple: false });
+                var frame = wp.media({ title: 'Unggah atau Pilih Gambar', button: { text: 'Gunakan Gambar Ini' }, library: { type: 'image' }, multiple: false });
                 frame.on('select', function(){
                     var url = frame.state().get('selection').first().toJSON().url;
                     input.value = url;
@@ -1415,17 +1425,24 @@ function bk_fip_render_settings_page() {
             });
         });
         document.querySelectorAll('.bk-media-input').forEach(function(inp){
-            inp.addEventListener('change', function(){
-                var wrap = inp.closest('div[style*="grid-template-columns: 120px"]');
-                var prev = wrap ? wrap.querySelector('.bk-media-prev') : null;
-                var v = inp.value.trim();
-                if (prev) prev.src = v.indexOf('assets/') === 0 ? base + v : v;
+            ['change', 'input'].forEach(function(ev){
+                inp.addEventListener(ev, function(){
+                    var wrap = inp.closest('div[style*="grid-template-columns: 120px"]');
+                    var prev = wrap ? wrap.querySelector('.bk-media-prev') : null;
+                    if (prev) prev.src = resolvePrev(inp.value);
+                });
             });
         });
     })();
     </script>
     <?php
 }
+add_action('admin_enqueue_scripts', function($hook_suffix = '') {
+    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+    if ($page === 'bk-pengaturan-beranda' || strpos((string) $hook_suffix, 'bk-pengaturan-beranda') !== false) {
+        wp_enqueue_media();
+    }
+});
 
 
 
@@ -3873,16 +3890,32 @@ foreach (array('style_loader_src', 'script_loader_src', 'plugins_url', 'content_
  * PARSER SUMBER GAMBAR SPOTLIGHT (GOOGLE DRIVE, DROPBOX, DIRECT CDN)
  * Mengonversi link Google Drive Viewer (file/d/ID/view) menjadi direct image CDN stream
  */
+if (!function_exists('bk_extract_gdrive_id')) {
+    function bk_extract_gdrive_id($url) {
+        $url = trim((string) $url);
+        if ($url === '') return '';
+        if (preg_match('#drive\.google\.com/(?:file/d/|thumbnail\?id=|open\?id=|uc\?(?:[^&]*&)*id=)([a-zA-Z0-9_-]{10,})#i', $url, $m)) {
+            return $m[1];
+        }
+        if (preg_match('#drive\.google\.com/[^\s]*?/d/([a-zA-Z0-9_-]{10,})#i', $url, $m)) {
+            return $m[1];
+        }
+        if (preg_match('#lh3\.googleusercontent\.com/d/([a-zA-Z0-9_-]{10,})#i', $url, $m)) {
+            return $m[1];
+        }
+        return '';
+    }
+}
+
 if (!function_exists('bk_parse_spotlight_image_url')) {
     function bk_parse_spotlight_image_url($url) {
         if (empty($url)) return '';
         $url = trim($url);
 
-        // 1. Google Drive: file/d/{ID} atau open?id={ID} atau uc?id={ID}
-        if (preg_match('/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)([a-zA-Z0-9_-]{20,})/i', $url, $m)) {
-            $gd_id = $m[1];
-            // Format Google CDN direct high-res stream (2560px width for retina screens)
-            return 'https://lh3.googleusercontent.com/d/' . $gd_id . '=w2560';
+        // 1. Google Drive: file/d/{ID}, open?id={ID}, uc?...id={ID}, thumbnail?id={ID}, lh3.googleusercontent.com/d/{ID}
+        $gd_id = bk_extract_gdrive_id($url);
+        if ($gd_id !== '') {
+            return 'https://drive.google.com/thumbnail?id=' . $gd_id . '&sz=w1920';
         }
 
         // 2. Dropbox: convert www.dropbox.com to dl.dropboxusercontent.com
@@ -3907,13 +3940,13 @@ if (!function_exists('bk_parse_spotlight_video_source')) {
             return [
                 'type'      => 'youtube',
                 'id'        => $yt_id,
-                'embed_url' => 'https://www.youtube-nocookie.com/embed/' . $yt_id . '?autoplay=1&mute=1&controls=0&loop=1&playlist=' . $yt_id . '&enablejsapi=1&rel=0&playsinline=1&modestbranding=1&iv_load_policy=3'
+                'embed_url' => 'https://www.youtube-nocookie.com/embed/' . $yt_id . '?autoplay=1&rel=0&playsinline=1&modestbranding=1'
             ];
         }
 
         // 2. Google Drive
-        if (preg_match('/drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]{20,})/i', $url, $m)) {
-            $gd_id = $m[1];
+        $gd_id = bk_extract_gdrive_id($url);
+        if ($gd_id !== '') {
             return [
                 'type'      => 'gdrive',
                 'id'        => $gd_id,
@@ -3927,14 +3960,15 @@ if (!function_exists('bk_parse_spotlight_video_source')) {
             return [
                 'type'      => 'vimeo',
                 'id'        => $vim_id,
-                'embed_url' => 'https://player.vimeo.com/video/' . $vim_id . '?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1'
+                'embed_url' => 'https://player.vimeo.com/video/' . $vim_id . '?autoplay=1&byline=0&title=0'
             ];
         }
 
-        // 4. Direct video (MP4/WebM atau link CDN)
+        // 4. Direct video (MP4/WebM atau link CDN/aset tema)
+        $resolved = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($url) : $url;
         return [
             'type' => 'direct',
-            'url'  => $url
+            'url'  => $resolved
         ];
     }
 }
