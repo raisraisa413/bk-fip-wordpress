@@ -307,9 +307,15 @@ function ppb_handle_spotlight_admin_actions() {
             $prompt_url = ppb_spotlight_sanitize_asset_or_url($s['prompt_url'] ?? '');
             if ($prompt_url === '') $prompt_url = $target_url;
 
+            $display_mode = sanitize_text_field($s['display_mode'] ?? 'poster');
+            if (!in_array($display_mode, ['poster', 'editorial'], true)) {
+                $display_mode = 'poster';
+            }
+
             $cleaned_slides[] = [
                 'id'               => sanitize_text_field($s['id'] ?? ('slide-' . uniqid())),
                 'type'             => $type,
+                'display_mode'     => $display_mode,
                 'device_target'    => $device,
                 'mode_tag'         => sanitize_text_field($s['mode_tag'] ?? strtoupper($type)),
                 'kicker'           => sanitize_text_field($s['kicker'] ?? ''),
@@ -385,8 +391,10 @@ function ppb_render_spotlight_slide_card($index, $slide, $recent_posts, $is_temp
     $idx_attr    = $is_template ? '__INDEX__' : (int) $index;
     $num_display = $is_template ? '__NUM__' : ((int) $index + 1);
     $slide_type  = $slide['type'] ?? 'image';
-    $slide_id    = $is_template ? '__SLIDE_ID__' : ($slide['id'] ?? ('slide-' . $index));
-    $device      = $slide['device_target'] ?? 'all';
+    $slide_id     = $is_template ? '__SLIDE_ID__' : ($slide['id'] ?? ('slide-' . $index));
+    $default_dm   = ($slide_type === 'image' && $slide_id !== 'slide-laboratorium-bk') ? 'poster' : 'editorial';
+    $display_mode = !empty($slide['display_mode']) ? $slide['display_mode'] : $default_dm;
+    $device       = $slide['device_target'] ?? 'all';
     $action_text = !empty($slide['action_text']) ? $slide['action_text'] : 'Lihat lebih lanjut';
     $prompt_text = $slide['prompt_text'] ?? $action_text;
     $img_raw     = $slide['image_url'] ?? '';
@@ -450,6 +458,17 @@ function ppb_render_spotlight_slide_card($index, $slide, $recent_posts, $is_temp
                             <option value="desktop_only" <?php selected($device, 'desktop_only'); ?>>🖥 Khusus Desktop</option>
                             <option value="mobile_only" <?php selected($device, 'mobile_only'); ?>>📱 Khusus Mobile (HP)</option>
                         </select>
+                    </div>
+                </div>
+
+                <div class="field-display-mode" style="margin-bottom:14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 12px;<?php echo in_array($slide_type, ['image', 'pinned_post'], true) ? '' : 'display:none;'; ?>">
+                    <label style="display:block;font-weight:700;font-size:12.5px;color:#0D3B22;margin-bottom:4px;">Mode Tampilan Gambar / Brosur:</label>
+                    <select name="slides[<?php echo esc_attr($idx_attr); ?>][display_mode]" class="slide-display-mode-select" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #86EFAC;font-weight:600;">
+                        <option value="poster" <?php selected($display_mode, 'poster'); ?>>🖼 Poster / Infografis Utuh (Tidak Terpotong &amp; Tidak Tertutup Teks)</option>
+                        <option value="editorial" <?php selected($display_mode, 'editorial'); ?>>🌄 Foto Latar + Teks Editorial (Penuh Layar)</option>
+                    </select>
+                    <div style="font-size:11px;color:#166534;margin-top:4px;line-height:1.4;">
+                        Pilih <strong>Poster / Infografis Utuh</strong> untuk spanduk/brosur bertulisan agar terbaca penuh di HP maupun desktop dan bisa diklik untuk diperbesar.
                     </div>
                 </div>
 
@@ -787,6 +806,7 @@ function ppb_render_spotlight_admin_page() {
     $blank_slide = [
         'id'               => '',
         'type'             => 'image',
+        'display_mode'     => 'poster',
         'device_target'    => 'all',
         'mode_tag'         => 'SOROTAN BARU',
         'kicker'           => '',
@@ -932,6 +952,7 @@ function ppb_render_spotlight_admin_page() {
             var card = $(this).closest('.ppb-slide-card');
             var val = $(this).val();
             card.find('.slide-type-badge').text(val);
+            card.find('.field-display-mode').toggle(val === 'image' || val === 'pinned_post');
             card.find('.field-video-url').toggle(val === 'video');
             card.find('.field-pinned-post').toggle(val === 'pinned_post');
             card.find('.field-card-metrics').toggle(val === 'card');

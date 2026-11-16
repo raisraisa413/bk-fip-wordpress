@@ -225,7 +225,7 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
     <!-- =====================================================================
          SECTION 1: FULL-SCREEN 100VH SPOTLIGHT HERO & MEDIA SHOWCASE
          ===================================================================== -->
-    <section class="bk-spotlight-hero" id="hero_spotlight" aria-label="Sorotan Utama Jurusan PPB BK FIP UNM" data-autoplay="<?php echo esc_attr($spotlight_settings['autoplay'] ?? '1'); ?>" data-speed="<?php echo esc_attr($spotlight_settings['speed'] ?? 8); ?>">
+    <section class="bk-spotlight-hero" id="hero_spotlight" aria-label="Sorotan Utama Jurusan PPB BK FIP UNM" data-autoplay="<?php echo esc_attr($spotlight_settings['autoplay'] ?? '1'); ?>" data-speed="<?php echo esc_attr($spotlight_settings['speed'] ?? 8); ?>" data-fit-mode="<?php echo esc_attr($spotlight_settings['fit_mode'] ?? 'cover'); ?>">
         <div class="bk-spotlight-grid-overlay" aria-hidden="true"></div>
 
         <div class="bk-spotlight-track" id="bk-sp-track" role="region" aria-roledescription="carousel" aria-label="Sorotan Utama BK FIP UNM">
@@ -291,14 +291,23 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                     }
                 }
 
+                $s_id = $sl['id'] ?? ('slide-' . $s_idx);
+                $default_dm = ($s_type === 'image' && $s_id !== 'slide-laboratorium-bk') ? 'poster' : 'editorial';
+                $display_mode = !empty($sl['display_mode']) ? $sl['display_mode'] : $default_dm;
+                if (($spotlight_settings['fit_mode'] ?? 'cover') === 'contain' && in_array($s_type, array('image', 'pinned_post'), true)) {
+                    $display_mode = 'poster';
+                }
+                $is_poster_mode = (in_array($s_type, array('image', 'pinned_post'), true) && $display_mode === 'poster');
+
                 $device_cls = '';
                 if ($s_device === 'desktop_only') $device_cls = 'bk-device-desktop-only';
                 elseif ($s_device === 'mobile_only') $device_cls = 'bk-device-mobile-only';
             ?>
-            <div class="bk-spotlight-slide <?php echo $is_first ? 'is-active' : ''; ?> <?php echo esc_attr($device_cls); ?>"
+            <div class="bk-spotlight-slide <?php echo $is_first ? 'is-active' : ''; ?> <?php echo $is_poster_mode ? 'is-poster-mode' : ''; ?> <?php echo esc_attr($device_cls); ?>"
                  data-sp-slide="<?php echo esc_attr($s_idx); ?>"
                  data-sp-type="<?php echo esc_attr($s_type); ?>"
                  data-sp-mode="<?php echo esc_attr($mode_tag); ?>"
+                 data-display-mode="<?php echo esc_attr($display_mode); ?>"
                  data-device-target="<?php echo esc_attr($s_device); ?>">
 
                 <?php if ($s_type === 'card') : ?>
@@ -327,6 +336,59 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                                     <span><?php echo esc_html($action_text); ?></span>
                                     <span aria-hidden="true">&rarr;</span>
                                 </a>
+                            </div>
+                        </div>
+                    </div>
+                <?php elseif ($is_poster_mode) : ?>
+                    <!-- Slide Variant: Uncropped, Undimmed Poster / Infografis Stage -->
+                    <div class="bk-sp-poster-stage">
+                        <div class="bk-sp-poster-media">
+                            <picture>
+                                <?php if (!empty($mob_url)) : ?>
+                                    <source media="(max-width: 768px)" srcset="<?php echo esc_url($mob_url); ?>">
+                                <?php endif; ?>
+                                <img src="<?php echo esc_url($img_url); ?>"
+                                     alt="<?php echo esc_attr($headline !== '' ? $headline : ($mode_tag ?: 'Poster Sorotan PPB FIP UNM')); ?>"
+                                     loading="<?php echo $is_first ? 'eager' : 'lazy'; ?>"
+                                     data-poster-zoom="<?php echo esc_attr($img_url); ?>"
+                                     data-poster-title="<?php echo esc_attr($headline !== '' ? $headline : $mode_tag); ?>"
+                                     <?php if ($img_gd_fallback !== '') : ?>
+                                     data-gdrive-fallback="<?php echo esc_attr($img_gd_fallback); ?>"
+                                     onerror="if(this.dataset.gdriveFallback && this.src !== this.dataset.gdriveFallback){this.src=this.dataset.gdriveFallback;this.setAttribute('data-poster-zoom',this.src);}"
+                                     <?php endif; ?>>
+                            </picture>
+                            <button type="button"
+                                    class="bk-sp-zoom-pill"
+                                    data-poster-zoom="<?php echo esc_attr($img_url); ?>"
+                                    data-poster-title="<?php echo esc_attr($headline !== '' ? $headline : $mode_tag); ?>"
+                                    aria-label="Perbesar Gambar Poster">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                                <span>Perbesar</span>
+                            </button>
+                        </div>
+
+                        <div class="bk-sp-poster-panel">
+                            <div class="bk-sp-poster-kicker">
+                                <span class="bk-sp-dot-live" aria-hidden="true"></span>
+                                <span><?php echo esc_html($kicker); ?></span>
+                            </div>
+                            <?php if ($headline !== '') : ?>
+                            <<?php echo $h_tag; ?> class="bk-sp-poster-title"><?php echo esc_html($headline); ?></<?php echo $h_tag; ?>>
+                            <?php endif; ?>
+                            <?php if ($summary !== '') : ?>
+                            <p class="bk-sp-poster-lead"><?php echo esc_html($summary); ?></p>
+                            <?php endif; ?>
+                            <div class="bk-sp-cta-row">
+                                <a href="<?php echo esc_url($target_url); ?>" class="bk-btn bk-btn-gold bk-btn-sm">
+                                    <span><?php echo esc_html($action_text); ?></span>
+                                    <span aria-hidden="true">&rarr;</span>
+                                </a>
+                                <button type="button"
+                                        class="bk-btn bk-btn-glass bk-btn-sm"
+                                        data-poster-zoom="<?php echo esc_attr($img_url); ?>"
+                                        data-poster-title="<?php echo esc_attr($headline !== '' ? $headline : $mode_tag); ?>">
+                                    <span>Perbesar Gambar</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -387,11 +449,13 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                     </div>
                 <?php endif; ?>
 
+                <?php if (!$is_poster_mode) : ?>
                 <!-- Top-Left Kicker Pill -->
                 <div class="bk-sp-mode-tag">
                     <span class="bk-sp-dot-live" aria-hidden="true"></span>
                     <span><?php echo esc_html($kicker); ?></span>
                 </div>
+                <?php endif; ?>
 
                 <!-- Top-Right Video Modal Trigger (on video slides) -->
                 <?php if ($s_type === 'video') : ?>
@@ -410,12 +474,14 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                 </button>
                 <?php endif; ?>
 
+                <?php if (!$is_poster_mode) : ?>
                 <!-- Anti-Misclick Background Shield + Centered Action Prompt Pill -->
                 <div class="bk-sp-shield" data-sp-shield="<?php echo esc_attr($s_idx); ?>" title="Klik area latar untuk menampilkan tautan sorotan"></div>
                 <a href="<?php echo esc_url($prompt_url); ?>" class="bk-sp-prompt">
                     <span><?php echo esc_html($prompt_text); ?></span>
                     <span aria-hidden="true">&rarr;</span>
                 </a>
+                <?php endif; ?>
             </div>
             <?php endforeach; ?>
         </div>
@@ -935,6 +1001,19 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
     </div>
 </div>
 
+<!-- =====================================================================
+     POSTER / INFOGRAFIS ZOOM LIGHTBOX (#bk-poster-lightbox)
+     ===================================================================== -->
+<div class="bk-poster-lightbox" id="bk-poster-lightbox" role="dialog" aria-modal="true" aria-labelledby="bk-plb-title" hidden>
+    <div class="bk-plb-head">
+        <span id="bk-plb-title" class="bk-plb-title">Pratinjau Poster</span>
+        <button type="button" class="bk-plb-close" id="bk-plb-close" aria-label="Tutup Pratinjau Poster">&#10005;</button>
+    </div>
+    <div class="bk-plb-body" id="bk-plb-body">
+        <img id="bk-plb-img" src="" alt="">
+    </div>
+</div>
+
 <script type="application/json" id="bk-video-chapters-data"><?php echo wp_json_encode($video_chapters); ?></script>
 <script>
 (function(){
@@ -1125,6 +1204,46 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
     if ($('bk-vmod-close')) $('bk-vmod-close').addEventListener('click', closeVideoModal);
     if ($('bk-vid-backdrop')) $('bk-vid-backdrop').addEventListener('click', closeVideoModal);
 
+    // 3b. Poster / Infografis Zoom Lightbox
+    var posterLb = $('bk-poster-lightbox');
+    var posterLbImg = $('bk-plb-img');
+    var posterLbTitle = $('bk-plb-title');
+
+    function openPosterLightbox(src, title) {
+        if (!posterLb || !posterLbImg || !src) return;
+        stopSpotlight();
+        posterLbImg.src = src;
+        posterLbImg.alt = title || 'Poster Sorotan';
+        if (posterLbTitle) posterLbTitle.textContent = title || 'Pratinjau Poster';
+        posterLb.hidden = false;
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closePosterLightbox() {
+        if (!posterLb || posterLb.hidden) return;
+        posterLb.hidden = true;
+        if (posterLbImg) posterLbImg.src = '';
+        document.body.style.overflow = '';
+        if (!spPaused) startSpotlight();
+    }
+
+    document.addEventListener('click', function(e) {
+        var zoomTrigger = e.target.closest('[data-poster-zoom]');
+        if (zoomTrigger) {
+            e.preventDefault();
+            openPosterLightbox(
+                zoomTrigger.getAttribute('data-poster-zoom') || '',
+                zoomTrigger.getAttribute('data-poster-title') || ''
+            );
+        }
+    });
+    if ($('bk-plb-close')) $('bk-plb-close').addEventListener('click', closePosterLightbox);
+    if ($('bk-plb-body')) {
+        $('bk-plb-body').addEventListener('click', function(e) {
+            if (e.target === this) closePosterLightbox();
+        });
+    }
+
     // 4. Full-Screen 100vh Spotlight Carousel
     var heroEl = $('hero_spotlight');
     var slides = heroEl ? Array.prototype.slice.call(heroEl.querySelectorAll('.bk-spotlight-slide')) : [];
@@ -1270,12 +1389,13 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
+                closePosterLightbox();
                 closeVideoModal();
                 return;
             }
             if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !['INPUT', 'TEXTAREA', 'SELECT'].includes((document.activeElement || {}).tagName)) {
                 var vMod = $('bk-video-modal');
-                if (vMod && vMod.classList.contains('is-open')) return;
+                if ((vMod && vMod.classList.contains('is-open')) || (posterLb && !posterLb.hidden)) return;
                 var ae = document.activeElement;
                 if (ae && ae.closest && ae.closest('#hero_spotlight')) {
                     e.preventDefault();
