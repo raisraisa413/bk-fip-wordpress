@@ -239,7 +239,7 @@ body.front-page main {
 
 #bk-navbar-spacer {
   width: 100%;
-  height: calc(var(--bk-admin-bar-offset, 0px) + var(--bk-navbar-height, var(--header-h)));
+  height: var(--bk-navbar-height, var(--header-h));
   background-color: var(--forest);
   display: block;
   margin: 0;

@@ -64,7 +64,7 @@
     }
     #bk-navbar-spacer {
         width: 100% !important;
-        height: calc(var(--bk-admin-bar-offset, 0px) + var(--bk-navbar-height, 88px)) !important;
+        height: var(--bk-navbar-height, 88px) !important;
         background-color: #0D3B22 !important;
         display: block !important;
         margin: 0 !important;
@@ -461,13 +461,24 @@ $search_index = function_exists('bk_fip_get_search_index') ? bk_fip_get_search_i
 window.BK_SEARCH_INDEX = <?php echo wp_json_encode($search_index); ?>;
 
 (function() {
-    // 1. Keep #bk-navbar-spacer synced with live header height
+    // 1. Keep #bk-navbar-spacer synced with live header height (without double-counting WP html margin-top)
     function syncBkNavbarSpacer() {
         var nav = document.getElementById('bk-main-navbar');
+        var spacer = document.getElementById('bk-navbar-spacer');
         if (!nav) return;
         var h = nav.offsetHeight || 88;
         document.documentElement.style.setProperty('--bk-navbar-height', h + 'px');
         document.documentElement.style.setProperty('--ppb-navbar-height', h + 'px');
+        var bar = document.getElementById('wpadminbar');
+        var barH = (bar && document.body && document.body.classList.contains('admin-bar')) ? (bar.offsetHeight || 0) : 0;
+        if (bar && barH > 0) {
+            document.documentElement.style.setProperty('--bk-admin-bar-offset', barH + 'px');
+        }
+        if (spacer) {
+            var htmlMt = parseFloat(window.getComputedStyle(document.documentElement).marginTop) || 0;
+            var extraBar = Math.max(0, barH - htmlMt);
+            spacer.style.setProperty('height', (h + extraBar) + 'px', 'important');
+        }
     }
     syncBkNavbarSpacer();
     document.addEventListener('DOMContentLoaded', syncBkNavbarSpacer);
