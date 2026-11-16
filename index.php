@@ -30,12 +30,12 @@ if (is_category()) {
 }
 ?>
 
-<div class="bk-page-wrapper" style="width:100%;min-height:100vh;background-color:#FAF8F5;font-family:'Poppins',sans-serif;color:#111827;">
+<div class="bk-page-wrapper" style="width:100%;min-height:100vh;background-color:#FAF8F5;font-family:'Plus Jakarta Sans',sans-serif;color:#111827;">
 
     <!-- =================================================================== -->
     <!-- HERO HEADER                                                         -->
     <!-- =================================================================== -->
-    <section style="position:relative;overflow:hidden;background:#0D3B22;border-bottom:1px solid rgba(255,255,255,0.1);color:#ffffff;padding:95px clamp(16px, 4vw, 40px) 45px;">
+    <section style="position:relative;overflow:hidden;background:#0D3B22;border-bottom:1px solid rgba(255,255,255,0.1);color:#ffffff;padding:36px clamp(16px, 4vw, 40px) 45px;">
         <div style="position:absolute;top:-100px;right:-10%;width:500px;height:500px;border-radius:50%;background:rgba(24,83,51,0.35);filter:blur(80px);pointer-events:none;"></div>
         <div style="position:absolute;bottom:-120px;left:-10%;width:420px;height:420px;border-radius:50%;background:rgba(245,184,46,0.12);filter:blur(80px);pointer-events:none;"></div>
 

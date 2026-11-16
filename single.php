@@ -30,12 +30,12 @@ while (have_posts()) : the_post();
     $share_wa = 'https://wa.me/?text=' . rawurlencode(get_the_title() . "\n\nBaca selengkapnya di: " . $current_url);
 ?>
 
-<div class="bk-page-wrapper" style="width:100%;background-color:#FAF8F5;min-height:100vh;font-family:'Poppins',sans-serif;color:#111827;">
+<div class="bk-page-wrapper" style="width:100%;background-color:#FAF8F5;min-height:100vh;font-family:'Plus Jakarta Sans',sans-serif;color:#111827;">
 
     <!-- =================================================================== -->
     <!-- 1. HERO BAND (SCHOLARO DEEP FOREST GREEN)                           -->
     <!-- =================================================================== -->
-    <section style="position:relative;overflow:hidden;background:#0D3B22;border-bottom:1px solid rgba(255,255,255,0.1);color:#ffffff;padding:var(--bk-top-clearance, 125px) 0 clamp(35px, 5vw, 50px);">
+    <section style="position:relative;overflow:hidden;background:#0D3B22;border-bottom:1px solid rgba(255,255,255,0.1);color:#ffffff;padding:var(--bk-top-clearance, 36px) 0 clamp(35px, 5vw, 50px);">
         <!-- Ambient Glow Orbs -->
         <div style="position:absolute;top:-100px;right:-10%;width:500px;height:500px;border-radius:50%;background:rgba(24,83,51,0.35);filter:blur(80px);pointer-events:none;"></div>
         <div style="position:absolute;bottom:-120px;left:-10%;width:420px;height:420px;border-radius:50%;background:rgba(245,184,46,0.12);filter:blur(80px);pointer-events:none;"></div>

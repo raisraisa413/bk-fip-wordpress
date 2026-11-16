@@ -18,17 +18,17 @@ get_header();
 $current_req_url = isset($_SERVER['REQUEST_URI']) ? esc_html($_SERVER['REQUEST_URI']) : '';
 ?>
 
-<div class="bk-page-wrapper" style="width:100%;min-height:100vh;background-color:#FAF8F5;font-family:'Poppins',sans-serif;color:#111827;">
+<div class="bk-page-wrapper" style="width:100%;min-height:100vh;background-color:#FAF8F5;font-family:'Plus Jakarta Sans',sans-serif;color:#111827;">
 
     <!-- =================================================================== -->
     <!-- 1. HERO HEADER                                                      -->
     <!-- =================================================================== -->
-    <section style="position:relative;overflow:hidden;background:#0D3B22;border-bottom:1px solid rgba(255,255,255,0.1);color:#ffffff;padding:var(--bk-top-clearance, 125px) clamp(16px, 4vw, 40px) 50px;">
+    <section style="position:relative;overflow:hidden;background:#0D3B22;border-bottom:1px solid rgba(255,255,255,0.1);color:#ffffff;padding:var(--bk-top-clearance, 36px) clamp(16px, 4vw, 40px) 50px;">
         <!-- Ambient Glow Orbs -->
         <div style="position:absolute;top:-100px;right:-10%;width:500px;height:500px;border-radius:50%;background:rgba(24,83,51,0.35);filter:blur(80px);pointer-events:none;"></div>
         <div style="position:absolute;bottom:-120px;left:-10%;width:420px;height:420px;border-radius:50%;background:rgba(245,184,46,0.12);filter:blur(80px);pointer-events:none;"></div>
 
-        <div class="bk-container" style="position:relative;width:100%;max-width:1100px;margin:0 auto;text-align:center;">
+        <div class="bk-container" style="position:relative;width:100%;max-width:var(--max-w, 1160px);margin:0 auto;text-align:center;">
             
             <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:9999px;background:rgba(245,184,46,0.15);border:1px solid rgba(245,184,46,0.35);color:#F5B82E;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:18px;">
                 <span>⚠️ 404 &bull; Tautan Sedang Diperbarui</span>
@@ -44,8 +44,8 @@ $current_req_url = isset($_SERVER['REQUEST_URI']) ? esc_html($_SERVER['REQUEST_U
 
             <!-- Search Bar Inline -->
             <form role="search" method="get" action="<?php echo esc_url(home_url('/')); ?>" style="max-width:560px;margin:0 auto;display:flex;gap:10px;background:rgba(255,255,255,0.08);backdrop-filter:blur(10px);padding:6px;border-radius:14px;border:1px solid rgba(255,255,255,0.2);">
-                <input type="search" name="s" placeholder="Cari layanan, kurikulum, dosen, atau dokumen..." value="<?php echo get_search_query(); ?>" style="flex:1;background:transparent;border:none;padding:12px 18px;color:#ffffff;font-size:14px;font-family:'Poppins',sans-serif;outline:none;" required>
-                <button type="submit" style="background:#F5B82E;color:#0D3B22;font-family:'Poppins',sans-serif;font-weight:700;font-size:13.5px;border:none;padding:12px 24px;border-radius:10px;cursor:pointer;transition:all 0.2s ease;">
+                <input type="search" name="s" placeholder="Cari layanan, kurikulum, dosen, atau dokumen..." value="<?php echo get_search_query(); ?>" style="flex:1;background:transparent;border:none;padding:12px 18px;color:#ffffff;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" required>
+                <button type="submit" style="background:#F5B82E;color:#0D3B22;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13.5px;border:none;padding:12px 24px;border-radius:10px;cursor:pointer;transition:all 0.2s ease;">
                     Cari Portal
                 </button>
             </form>
@@ -56,7 +56,7 @@ $current_req_url = isset($_SERVER['REQUEST_URI']) ? esc_html($_SERVER['REQUEST_U
     <!-- =================================================================== -->
     <!-- 2. QUICK NAVIGATION HUB CARDS                                       -->
     <!-- =================================================================== -->
-    <main style="width:100%;max-width:1200px;margin:40px auto 70px;padding:0 20px;box-sizing:border-box;">
+    <main style="width:100%;max-width:var(--max-w, 1160px);margin:40px auto 70px;padding:0 20px;box-sizing:border-box;">
         
         <div style="text-align:center;margin-bottom:30px;">
             <h2 style="font-family:'Fraunces',Georgia,serif;font-size:24px;color:#0D3B22;margin:0 0 8px;font-weight:600;">

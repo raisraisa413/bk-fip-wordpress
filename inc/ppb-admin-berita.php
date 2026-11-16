@@ -366,7 +366,7 @@ function ppb_get_sample_berita_items() {
             'url'            => home_url('/berita/'),
             'date_formatted' => date_i18n('j F Y', strtotime('-2 days')),
             'date_iso'       => date('c', strtotime('-2 days')),
-            'thumb'          => $theme_uri . '/assets/img/gedung-unm.png',
+            'thumb'          => $theme_uri . '/assets/img/hero-campus.jpg',
             'cat_slug'       => 'berita',
             'cat_name'       => 'Berita & Kegiatan',
             'ringkasan'      => 'Jurusan PPB FIP UNM menggelar seminar keilmuan menghadirkan pakar bimbingan dan konseling nasional guna membedah integrasi kearifan lokal Nusantara dalam intervensi konseling modern.',
@@ -379,7 +379,7 @@ function ppb_get_sample_berita_items() {
             'url'            => home_url('/berita/'),
             'date_formatted' => date_i18n('j F Y', strtotime('-5 days')),
             'date_iso'       => date('c', strtotime('-5 days')),
-            'thumb'          => $theme_uri . '/assets/img/banner-prodi-1.png',
+            'thumb'          => $theme_uri . '/assets/img/lab-studio.jpg',
             'cat_slug'       => 'pengumuman',
             'cat_name'       => 'Pengumuman Resmi',
             'ringkasan'      => 'Bagi mahasiswa tingkat akhir S1, S2, dan S3 BK FIP UNM, pendaftaran berkas ujian skripsi dan yudisium telah dibuka melalui portal akademik jurusan.',
@@ -561,7 +561,7 @@ function ppb_render_berita_grid_swiss() {
                 </div>
 
                 <!-- Row 2: Swiss Segmented Category Ledger Tabs -->
-                <div style="display:flex;align-items:center;gap:6px;overflow-x:auto;padding-bottom:4px;" class="no-scrollbar" id="bk-berita-cat-pills">
+                <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding-bottom:4px;" id="bk-berita-cat-pills">
                     <?php foreach ($cat_tabs as $slug => $label) : 
                         $isActive = ($slug === 'semua');
                     ?>
@@ -758,19 +758,21 @@ add_shortcode('ppb_berita_grid', 'ppb_render_berita_grid_swiss');
 
 /* ========================================================================== */
 /* 6. SHORTCODE BERITA HOMEPAGE: [ppb_home_news]                             */
-/* Swiss Modernism 2.0 + Academic Editorial + shadcn/ui                       */
+/* UGM-Inspired Lead Featured Card + 3-Column Companion Grid + Category Pills */
 /* ========================================================================== */
-if (!function_exists('ppb_shortcode_home_news')) {
-function ppb_shortcode_home_news($atts = []) {
+if (!function_exists('ppb_render_home_news_ugm')) {
+function ppb_render_home_news_ugm($atts = []) {
     $a = shortcode_atts([
-        'count' => 6,
+        'count'       => 4,
+        'show_header' => '1',
     ], $atts, 'ppb_home_news');
-    $count = intval($a['count']) > 0 ? intval($a['count']) : 6;
+    $count = intval($a['count']) > 0 ? intval($a['count']) : 4;
+    $show_header = ($a['show_header'] !== '0');
 
     $query = new WP_Query([
         'post_type'      => 'post',
         'post_status'    => 'publish',
-        'posts_per_page' => $count,
+        'posts_per_page' => max($count * 3, 12),
         'orderby'        => 'date',
         'order'          => 'DESC',
     ]);
@@ -781,120 +783,264 @@ function ppb_shortcode_home_news($atts = []) {
             $query->the_post();
             $id = get_the_ID();
             $cats = get_the_category($id);
-            $cat_name = !empty($cats) ? $cats[0]->name : 'Warta Akademik';
+            $cat_slug = !empty($cats) ? $cats[0]->slug : 'berita';
+            $cat_name = !empty($cats) ? $cats[0]->name : 'Berita';
+            $filter_cat = 'Berita';
+            if (stripos($cat_slug, 'pengumuman') !== false || stripos($cat_name, 'pengumuman') !== false) {
+                $filter_cat = 'Pengumuman';
+            } elseif (stripos($cat_slug, 'prestasi') !== false || stripos($cat_name, 'prestasi') !== false) {
+                $filter_cat = 'Prestasi';
+            } elseif (stripos($cat_slug, 'opini') !== false || stripos($cat_name, 'opini') !== false) {
+                $filter_cat = 'Opini';
+            }
+
             $ringkasan = get_post_meta($id, '_ppb_berita_ringkasan', true);
-            if (empty($ringkasan)) $ringkasan = wp_trim_words(get_the_excerpt(), 22, '...');
+            if (empty($ringkasan)) {
+                $ringkasan = wp_trim_words(get_the_excerpt(), 24, '...');
+            }
+            $author_name = get_post_meta($id, '_ppb_berita_author_nama', true);
+            if (empty($author_name)) {
+                $author_name = get_the_author() ?: 'Jurusan PPB FIP UNM';
+            }
+
             $items[] = [
+                'id'             => $id,
                 'title'          => get_the_title(),
-                'url'            => get_permalink(),
-                'date_formatted' => get_the_date('j F Y'),
+                'url'            => get_permalink($id),
+                'date_formatted' => get_the_date('j M Y'),
+                'cat_slug'       => $cat_slug,
                 'cat_name'       => $cat_name,
+                'filter_cat'     => $filter_cat,
                 'ringkasan'      => $ringkasan,
+                'author_name'    => $author_name,
                 'thumb'          => has_post_thumbnail($id) ? get_the_post_thumbnail_url($id, 'large') : '',
             ];
         }
         wp_reset_postdata();
     }
 
-    // Supplement with sample items if DB has fewer than $count items to guarantee an active 6-item overview
-    if (count($items) < $count && function_exists('ppb_get_sample_berita_items')) {
+    // Supplement with sample items if DB has fewer items so category pills always have rich content
+    if (count($items) < 6 && function_exists('ppb_get_sample_berita_items')) {
         $sample_items = ppb_get_sample_berita_items();
         foreach ($sample_items as $s) {
-            if (count($items) >= $count) break;
+            $c_slug = $s['cat_slug'] ?? 'berita';
+            $c_name = $s['cat_name'] ?? 'Berita';
+            $f_cat = 'Berita';
+            if (stripos($c_slug, 'pengumuman') !== false) $f_cat = 'Pengumuman';
+            elseif (stripos($c_slug, 'prestasi') !== false) $f_cat = 'Prestasi';
+            elseif (stripos($c_slug, 'opini') !== false) $f_cat = 'Opini';
+
             $items[] = [
+                'id'             => $s['id'] ?? 0,
                 'title'          => $s['title'] ?? '',
-                'url'            => $s['url'] ?? '#',
+                'url'            => $s['url'] ?? home_url('/berita/'),
                 'date_formatted' => $s['date_formatted'] ?? '',
-                'cat_name'       => $s['cat_name'] ?? 'Warta Akademik',
+                'cat_slug'       => $c_slug,
+                'cat_name'       => $c_name,
+                'filter_cat'     => $f_cat,
                 'ringkasan'      => $s['ringkasan'] ?? '',
+                'author_name'    => $s['author_name'] ?? 'Jurusan PPB FIP UNM',
                 'thumb'          => $s['thumb'] ?? '',
             ];
         }
     }
 
     if (empty($items)) {
-        return '<p style="font-family:IBM Plex Mono, monospace;font-size:12px;color:#64748B;">ARSIP // Belum ada warta akademik terbit.</p>';
+        return '<div class="bk-empty">Belum ada artikel warta akademik terbit.</div>';
     }
+
+    $visible_items = array_slice($items, 0, $count);
+    $lead = $visible_items[0];
+    $companions = array_slice($visible_items, 1, max(0, $count - 1));
+    $pills = ['Semua', 'Berita', 'Pengumuman', 'Prestasi', 'Opini'];
+
+    $render_media = function($it) {
+        if (!empty($it['thumb'])) {
+            return '<img src="' . esc_url($it['thumb']) . '" alt="' . esc_attr($it['title']) . '" loading="lazy" onerror="this.style.display=\'none\';if(this.nextElementSibling)this.nextElementSibling.style.display=\'flex\';">'
+                 . '<div class="bk-news-poster" style="display:none;"><span class="bk-news-poster-cat">' . esc_html($it['filter_cat'] . ' · ' . $it['date_formatted']) . '</span><div class="bk-news-poster-sub">' . esc_html($it['author_name']) . '</div></div>';
+        }
+        return '<div class="bk-news-poster"><span class="bk-news-poster-cat">' . esc_html($it['filter_cat'] . ' · ' . $it['date_formatted']) . '</span><div class="bk-news-poster-sub">' . esc_html($it['author_name']) . '</div></div>';
+    };
 
     ob_start();
     ?>
-    <style>
-    .bk-news-grid {
-        display: grid !important;
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-        gap: 24px !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-    }
-    @media (max-width: 1024px) {
-        .bk-news-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 20px !important;
-        }
-    }
-    @media (max-width: 640px) {
-        .bk-news-grid {
-            grid-template-columns: 1fr !important;
-            gap: 16px !important;
-        }
-    }
-    </style>
-    <div class="bk-news-grid" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;">
-        <?php foreach ($items as $idx => $item) :
-            $num = sprintf('%02d', $idx + 1);
-        ?>
-        <article class="bk-news-card" style="background:#ffffff;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,0.03);transition:all 0.25s cubic-bezier(0.16, 1, 0.3, 1);" onmouseover="this.style.borderColor='#CBD5E1';this.style.boxShadow='0 10px 24px -6px rgba(13,59,34,0.09)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#E2E8F0';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.03)';this.style.transform='translateY(0)'">
-            <div>
-                <!-- Top Ledger Metadata Bar -->
-                <div style="padding:10px 18px;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;background:#FAF8F5;">
-                    <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;color:#0D3B22;text-transform:uppercase;letter-spacing:0.08em;">
-                        <?php echo esc_html($num . ' // ' . $item['cat_name']); ?>
-                    </span>
-                    <time style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#64748B;">
-                        <?php echo esc_html($item['date_formatted']); ?>
-                    </time>
+    <div class="bk-home-news-ugm" data-count="<?php echo esc_attr($count); ?>">
+        <?php if ($show_header) : ?>
+        <div class="bk-ugm-head">
+            <div class="bk-ugm-title-block">
+                <div class="bk-kicker">Warta Jurusan &amp; Pengumuman</div>
+                <h2 class="bk-section-h2">Berita &amp; Agenda Terkini</h2>
+            </div>
+            <div class="bk-sec-rule" aria-hidden="true"></div>
+            <div class="bk-ugm-actions">
+                <div class="bk-filter-pills" id="bk-home-news-pills" role="tablist" aria-label="Filter Kategori Berita">
+                    <?php foreach ($pills as $idx => $p_label) : ?>
+                        <button type="button" class="bk-pill <?php echo $idx === 0 ? 'is-active' : ''; ?>" data-home-cat="<?php echo esc_attr($p_label); ?>" role="tab" aria-selected="<?php echo $idx === 0 ? 'true' : 'false'; ?>">
+                            <?php echo esc_html($p_label); ?>
+                        </button>
+                    <?php endforeach; ?>
                 </div>
+                <a href="<?php echo esc_url(home_url('/berita/')); ?>" class="bk-btn bk-btn-ghost bk-btn-sm">Semua Berita &rarr;</a>
+            </div>
+        </div>
+        <?php endif; ?>
 
-                <!-- Cover Image / Architectural Grid Placeholder -->
-                <div style="height:185px;position:relative;overflow:hidden;border-bottom:1px solid #E2E8F0;background:#F8FAFC;">
-                    <?php if (!empty($item['thumb'])) : ?>
-                        <img src="<?php echo esc_url($item['thumb']); ?>" alt="<?php echo esc_attr($item['title']); ?>" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.4s ease;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
-                    <?php else : ?>
-                        <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background-color:#FAF8F5;background-image:linear-gradient(rgba(13,59,34,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(13,59,34,0.05) 1px, transparent 1px);background-size:20px 20px;position:relative;">
-                            <div style="padding:8px 18px;border:1px solid rgba(13,59,34,0.18);background:rgba(255,255,255,0.94);border-radius:4px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
-                                <div style="font-family:'Fraunces',Georgia,serif;font-size:17px;font-weight:600;color:#0D3B22;letter-spacing:0.04em;line-height:1.2;">PPB FIP UNM</div>
-                                <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.12em;margin-top:2px;">Warta &amp; Dokumentasi</div>
-                            </div>
+        <div id="bk-home-news-stage">
+            <!-- Lead Featured Article (UGM Split Layout) -->
+            <a href="<?php echo esc_url($lead['url']); ?>" class="bk-news-featured" data-cat="<?php echo esc_attr($lead['filter_cat']); ?>">
+                <div class="bk-news-featured-media">
+                    <?php echo $render_media($lead); ?>
+                </div>
+                <div class="bk-news-featured-body">
+                    <div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--text-muted, #55625B);margin-bottom:10px;">
+                            <span class="bk-tag <?php echo $lead['filter_cat'] === 'Pengumuman' ? 'bk-tag-gold' : 'bk-tag-sage'; ?>">
+                                <?php echo esc_html($lead['filter_cat']); ?>
+                            </span>
+                            <time class="bk-mono" style="font-size:11.5px;"><?php echo esc_html($lead['date_formatted']); ?></time>
                         </div>
-                    <?php endif; ?>
+                        <h3 class="bk-news-featured-title"><?php echo esc_html($lead['title']); ?></h3>
+                        <p style="font-size:14px;color:var(--text-secondary, #2E3D35);line-height:1.62;margin:0;">
+                            <?php echo esc_html($lead['ringkasan']); ?>
+                        </p>
+                    </div>
+                    <span style="font-size:13px;font-weight:600;color:var(--unm-forest, #0D3B22);display:inline-flex;align-items:center;gap:6px;">
+                        <span>Baca artikel utama</span>
+                        <span aria-hidden="true">&rarr;</span>
+                    </span>
                 </div>
+            </a>
 
-                <!-- Body -->
-                <div style="padding:20px 20px 14px;">
-                    <h3 style="font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:600;color:#0F172A;line-height:1.35;margin:0 0 10px 0;">
-                        <a href="<?php echo esc_url($item['url']); ?>" style="color:inherit;text-decoration:none;transition:color 0.15s ease;" onmouseover="this.style.color='#0D3B22'" onmouseout="this.style.color='#0F172A'">
-                            <?php echo esc_html($item['title']); ?>
-                        </a>
-                    </h3>
-                    <p style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:13px;color:#475569;line-height:1.65;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
-                        <?php echo esc_html($item['ringkasan']); ?>
-                    </p>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div style="padding:12px 20px;border-top:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;background:#FAF8F5;">
-                <a href="<?php echo esc_url($item['url']); ?>" style="font-family:'Plus Jakarta Sans',sans-serif;color:#0D3B22;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:color 0.15s ease;" onmouseover="this.style.color='#185333';this.querySelector('.arrow-ic').style.transform='translateX(3px)'" onmouseout="this.style.color='#0D3B22';this.querySelector('.arrow-ic').style.transform='translateX(0)'">
-                    <span>Baca Artikel Lengkap</span>
-                    <span class="arrow-ic" aria-hidden="true" style="color:#F5B82E;font-size:13px;font-weight:700;transition:transform 0.15s ease;">&rarr;</span>
+            <!-- Companion 3-Column News Cards -->
+            <?php if (!empty($companions)) : ?>
+            <div class="bk-grid-3" id="bk-home-news-companions">
+                <?php foreach ($companions as $c_item) : ?>
+                <a href="<?php echo esc_url($c_item['url']); ?>" class="bk-news-item has-media" data-cat="<?php echo esc_attr($c_item['filter_cat']); ?>">
+                    <div class="bk-news-thumb">
+                        <?php echo $render_media($c_item); ?>
+                    </div>
+                    <div class="bk-news-card-body">
+                        <div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--text-muted, #55625B);margin-bottom:10px;">
+                                <span class="bk-tag <?php echo $c_item['filter_cat'] === 'Pengumuman' ? 'bk-tag-gold' : 'bk-tag-sage'; ?>">
+                                    <?php echo esc_html($c_item['filter_cat']); ?>
+                                </span>
+                                <time class="bk-mono" style="font-size:11.5px;"><?php echo esc_html($c_item['date_formatted']); ?></time>
+                            </div>
+                            <h3 class="bk-news-title"><?php echo esc_html($c_item['title']); ?></h3>
+                            <p class="bk-news-excerpt"><?php echo esc_html($c_item['ringkasan']); ?></p>
+                        </div>
+                        <span style="font-size:12.5px;font-weight:600;color:var(--unm-forest, #0D3B22);display:inline-flex;align-items:center;gap:5px;">
+                            <span>Baca selengkapnya</span>
+                            <span aria-hidden="true">&rarr;</span>
+                        </span>
+                    </div>
                 </a>
-                <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#94A3B8;letter-spacing:0.04em;">PPB FIP UNM</span>
+                <?php endforeach; ?>
             </div>
-        </article>
-        <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+
+        <script type="application/json" id="bk-home-news-data"><?php echo wp_json_encode($items); ?></script>
+        <script>
+        (function(){
+            var pillsWrap = document.getElementById('bk-home-news-pills');
+            var stage = document.getElementById('bk-home-news-stage');
+            var dataEl = document.getElementById('bk-home-news-data');
+            if (!pillsWrap || !stage || !dataEl) return;
+
+            var allItems = [];
+            try { allItems = JSON.parse(dataEl.textContent || '[]'); } catch(e) {}
+            var maxCount = <?php echo intval($count); ?>;
+
+            function esc(s) {
+                return String(s == null ? '' : s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            function renderThumb(it) {
+                var poster = '<div class="bk-news-poster"><span class="bk-news-poster-cat">' + esc(it.filter_cat + ' · ' + it.date_formatted) + '</span><div class="bk-news-poster-sub">' + esc(it.author_name || 'Jurusan PPB FIP UNM') + '</div></div>';
+                if (it.thumb) {
+                    return '<img src="' + esc(it.thumb) + '" alt="' + esc(it.title) + '" loading="lazy">' +
+                           '<div class="bk-news-poster" style="display:none;"><span class="bk-news-poster-cat">' + esc(it.filter_cat + ' · ' + it.date_formatted) + '</span><div class="bk-news-poster-sub">' + esc(it.author_name || 'Jurusan PPB FIP UNM') + '</div></div>';
+                }
+                return poster;
+            }
+
+            function renderCat(cat) {
+                var filtered = (cat === 'Semua')
+                    ? allItems.slice(0, maxCount)
+                    : allItems.filter(function(x){ return x.filter_cat === cat; }).slice(0, maxCount);
+
+                if (!filtered.length) {
+                    stage.innerHTML = '<div class="bk-empty">Belum ada artikel pada kategori <strong>' + esc(cat) + '</strong>.</div>';
+                    return;
+                }
+
+                var lead = filtered[0];
+                var comp = filtered.slice(1);
+                var leadTagClass = (lead.filter_cat === 'Pengumuman') ? 'bk-tag-gold' : 'bk-tag-sage';
+                var html = '<a href="' + esc(lead.url) + '" class="bk-news-featured">' +
+                    '<div class="bk-news-featured-media">' + renderThumb(lead) + '</div>' +
+                    '<div class="bk-news-featured-body"><div>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--text-muted, #55625B);margin-bottom:10px;">' +
+                    '<span class="bk-tag ' + leadTagClass + '">' + esc(lead.filter_cat) + '</span>' +
+                    '<time class="bk-mono" style="font-size:11.5px;">' + esc(lead.date_formatted) + '</time></div>' +
+                    '<h3 class="bk-news-featured-title">' + esc(lead.title) + '</h3>' +
+                    '<p style="font-size:14px;color:var(--text-secondary, #2E3D35);line-height:1.62;margin:0;">' + esc(lead.ringkasan) + '</p>' +
+                    '</div><span style="font-size:13px;font-weight:600;color:var(--unm-forest, #0D3B22);display:inline-flex;align-items:center;gap:6px;"><span>Baca artikel utama</span><span aria-hidden="true">&rarr;</span></span></div></a>';
+
+                if (comp.length) {
+                    html += '<div class="bk-grid-3">';
+                    comp.forEach(function(b) {
+                        var tCls = (b.filter_cat === 'Pengumuman') ? 'bk-tag-gold' : 'bk-tag-sage';
+                        html += '<a href="' + esc(b.url) + '" class="bk-news-item has-media">' +
+                            '<div class="bk-news-thumb">' + renderThumb(b) + '</div>' +
+                            '<div class="bk-news-card-body"><div>' +
+                            '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--text-muted, #55625B);margin-bottom:10px;">' +
+                            '<span class="bk-tag ' + tCls + '">' + esc(b.filter_cat) + '</span>' +
+                            '<time class="bk-mono" style="font-size:11.5px;">' + esc(b.date_formatted) + '</time></div>' +
+                            '<h3 class="bk-news-title">' + esc(b.title) + '</h3>' +
+                            '<p class="bk-news-excerpt">' + esc(b.ringkasan) + '</p>' +
+                            '</div><span style="font-size:12.5px;font-weight:600;color:var(--unm-forest, #0D3B22);display:inline-flex;align-items:center;gap:5px;"><span>Baca selengkapnya</span><span aria-hidden="true">&rarr;</span></span></div></a>';
+                    });
+                    html += '</div>';
+                }
+
+                stage.innerHTML = html;
+                stage.querySelectorAll('img').forEach(function(img) {
+                    img.onerror = function() {
+                        this.style.display = 'none';
+                        if (this.nextElementSibling) this.nextElementSibling.style.display = 'flex';
+                    };
+                });
+            }
+
+            pillsWrap.querySelectorAll('[data-home-cat]').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var cat = this.getAttribute('data-home-cat') || 'Semua';
+                    pillsWrap.querySelectorAll('[data-home-cat]').forEach(function(b) {
+                        var act = (b === btn);
+                        b.classList.toggle('is-active', act);
+                        b.setAttribute('aria-selected', act ? 'true' : 'false');
+                    });
+                    renderCat(cat);
+                });
+            });
+        })();
+        </script>
     </div>
     <?php
     return ob_get_clean();
+}
+}
+
+if (!function_exists('ppb_shortcode_home_news')) {
+function ppb_shortcode_home_news($atts = []) {
+    return ppb_render_home_news_ugm($atts);
 }
 }
 add_shortcode('ppb_home_news', 'ppb_shortcode_home_news');
@@ -921,7 +1067,7 @@ if (!function_exists('ppb_shortcode_berita_grid')) {
 }
 
 
-// Force Swiss Modernism 2.0 grid to override any legacy mu-plugins or old theme callbacks
+// Force Editorial Calm & UGM News shortcodes to override any legacy mu-plugins or old theme callbacks
 add_action('init', function() {
     remove_shortcode('ppb_berita_grid');
     add_shortcode('ppb_berita_grid', 'ppb_render_berita_grid_swiss');
@@ -930,3 +1076,4 @@ add_action('init', function() {
         add_shortcode('ppb_home_news', 'ppb_shortcode_home_news');
     }
 }, 9999);
+

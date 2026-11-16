@@ -17,7 +17,7 @@ $all_posts_count = wp_count_posts('post')->publish ?? 6;
     <!-- =================================================================== -->
     <!-- HERO HEADER (Swiss Academic Editorial)                              -->
     <!-- =================================================================== -->
-    <section style="position:relative;overflow:hidden;background:#0D3B22;border-bottom:1px solid rgba(255,255,255,0.1);color:#ffffff;padding:var(--bk-top-clearance, 125px) 0 45px;">
+    <section style="position:relative;overflow:hidden;background:#0D3B22;border-bottom:1px solid rgba(255,255,255,0.1);color:#ffffff;padding:var(--bk-top-clearance, 36px) 0 45px;">
         <!-- Ambient Glow -->
         <div style="position:absolute;top:-100px;right:-10%;width:500px;height:500px;border-radius:50%;background:rgba(24,83,51,0.35);filter:blur(80px);pointer-events:none;"></div>
         <div style="position:absolute;bottom:-120px;left:-10%;width:420px;height:420px;border-radius:50%;background:rgba(245,184,46,0.12);filter:blur(80px);pointer-events:none;"></div>

@@ -51,6 +51,7 @@ if (!function_exists('ppb_get_menu_icon_svg')) {
                 return "<svg {$common_attrs}><path d=\"M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2\"></path><circle cx=\"8.5\" cy=\"7\" r=\"4\"></circle><line x1=\"20\" y1=\"8\" x2=\"20\" y2=\"14\"></line><line x1=\"23\" y1=\"11\" x2=\"17\" y2=\"11\"></line></svg>";
             case 'book':
             case 'book-open':
+            case 'library':
                 return "<svg {$common_attrs}><path d=\"M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z\"></path><path d=\"M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z\"></path></svg>";
             case 'award':
             case 'trophy':
@@ -73,6 +74,7 @@ if (!function_exists('ppb_get_menu_icon_svg')) {
             case 'file-badge':
                 return "<svg {$common_attrs}><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"></path><polyline points=\"14 2 14 8 20 8\"></polyline><circle cx=\"12\" cy=\"14\" r=\"3\"></circle></svg>";
             case 'graduation-cap':
+            case 'graduation':
                 return "<svg {$common_attrs}><path d=\"M22 10v6M2 10l10-5 10 5-10 5z\"></path><path d=\"M6 12v5c3 3 9 3 12 0v-5\"></path></svg>";
             case 'layers':
                 return "<svg {$common_attrs}><polygon points=\"12 2 2 7 12 12 22 7 12 2\"></polygon><polyline points=\"2 17 12 22 22 17\"></polyline><polyline points=\"2 12 12 17 22 12\"></polyline></svg>";
@@ -114,8 +116,10 @@ if (!function_exists('ppb_get_menu_icon_svg')) {
             case 'life-buoy':
                 return "<svg {$common_attrs}><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><circle cx=\"12\" cy=\"12\" r=\"4\"></circle><line x1=\"4.93\" y1=\"4.93\" x2=\"9.17\" y2=\"9.17\"></line><line x1=\"14.83\" y1=\"14.83\" x2=\"19.07\" y2=\"19.07\"></line><line x1=\"14.83\" y1=\"9.17\" x2=\"19.07\" y2=\"4.93\"></line><line x1=\"14.83\" y1=\"9.17\" x2=\"19.07\" y2=\"4.93\"></line><line x1=\"4.93\" y1=\"19.07\" x2=\"9.17\" y2=\"14.83\"></line></svg>";
             case 'check-circle':
+            case 'check':
                 return "<svg {$common_attrs}><path d=\"M22 11.08V12a10 10 0 1 1-5.93-9.14\"></path><polyline points=\"22 4 12 14.01 9 11.01\"></polyline></svg>";
             case 'newspaper':
+            case 'news':
                 return "<svg {$common_attrs}><path d=\"M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2\"></path><path d=\"M18 14h-8\"></path><path d=\"M15 18h-5\"></path><path d=\"M10 6h8v4h-8V6Z\"></path></svg>";
             case 'download':
                 return "<svg {$common_attrs}><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"></path><polyline points=\"7 10 12 15 17 10\"></polyline><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"></line></svg>";
@@ -351,266 +355,211 @@ if (!function_exists('ppb_is_leaf_item_active')) {
 }
 
 /* ========================================================================== */
-/* 2. DATASET LENGKAP STRUKTUR DEFAULT MEGA MENU BK FIP UNM                   */
+/* 2. DATASET LENGKAP STRUKTUR DEFAULT MEGA MENU 4 PILAR BK FIP UNM           */
 /* ========================================================================== */
+if (!function_exists('ppb_get_mega_menu_default_spotlights')) {
+    /**
+     * Default kartu spotlight samping pada 3 pilar mega menu (Profil, Akademik, Layanan).
+     */
+    function ppb_get_mega_menu_default_spotlights() {
+        return [
+            'profil' => [
+                'badge'       => 'LAMDIK UNGGUL',
+                'title'       => 'Akreditasi Unggul S1 & S2',
+                'description' => 'Tata kelola pendidikan calon konselor berstandar nasional dengan kelengkapan eviden 9 Kriteria LAMDIK.',
+                'action_text' => 'Buka 9 Kriteria',
+                'url'         => home_url('/akreditasi/'),
+            ],
+            'akademik' => [
+                'badge'       => 'KURIKULUM OBE 2025',
+                'title'       => 'Peta Kuliah Terintegrasi',
+                'description' => 'Jelajahi 41 mata kuliah S1 hingga S3 beserta capaian CPL, indikator SDGs, RPS 16 pertemuan, dan SAP.',
+                'action_text' => 'Struktur Kurikulum',
+                'url'         => home_url('/akademik/kurikulum/'),
+            ],
+            'layanan' => [
+                'badge'       => 'LAB BK & SIPADU',
+                'title'       => 'Portal Layanan Terpadu',
+                'description' => 'Akses peminjaman alat tes Lab BK Gunungsari, alur persuratan mahasiswa, dan layanan SIPADU daring.',
+                'action_text' => 'Buka Persuratan & SIPADU',
+                'url'         => home_url('/layanan/persuratan/'),
+            ],
+        ];
+    }
+}
+
+if (!function_exists('ppb_get_mega_menu_spotlights')) {
+    /**
+     * Mengambil konfigurasi kartu spotlight mega menu dari opsi `bk_mega_menu_spotlights`
+     * (dengan fallback ke default).
+     */
+    function ppb_get_mega_menu_spotlights() {
+        $defaults = ppb_get_mega_menu_default_spotlights();
+        $saved = get_option('bk_mega_menu_spotlights', []);
+        if (!is_array($saved)) {
+            return $defaults;
+        }
+        $out = [];
+        foreach ($defaults as $key => $def) {
+            if (!empty($saved[$key]) && is_array($saved[$key])) {
+                $merged = array_merge($def, array_filter($saved[$key], 'strlen'));
+                if (!empty($merged['url']) && strpos($merged['url'], '/') === 0) {
+                    $merged['url'] = home_url($merged['url']);
+                }
+                $out[$key] = $merged;
+            } else {
+                $out[$key] = $def;
+            }
+        }
+        return $out;
+    }
+}
+
 if (!function_exists('ppb_get_default_mega_menu_data')) {
     /**
-     * Mengembalikan data lengkap menu standar dengan hierarki mega menu
+     * Mengembalikan struktur navigasi 4 Pilar Editorial Calm BK FIP UNM:
+     * 1. Beranda (tautan langsung)
+     * 2. Profil & Mutu (3 kolom — termasuk Direktori 25 Dosen di Jati Diri & Visi)
+     * 3. Akademik (3 kolom)
+     * 4. Layanan & Warta (3 kolom — termasuk Portal SIPADU Daring ↗ di Portal, Advokasi & Mutu)
      */
     function ppb_get_default_mega_menu_data() {
+        $spotlights = ppb_get_mega_menu_spotlights();
+        $sipadu_url = get_option('bk_sipadu_url', 'https://bk-connect-fipunm.vercel.app/sipadu');
+
         return [
-            // 1. PROFIL (Mega Menu 4 Kolom + Spotlight LAMDIK Unggul)
+            // 1. BERANDA (Tautan Langsung)
             [
-                'title'       => 'Profil',
+                'key'         => 'beranda',
+                'title'       => 'Beranda',
+                'url'         => home_url('/'),
+                'is_mega'     => false,
+                'mega_cols'   => 0,
+                'icon'        => 'home',
+                'badge'       => '',
+                'subtitle'    => 'Halaman utama Jurusan PPB / Prodi BK FIP UNM',
+                'align'       => 'left',
+                'sections'    => [],
+            ],
+
+            // 2. PROFIL & MUTU (Mega Menu 3 Kolom + Spotlight LAMDIK Unggul)
+            [
+                'key'         => 'profil',
+                'title'       => 'Profil & Mutu',
                 'url'         => home_url('/profil/'),
                 'is_mega'     => true,
-                'mega_cols'   => 4,
+                'mega_cols'   => 3,
                 'icon'        => 'building',
                 'badge'       => 'Unggul',
-                'subtitle'    => 'Mengenal Jurusan PPB FIP UNM, dosen, tata pamong & akreditasi',
+                'subtitle'    => 'Jati diri, 25 dosen, akreditasi LAMDIK & kemitraan tridharma',
                 'align'       => 'left',
-                'spotlight'   => [
-                    'badge'       => '⭐ LAMDIK UNGGUL',
-                    'title'       => 'Jurusan PPB FIP UNM',
-                    'description' => 'Program Studi Bimbingan dan Konseling berakreditasi Unggul nasional dengan kurikulum adaptif masa depan.',
-                    'url'         => home_url('/profil/'),
-                    'action_text' => 'Buka Hub Profil &rarr;',
-                ],
+                'spotlight'   => $spotlights['profil'],
                 'sections'    => [
                     [
-                        'heading' => 'Tentang Jurusan',
-                        'icon'    => 'info',
+                        'heading' => 'Jati Diri & Visi',
+                        'icon'    => 'compass',
                         'items'   => [
-                            ['title' => 'Ringkasan Profil', 'url' => home_url('/profil/'), 'subtitle' => 'Visi kelembagaan & profil umum', 'icon' => 'info', 'badge' => ''],
-                            ['title' => 'Sejarah Program Studi', 'url' => home_url('/profil/sejarah/'), 'subtitle' => 'Perjalanan sejarah & rekam jejak', 'icon' => 'history', 'badge' => ''],
-                            ['title' => 'Visi, Misi & Sasaran', 'url' => home_url('/profil/visi-misi/'), 'subtitle' => 'Arah mutu pendidikan konseling', 'icon' => 'target', 'badge' => ''],
-                            ['title' => 'Visi Keilmuan & Kepakaran', 'url' => home_url('/profil/visi-keilmuan/'), 'subtitle' => 'Peta pohon keilmuan BK adaptif', 'icon' => 'compass', 'badge' => ''],
-                            ['title' => 'Struktur Organisasi', 'url' => home_url('/profil/struktur/'), 'subtitle' => 'Pimpinan & tata kelola jurusan', 'icon' => 'sitemap', 'badge' => ''],
+                            ['title' => "Visi Keilmuan & CARA'DE", 'url' => home_url('/profil/visi-keilmuan/'), 'subtitle' => 'Diversitas, sains-teknologi & kewirausahaan', 'icon' => 'compass', 'badge' => ''],
+                            ['title' => 'Sejarah 1969 & Pimpinan', 'url' => home_url('/profil/sejarah/'), 'subtitle' => 'Rekam jejak 57 tahun & tata kelola jurusan', 'icon' => 'history', 'badge' => ''],
+                            ['title' => 'Direktori 25 Dosen', 'url' => home_url('/profil/dosen/'), 'subtitle' => '4 Guru Besar, Doktor, SINTA & buku ajar', 'icon' => 'users', 'badge' => '25 Dosen'],
                         ],
                     ],
                     [
-                        'heading' => 'Dosen & Kepakaran',
-                        'icon'    => 'users',
-                        'items'   => [
-                            ['title' => 'Dosen & Staf Pengajar', 'url' => home_url('/profil/dosen/'), 'subtitle' => '25 Dosen & Guru Besar BK UNM', 'icon' => 'users', 'badge' => '25 Dosen'],
-                            ['title' => 'Koleksi Buku Dosen', 'url' => home_url('/profil/buku-dosen/'), 'subtitle' => 'Karya monograf & buku teks', 'icon' => 'book', 'badge' => ''],
-                            ['title' => 'Peta Kepakaran & SINTA', 'url' => home_url('/profil/kepakaran-dosen/'), 'subtitle' => 'Profil riset SINTA, Scopus & HKI', 'icon' => 'award', 'badge' => 'SINTA'],
-                            ['title' => 'Kerjasama Tridharma', 'url' => home_url('/profil/kerjasama-tridharma/'), 'subtitle' => 'Kemitraan nasional & internasional', 'icon' => 'handshake', 'badge' => 'Mitra'],
-                        ],
-                    ],
-                    [
-                        'heading' => 'Sarana & Regulasi',
-                        'icon'    => 'home',
-                        'items'   => [
-                            ['title' => 'Sarana & Prasarana', 'url' => home_url('/profil/sarana-prasarana/'), 'subtitle' => 'Lab, ruang konseling & smart class', 'icon' => 'home', 'badge' => ''],
-                            ['title' => 'Roadmap Riset & PKM', 'url' => home_url('/profil/roadmap/'), 'subtitle' => 'Peta jalan penelitian prodi', 'icon' => 'map', 'badge' => ''],
-                            ['title' => 'Dokumen Mutu & Regulasi', 'url' => home_url('/profil/dokumen/'), 'subtitle' => 'Regulasi & standar penjaminan mutu', 'icon' => 'file-check', 'badge' => 'Mutu'],
-                        ],
-                    ],
-                    [
-                        'heading' => 'Akreditasi LAMDIK',
+                        'heading' => 'Akreditasi & Mutu',
                         'icon'    => 'award',
                         'items'   => [
-                            ['title' => 'Instrumen Hub 9 Kriteria', 'url' => home_url('/akreditasi/'), 'subtitle' => 'Kriteria 1 sampai 9 LAMDIK lengkap', 'icon' => 'grid', 'badge' => '9 Kriteria'],
-                            ['title' => 'Sertifikat Akreditasi S1/S2/S3', 'url' => home_url('/akreditasi/sertifikat/'), 'subtitle' => 'Unduh SK resmi BAN-PT/LAMDIK', 'icon' => 'file-badge', 'badge' => 'SK Resmi'],
-                            ['title' => 'Renstra & Penjaminan Mutu', 'url' => home_url('/akreditasi/upm/'), 'subtitle' => 'Unit Penjaminan Mutu (UPM) FIP', 'icon' => 'shield-check', 'badge' => 'UPM'],
+                            ['title' => 'Akreditasi Unggul LAMDIK', 'url' => home_url('/akreditasi/'), 'subtitle' => 'SK resmi S1–S3 & eviden 9 Kriteria', 'icon' => 'award', 'badge' => '9 Kriteria'],
+                            ['title' => 'GPM & Siklus PPEPP', 'url' => home_url('/akreditasi/upm/'), 'subtitle' => 'Renstra 2024–2028 & Audit Mutu Internal', 'icon' => 'shield', 'badge' => ''],
+                        ],
+                    ],
+                    [
+                        'heading' => 'Kemitraan & Sarana',
+                        'icon'    => 'globe',
+                        'items'   => [
+                            ['title' => 'Kerjasama Tridharma', 'url' => home_url('/profil/kerjasama-tridharma/'), 'subtitle' => '35+ sekolah mitra, ABKIN, UPSI & PMI', 'icon' => 'globe', 'badge' => ''],
+                            ['title' => 'Sarana Pembelajaran', 'url' => home_url('/profil/sarana-prasarana/'), 'subtitle' => 'Smart Classroom & Lab Mikrokonseling', 'icon' => 'building', 'badge' => ''],
                         ],
                     ],
                 ],
             ],
 
-            // 2. AKADEMIK (Mega Menu 3 Kolom + Spotlight Kurikulum OBE)
+            // 3. AKADEMIK (Mega Menu 3 Kolom + Spotlight Kurikulum OBE 2025)
             [
+                'key'         => 'akademik',
                 'title'       => 'Akademik',
                 'url'         => home_url('/akademik/'),
                 'is_mega'     => true,
                 'mega_cols'   => 3,
                 'icon'        => 'graduation-cap',
                 'badge'       => 'OBE 2025',
-                'subtitle'    => 'Kurikulum OBE 2025, RPS, jadwal, evaluasi & repositori modul',
+                'subtitle'    => 'Kurikulum OBE 2025, jadwal seminar/ujian, riset PNBP & E-Library',
                 'align'       => 'left',
-                'spotlight'   => [
-                    'badge'       => '🎓 KURIKULUM BARU',
-                    'title'       => 'Kurikulum OBE 2025',
-                    'description' => 'Mendukung Outcome-Based Education, konversi MBKM 20 SKS, dan asesmen digital terpadu.',
-                    'url'         => home_url('/akademik/kurikulum/'),
-                    'action_text' => 'Struktur Kurikulum &rarr;',
-                ],
+                'spotlight'   => $spotlights['akademik'],
                 'sections'    => [
                     [
                         'heading' => 'Kurikulum OBE 2025',
                         'icon'    => 'layers',
                         'items'   => [
-                            ['title' => 'Ringkasan Akademik', 'url' => home_url('/akademik/'), 'subtitle' => 'Informasi perkuliahan & capaian', 'icon' => 'book-open', 'badge' => ''],
-                            ['title' => 'Kurikulum OBE 2025', 'url' => home_url('/akademik/kurikulum/'), 'subtitle' => 'Struktur mata kuliah & sebaran SKS', 'icon' => 'layers', 'badge' => 'OBE 2025'],
-                            ['title' => 'RPS Lengkap, SAP & Rubrik', 'url' => home_url('/akademik/rps-sap/'), 'subtitle' => 'Rencana pembelajaran semester & rubrik', 'icon' => 'file-text', 'badge' => 'Silabus'],
+                            ['title' => 'Kurikulum S1 Sarjana (144 SKS)', 'url' => home_url('/akademik/kurikulum/'), 'subtitle' => 'Sebaran 8 semester, RPS, SDGs & MBKM', 'icon' => 'layers', 'badge' => 'OBE 2025'],
+                            ['title' => 'Program S2 Magister & S3 Doktor', 'url' => home_url('/akademik/rps-sap/'), 'subtitle' => 'Kurikulum riset terapan & keilmuan lanjut', 'icon' => 'graduation', 'badge' => ''],
                         ],
                     ],
                     [
-                        'heading' => 'Pedoman & Penilaian',
+                        'heading' => 'Perkuliahan & Sidang',
                         'icon'    => 'calendar',
                         'items'   => [
-                            ['title' => 'Pedoman Akademik & Penilaian', 'url' => home_url('/akademik/panduan/'), 'subtitle' => 'Panduan skripsi, KKN & ujian', 'icon' => 'file-check', 'badge' => ''],
-                            ['title' => 'Jadwal Perkuliahan & Ujian', 'url' => home_url('/akademik/jadwal-ujian/'), 'subtitle' => 'Seminar proposal, hasil & tutup', 'icon' => 'calendar', 'badge' => 'Update'],
-                            ['title' => 'Data & Statistik Akademik', 'url' => home_url('/akademik/statistik/'), 'subtitle' => 'Statistik kelulusan & IPK rata-rata', 'icon' => 'bar-chart-2', 'badge' => ''],
+                            ['title' => 'Jadwal Seminar & Ujian', 'url' => home_url('/akademik/jadwal-ujian/'), 'subtitle' => 'Proposal, seminar hasil & ujian skripsi', 'icon' => 'calendar', 'badge' => ''],
+                            ['title' => 'Formulir Skripsi (F-01..F-04)', 'url' => home_url('/layanan/akademik/'), 'subtitle' => 'Pengajuan judul, kartu bimbingan & syarat', 'icon' => 'file', 'badge' => ''],
                         ],
                     ],
                     [
-                        'heading' => 'Sumber Belajar & Modul',
-                        'icon'    => 'book-open',
+                        'heading' => 'Riset & Sumber Belajar',
+                        'icon'    => 'book',
                         'items'   => [
-                            ['title' => 'E-Library & Repositori Modul', 'url' => home_url('/e-library/'), 'subtitle' => 'Koleksi e-book & modul perkuliahan', 'icon' => 'folder', 'badge' => 'Digital'],
-                            ['title' => 'Panduan SOP & Template Berkas', 'url' => home_url('/layanan/akademik/'), 'subtitle' => 'Template skripsi, ujian & formulir', 'icon' => 'download', 'badge' => 'Unduh'],
+                            ['title' => 'Riset PNBP & Jurnal JKBK', 'url' => home_url('/mis-pnbp/'), 'subtitle' => '32 hibah riset, PkM, SINTA 2 & SINTA 4', 'icon' => 'book', 'badge' => ''],
+                            ['title' => 'E-Library & Modul Praktikum', 'url' => home_url('/e-library/'), 'subtitle' => 'Pedoman PPL, modul CBT & buku ajar PDF', 'icon' => 'folder', 'badge' => 'Digital'],
                         ],
                     ],
                 ],
             ],
 
-            // 3. KEMAHASISWAAN (Mega Menu 3 Kolom + Spotlight Prestasi Mahasiswa)
+            // 4. LAYANAN & WARTA (Mega Menu 3 Kolom + Spotlight Lab BK & SIPADU)
             [
-                'title'       => 'Kemahasiswaan',
-                'url'         => home_url('/kemahasiswaan/'),
-                'is_mega'     => true,
-                'mega_cols'   => 3,
-                'icon'        => 'award',
-                'badge'       => 'Prestasi',
-                'subtitle'    => 'Penerimaan maba, prestasi, inovasi karya & direktori alumni',
-                'align'       => 'left',
-                'spotlight'   => [
-                    'badge'       => '🏆 TALENTA UNM',
-                    'title'       => 'Prestasi & Rekam Jejak',
-                    'description' => 'Etalase kejuaraan nasional, keterlibatan proyek kemanusiaan MBKM, dan jejaring alumni berdaya saing tinggi.',
-                    'url'         => home_url('/kemahasiswaan/prestasi/'),
-                    'action_text' => 'Lihat Prestasi &rarr;',
-                ],
-                'sections'    => [
-                    [
-                        'heading' => 'Penerimaan & MBKM',
-                        'icon'    => 'user-plus',
-                        'items'   => [
-                            ['title' => 'Ringkasan Kemahasiswaan', 'url' => home_url('/kemahasiswaan/'), 'subtitle' => 'Dinamika & aktivitas mahasiswa', 'icon' => 'user-check', 'badge' => ''],
-                            ['title' => 'Penerimaan Maba (Daya Tampung)', 'url' => home_url('/kemahasiswaan/penerimaan/'), 'subtitle' => 'Peminat, daya tampung & seleksi', 'icon' => 'user-plus', 'badge' => 'SNBP/SNBT'],
-                            ['title' => 'Pameran Layanan MBKM', 'url' => home_url('/kemahasiswaan/mbkm-kemanusiaan/'), 'subtitle' => 'Magang mandiri & relawan konseling', 'icon' => 'globe', 'badge' => 'MBKM'],
-                        ],
-                    ],
-                    [
-                        'heading' => 'Prestasi & Inovasi',
-                        'icon'    => 'trophy',
-                        'items'   => [
-                            ['title' => 'Prestasi & Riset Mahasiswa', 'url' => home_url('/kemahasiswaan/prestasi/'), 'subtitle' => 'Rekam medali & kompetisi nasional', 'icon' => 'trophy', 'badge' => 'Juara'],
-                            ['title' => 'Karya & Inovasi Konseling', 'url' => home_url('/kemahasiswaan/karya/'), 'subtitle' => 'Media bimbingan, video & modul', 'icon' => 'spark', 'badge' => 'Karya'],
-                        ],
-                    ],
-                    [
-                        'heading' => 'Direktori Alumni & Data',
-                        'icon'    => 'share-2',
-                        'items'   => [
-                            ['title' => 'Direktori Alumni & Tracer Study', 'url' => home_url('/kemahasiswaan/alumni/'), 'subtitle' => 'Jejaring alumni & sebaran profesi', 'icon' => 'share-2', 'badge' => 'Tracer'],
-                            ['title' => 'Data & Statistik Mahasiswa', 'url' => home_url('/kemahasiswaan/statistik/'), 'subtitle' => 'Demografi & data kemahasiswaan aktif', 'icon' => 'pie-chart', 'badge' => ''],
-                        ],
-                    ],
-                ],
-            ],
-
-            // 4. RISET & LABORATORIUM (Mega Menu 4 Kolom + Spotlight BK Connect Suite)
-            [
-                'title'       => 'Riset & Laboratorium',
-                'url'         => home_url('/laboratorium/'),
-                'is_mega'     => true,
-                'mega_cols'   => 4,
-                'icon'        => 'flask-conical',
-                'badge'       => 'Lab & Riset',
-                'subtitle'    => 'Fasilitas alat tes, ruang simulasi, hibah MIS PNBP & jurnal',
-                'align'       => 'center',
-                'spotlight'   => [
-                    'badge'       => '🚀 PORTAL DIGITAL',
-                    'title'       => 'BK Connect Suite',
-                    'description' => 'Sistem asesmen psikologi digital, konseling online, dan manajemen instrumen BK FIP UNM.',
-                    'url'         => 'https://bk-connect-fipunm.vercel.app/',
-                    'action_text' => 'Masuk BK Connect &rarr;',
-                    'target'      => '_blank',
-                ],
-                'sections'    => [
-                    [
-                        'heading' => 'Laboratorium BK',
-                        'icon'    => 'activity',
-                        'items'   => [
-                            ['title' => 'Ringkasan Laboratorium BK', 'url' => home_url('/laboratorium/'), 'subtitle' => 'Fasilitas & ruang konseling mikro', 'icon' => 'activity', 'badge' => ''],
-                            ['title' => 'Kegiatan Mahasiswa Lab', 'url' => home_url('/laboratorium/kegiatan/'), 'subtitle' => 'Workshop, praktikum & simulasi tes', 'icon' => 'users', 'badge' => 'Praktikum'],
-                            ['title' => 'Lomba Non-Akademik Lab', 'url' => home_url('/laboratorium/lomba/'), 'subtitle' => 'Ajang kompetisi kreativitas konseling', 'icon' => 'medal', 'badge' => 'Lomba'],
-                        ],
-                    ],
-                    [
-                        'heading' => 'Alat Tes & Suite',
-                        'icon'    => 'check-square',
-                        'items'   => [
-                            ['title' => 'Inventaris Alat Tes Lab BK', 'url' => home_url('/lab-bk/inventaris/'), 'subtitle' => 'Daftar alat tes psikologi & inventori', 'icon' => 'check-square', 'badge' => 'Tes'],
-                            ['title' => 'Portal BK Connect Suite', 'url' => 'https://bk-connect-fipunm.vercel.app/', 'subtitle' => 'Sistem asesmen & konseling terpadu', 'icon' => 'external-link', 'badge' => 'Suite ↗', 'target' => '_blank'],
-                            ['title' => 'Portal Peersupport BK', 'url' => 'https://peersupport-bk.unm.ac.id/', 'subtitle' => 'Konselor sebaya bagi mahasiswa', 'icon' => 'heart', 'badge' => 'Portal ↗', 'target' => '_blank'],
-                        ],
-                    ],
-                    [
-                        'heading' => 'Pusat MIS PNBP',
-                        'icon'    => 'database',
-                        'items'   => [
-                            ['title' => 'Pusat MIS PNBP', 'url' => home_url('/mis-pnbp/'), 'subtitle' => 'Dashboard integrasi riset & PkM', 'icon' => 'database', 'badge' => 'Hub'],
-                            ['title' => 'Hibah Penelitian PNBP', 'url' => home_url('/mis-pnbp/#penelitian'), 'subtitle' => 'Proposal, laporan & luaran riset', 'icon' => 'search', 'badge' => 'Hibah'],
-                            ['title' => 'Pengabdian Masyarakat (PkM)', 'url' => home_url('/mis-pnbp/#pkm'), 'subtitle' => 'Pemberdayaan sekolah & komunitas', 'icon' => 'heart-handshake', 'badge' => 'PkM'],
-                        ],
-                    ],
-                    [
-                        'heading' => 'Publikasi Jurnal',
-                        'icon'    => 'book-open',
-                        'items'   => [
-                            ['title' => 'Jurnal BK (JBK)', 'url' => 'https://ojs.unm.ac.id/JBK', 'subtitle' => 'Jurnal terakreditasi SINTA 3', 'icon' => 'book', 'badge' => 'SINTA 3 ↗', 'target' => '_blank'],
-                            ['title' => 'Jurnal Pengabdian (JPKN)', 'url' => 'https://ojs.unm.ac.id/JPKN', 'subtitle' => 'Jurnal pengabdian terindeks SINTA 4', 'icon' => 'book-open', 'badge' => 'SINTA 4 ↗', 'target' => '_blank'],
-                            ['title' => 'Publikasi Jurnal & Desiminasi', 'url' => home_url('/jurnal-bk/'), 'subtitle' => 'Portal publikasi resmi prodi', 'icon' => 'award', 'badge' => 'Jurnal'],
-                        ],
-                    ],
-                ],
-            ],
-
-            // 5. LAYANAN & BERITA (Mega Menu 3 Kolom + Spotlight Pusat Warta)
-            [
-                'title'       => 'Layanan & Berita',
+                'key'         => 'layanan',
+                'title'       => 'Layanan & Warta',
                 'url'         => home_url('/layanan/'),
                 'is_mega'     => true,
                 'mega_cols'   => 3,
                 'icon'        => 'life-buoy',
-                'badge'       => 'Layanan',
-                'subtitle'    => 'Layanan persuratan, SOP, perlindungan & pusat warta prodi',
-                'align'       => 'right',
-                'spotlight'   => [
-                    'badge'       => '📰 KABAR JURUSAN',
-                    'title'       => 'Pusat Warta & Publikasi',
-                    'description' => 'Liputan kegiatan tridharma, seminar nasional, pengumuman akademik, dan publikasi resmi PPB FIP UNM.',
-                    'url'         => home_url('/berita/'),
-                    'action_text' => 'Buka Semua Berita &rarr;',
-                ],
+                'badge'       => 'Terpadu',
+                'subtitle'    => 'Persuratan F-01..F-06, Lab BK, SIPADU daring, advokasi & warta resmi',
+                'align'       => 'left',
+                'spotlight'   => $spotlights['layanan'],
                 'sections'    => [
                     [
-                        'heading' => 'Layanan Administrasi',
+                        'heading' => 'Layanan & Lab BK',
                         'icon'    => 'mail',
                         'items'   => [
-                            ['title' => 'Ringkasan Layanan', 'url' => home_url('/layanan/'), 'subtitle' => 'Pusat bantuan & layanan terpadu', 'icon' => 'life-buoy', 'badge' => ''],
-                            ['title' => 'Layanan Persuratan & Kode', 'url' => home_url('/layanan/persuratan/'), 'subtitle' => 'Nomor surat resmi & izin riset', 'icon' => 'mail', 'badge' => 'Surat'],
-                            ['title' => 'Panduan Prosedur & SOP', 'url' => home_url('/layanan/akademik/'), 'subtitle' => 'Template skripsi & formulir ujian', 'icon' => 'download', 'badge' => 'Unduh'],
+                            ['title' => 'Persuratan F-01..F-06 & SOP', 'url' => home_url('/layanan/persuratan/'), 'subtitle' => 'Template DOCX resmi & alur layanan terukur', 'icon' => 'mail', 'badge' => ''],
+                            ['title' => 'Laboratorium BK & Alat Tes', 'url' => home_url('/laboratorium/'), 'subtitle' => '4 bilik one-way mirror, IST/CFIT & studio', 'icon' => 'lab', 'badge' => ''],
+                            ['title' => 'E-Library & Modul PDF', 'url' => home_url('/e-library/'), 'subtitle' => 'Arsip modul kuliah & pedoman tugas akhir', 'icon' => 'folder', 'badge' => ''],
                         ],
                     ],
                     [
-                        'heading' => 'Advokasi & Bantuan',
-                        'icon'    => 'shield-check',
+                        'heading' => 'Portal, Advokasi & Mutu',
+                        'icon'    => 'globe',
                         'items'   => [
-                            ['title' => 'Perlindungan Mahasiswa (No. 13)', 'url' => home_url('/layanan/perlindungan-mahasiswa/'), 'subtitle' => 'Satgas PPKS & kanal aman aduan', 'icon' => 'shield', 'badge' => 'Satgas'],
-                            ['title' => 'Survei Kepuasan Sivitas', 'url' => home_url('/survei/'), 'subtitle' => 'Evaluasi kepuasan layanan & mutu', 'icon' => 'check-circle', 'badge' => 'Survei'],
+                            ['title' => 'Portal SIPADU Daring ↗', 'url' => $sipadu_url, 'subtitle' => 'Pengajuan surat, SK bimbingan & layanan daring', 'icon' => 'globe', 'badge' => 'SIPADU ↗', 'target' => '_blank'],
+                            ['title' => 'Perlindungan & Konseling Krisis', 'url' => home_url('/layanan/perlindungan-mahasiswa/'), 'subtitle' => 'Kode etik ABKIN, peer support & Satgas PPKS', 'icon' => 'shield', 'badge' => ''],
+                            ['title' => 'Survei Kepuasan Layanan GPM', 'url' => home_url('/survei/'), 'subtitle' => 'Evaluasi mutu dosen, tendik & fasilitas lab', 'icon' => 'check', 'badge' => ''],
                         ],
                     ],
                     [
-                        'heading' => 'Warta & Pengumuman',
-                        'icon'    => 'newspaper',
+                        'heading' => 'Warta & Prestasi',
+                        'icon'    => 'news',
                         'items'   => [
-                            ['title' => 'Semua Warta & Berita Resmi', 'url' => home_url('/berita/'), 'subtitle' => 'Arsip berita tridharma & kegiatan', 'icon' => 'newspaper', 'badge' => 'Warta'],
-                            ['title' => 'Pengumuman Akademik Terkini', 'url' => home_url('/berita/?kategori=pengumuman'), 'subtitle' => 'Pemberitahuan resmi prodi', 'icon' => 'info', 'badge' => 'Update'],
+                            ['title' => 'Berita & Pengumuman Resmi', 'url' => home_url('/berita/'), 'subtitle' => 'Kabar tridharma & informasi gelombang sidang', 'icon' => 'news', 'badge' => ''],
+                            ['title' => 'Prestasi & Karya Inovasi BK', 'url' => home_url('/kemahasiswaan/prestasi/'), 'subtitle' => 'Medali nasional/ASEAN, SI-KARIR & SI-PACCE', 'icon' => 'award', 'badge' => ''],
                         ],
                     ],
                 ],
@@ -630,8 +579,8 @@ if (!function_exists('ppb_get_nav_tree')) {
         $tree = [];
         $has_custom_menu = false;
 
-        // 1. Cek apakah ada menu yang dipasang di lokasi 'primary-menu'
-        if (has_nav_menu('primary-menu')) {
+        // 1. Cek apakah ada menu yang dipasang di lokasi 'primary-menu' (dan sudah disinkronkan ke v3 Editorial Calm)
+        if (has_nav_menu('primary-menu') && get_option('ppb_mega_menu_autoseeded_v3', '') === 'yes') {
             $locations = get_nav_menu_locations();
             if (!empty($locations['primary-menu'])) {
                 $menu_items = wp_get_nav_menu_items($locations['primary-menu']);
@@ -774,6 +723,13 @@ if (!function_exists('ppb_get_nav_tree')) {
                             $top_item['is_mega'] = true;
                             $top_item['mega_cols'] = max(1, min(4, count($sections)));
                             $top_item['sections'] = $sections;
+                            if (empty($top_item['spotlight']) && function_exists('ppb_get_mega_menu_spotlights')) {
+                                $spots = ppb_get_mega_menu_spotlights();
+                                $tl = strtolower($top_item['title']);
+                                if (strpos($tl, 'profil') !== false) $top_item['spotlight'] = $spots['profil'];
+                                elseif (strpos($tl, 'akademik') !== false) $top_item['spotlight'] = $spots['akademik'];
+                                else $top_item['spotlight'] = $spots['layanan'];
+                            }
                             $tree[] = $top_item;
                         }
                     }
@@ -1059,6 +1015,36 @@ add_action('admin_post_ppb_sync_mega_menu', function() {
     exit;
 });
 
+// Handler Aksi Simpan / Reset Kartu Spotlight Mega Menu
+add_action('admin_post_ppb_save_mega_spotlights', function() {
+    check_admin_referer('ppb_save_mega_spotlights_nonce');
+    if (!current_user_can('manage_options')) {
+        wp_die('Akses ditolak.');
+    }
+    if (!empty($_POST['ppb_reset_mega_spotlights'])) {
+        delete_option('bk_mega_menu_spotlights');
+        wp_safe_redirect(admin_url('admin.php?page=ppb-mega-menu-manager&ppb_spot_saved=reset'));
+        exit;
+    }
+    $defaults = ppb_get_mega_menu_default_spotlights();
+    $clean = [];
+    $raw = isset($_POST['ppb_spot']) && is_array($_POST['ppb_spot']) ? wp_unslash($_POST['ppb_spot']) : [];
+    foreach ($defaults as $k => $def) {
+        $in = isset($raw[$k]) && is_array($raw[$k]) ? $raw[$k] : [];
+        $url_val = trim((string)($in['url'] ?? $def['url']));
+        $clean[$k] = [
+            'badge'       => sanitize_text_field($in['badge'] ?? $def['badge']),
+            'title'       => sanitize_text_field($in['title'] ?? $def['title']),
+            'description' => sanitize_textarea_field($in['description'] ?? $def['description']),
+            'action_text' => sanitize_text_field($in['action_text'] ?? $def['action_text']),
+            'url'         => function_exists('bk_sanitize_asset_or_url') ? bk_sanitize_asset_or_url($url_val) : esc_url_raw($url_val),
+        ];
+    }
+    update_option('bk_mega_menu_spotlights', $clean, false);
+    wp_safe_redirect(admin_url('admin.php?page=ppb-mega-menu-manager&ppb_spot_saved=1'));
+    exit;
+});
+
 // Handler Aksi Bersihkan Menu Demo / Tidak Terpakai Admin POST
 add_action('admin_post_ppb_cleanup_unused_menus', function() {
     check_admin_referer('ppb_cleanup_unused_menus_nonce');
@@ -1131,7 +1117,7 @@ if (!function_exists('ppb_render_mega_menu_admin_page')) {
             <?php if (isset($_GET['ppb_synced'])) : ?>
                 <div class="notice notice-success is-dismissible" style="border-left-color:#0D3B22;padding:12px 16px;">
                     <p style="font-size:14px;font-weight:700;color:#0D3B22;margin:0;">
-                        ✅ Berhasil! Struktur 45+ Tautan Mega Menu Standar BK FIP telah dibuat dan dihubungkan ke lokasi 'Menu Utama (Navbar)'.
+                        ✅ Berhasil! Struktur Mega Menu 4 Pilar Editorial Calm BK FIP telah dibuat dan dihubungkan ke lokasi 'Menu Utama (Navbar)'.
                     </p>
                     <p style="font-size:13px;color:#334155;margin:4px 0 0;">
                         Anda dapat langsung mengatur urutan, mengubah judul label, atau menambahkan tautan baru di bawah ini.
@@ -1188,7 +1174,7 @@ if (!function_exists('ppb_render_mega_menu_admin_page')) {
                             <strong style="font-size:17px;color:#92400e;">Mode Fallback Standar Aktif</strong>
                         </div>
                         <p style="font-size:13px;color:#64748b;margin:0 0 16px;line-height:1.5;">
-                            Belum ada menu kustom yang ditautkan ke lokasi <em>Menu Utama (Navbar)</em>. Website saat ini otomatis menggunakan 45+ tautan mega menu standar bawaan tema.
+                            Belum ada menu kustom yang ditautkan ke lokasi <em>Menu Utama (Navbar)</em>. Website saat ini otomatis menggunakan struktur mega menu 4 pilar bawaan tema.
                         </p>
                     <?php endif; ?>
                 </div>
@@ -1202,7 +1188,7 @@ if (!function_exists('ppb_render_mega_menu_admin_page')) {
                         Buat / Reset Struktur Menu Mega Menu
                     </strong>
                     <p style="font-size:13px;color:#64748b;margin:0 0 16px;line-height:1.5;">
-                        Ingin mengedit menu tapi belum ada di WP-Admin? Klik tombol di bawah untuk membuat seluruh 9 menu induk, kolom-kolom submenu, ikon, dan badge secara otomatis ke database WordPress!
+                        Ingin mengedit menu tapi belum ada di WP-Admin? Klik tombol di bawah untuk membuat seluruh 4 pilar navigasi utama (Beranda, Profil & Mutu, Akademik, Layanan & Warta), kolom submenu, ikon, dan badge secara otomatis ke database WordPress!
                     </p>
                     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('Apakah Anda yakin ingin menyinkronkan seluruh menu standar ke Menu Utama WordPress? Item menu pada Menu Utama BK FIP akan disesuaikan.');">
                         <?php wp_nonce_field('ppb_sync_mega_menu_nonce'); ?>
@@ -1233,6 +1219,48 @@ if (!function_exists('ppb_render_mega_menu_admin_page')) {
                     </form>
                 </div>
 
+            </div>
+
+            <?php if (isset($_GET['ppb_spot_saved'])) : ?>
+                <div class="notice notice-success is-dismissible" style="border-left-color:#0D3B22;padding:12px 16px;margin-bottom:20px;">
+                    <p style="font-size:14px;font-weight:700;color:#0D3B22;margin:0;">
+                        <?php echo $_GET['ppb_spot_saved'] === 'reset' ? '🔄 Kartu Spotlight Mega Menu dikembalikan ke nilai bawaan.' : '✅ Kartu Spotlight Mega Menu berhasil disimpan!'; ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <!-- Editor Kartu Spotlight Samping Mega Menu (3 Pilar) -->
+            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:26px;box-shadow:0 2px 8px rgba(0,0,0,0.03);margin-bottom:28px;">
+                <h3 style="font-size:18px;font-weight:800;color:#0D3B22;margin:0 0 6px;">
+                    🌟 Kartu Spotlight di Dalam Panel Mega Menu (3 Pilar Dropdown)
+                </h3>
+                <p style="font-size:13px;color:#64748b;margin:0 0 18px;">
+                    Setiap panel dropdown (<em>Profil &amp; Mutu</em>, <em>Akademik</em>, <em>Layanan &amp; Warta</em>) menampilkan kartu sorotan hijau-emas di sisi kanan. Ubah teks &amp; tautannya di bawah ini.
+                </p>
+                <?php $curr_spots = ppb_get_mega_menu_spotlights(); $spot_labels = ['profil' => 'Pilar 2 · Profil & Mutu', 'akademik' => 'Pilar 3 · Akademik', 'layanan' => 'Pilar 4 · Layanan & Warta']; ?>
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                    <?php wp_nonce_field('ppb_save_mega_spotlights_nonce'); ?>
+                    <input type="hidden" name="action" value="ppb_save_mega_spotlights" />
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(290px, 1fr));gap:16px;margin-bottom:16px;">
+                        <?php foreach ($spot_labels as $sk => $slabel) : $sp = $curr_spots[$sk]; ?>
+                            <div style="background:#FAF8F5;border:1px solid #D4E3D8;border-radius:12px;padding:16px;">
+                                <div style="font-size:12px;font-weight:800;color:#0D3B22;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;"><?php echo esc_html($slabel); ?></div>
+                                <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;margin-bottom:4px;">Badge Atas</label>
+                                <input type="text" name="ppb_spot[<?php echo esc_attr($sk); ?>][badge]" value="<?php echo esc_attr($sp['badge']); ?>" style="width:100%;margin-bottom:8px;" />
+                                <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;margin-bottom:4px;">Judul Kartu</label>
+                                <input type="text" name="ppb_spot[<?php echo esc_attr($sk); ?>][title]" value="<?php echo esc_attr($sp['title']); ?>" style="width:100%;margin-bottom:8px;font-weight:700;" />
+                                <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;margin-bottom:4px;">Deskripsi Ringkas</label>
+                                <textarea name="ppb_spot[<?php echo esc_attr($sk); ?>][description]" rows="3" style="width:100%;margin-bottom:8px;"><?php echo esc_textarea($sp['description']); ?></textarea>
+                                <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;margin-bottom:4px;">Teks Tombol CTA</label>
+                                <input type="text" name="ppb_spot[<?php echo esc_attr($sk); ?>][action_text]" value="<?php echo esc_attr($sp['action_text']); ?>" style="width:100%;margin-bottom:8px;" />
+                                <label style="display:block;font-size:11.5px;font-weight:600;color:#334155;margin-bottom:4px;">URL Tujuan</label>
+                                <input type="text" name="ppb_spot[<?php echo esc_attr($sk); ?>][url]" value="<?php echo esc_attr($sp['url']); ?>" style="width:100%;" />
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <button type="submit" class="button button-primary" style="background:#0D3B22;border-color:#0D3B22;font-weight:700;border-radius:8px;padding:4px 18px;">💾 Simpan Kartu Spotlight Mega Menu</button>
+                    <button type="submit" name="ppb_reset_mega_spotlights" value="1" class="button" onclick="return confirm('Kembalikan ke-3 kartu spotlight mega menu ke nilai bawaan?');" style="margin-left:8px;">Reset ke Default</button>
+                </form>
             </div>
 
             <!-- Petunjuk Pengaturan Mega Menu -->
@@ -1366,7 +1394,7 @@ add_action('admin_notices', function() {
                     </p>
                 </div>
                 <div>
-                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;" onsubmit="return confirm('Buat atau perbarui Menu Utama BK FIP dengan 45+ tautan standar sekarang?');">
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;" onsubmit="return confirm('Buat atau perbarui Menu Utama BK FIP dengan struktur 4 pilar standar sekarang?');">
                         <?php wp_nonce_field('ppb_sync_mega_menu_nonce'); ?>
                         <input type="hidden" name="action" value="ppb_sync_mega_menu" />
                         <button type="submit" class="button" style="background:#0D3B22;color:#ffffff;border-color:#0D3B22;font-weight:700;">
@@ -1390,11 +1418,8 @@ add_action('admin_init', function() {
     if (!current_user_can('manage_options')) {
         return;
     }
-    if (get_option('ppb_mega_menu_autoseeded_v1') !== 'yes') {
-        $locations = get_nav_menu_locations();
-        if (empty($locations['primary-menu'])) {
-            ppb_sync_default_mega_menu_to_wp();
-        }
-        update_option('ppb_mega_menu_autoseeded_v1', 'yes');
+    if (get_option('ppb_mega_menu_autoseeded_v3') !== 'yes') {
+        ppb_sync_default_mega_menu_to_wp();
+        update_option('ppb_mega_menu_autoseeded_v3', 'yes', false);
     }
 });

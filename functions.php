@@ -366,6 +366,304 @@ if (file_exists($mega_menu_inc)) {
     require_once $mega_menu_inc;
 }
 
+// =============================================================================
+// EDITORIAL CALM v3.0 — ASSET HELPERS, HOMEPAGE CONFIG & COMMAND SEARCH INDEX
+// =============================================================================
+
+if (!function_exists('bk_resolve_theme_asset_url')) {
+    /**
+     * Resolve theme-relative asset paths (assets/img/x.jpg), site-relative paths
+     * (/wp-content/..., /yamato/...) and absolute URLs into a usable URL.
+     */
+    function bk_resolve_theme_asset_url($path) {
+        $path = trim((string) $path);
+        if ($path === '') {
+            return '';
+        }
+        if (preg_match('#^(https?:)?//#i', $path) || strpos($path, 'data:image/') === 0) {
+            return $path;
+        }
+        if (strpos($path, 'assets/') === 0) {
+            return get_template_directory_uri() . '/' . $path;
+        }
+        if (strpos($path, '/') === 0) {
+            $home_path = (string) wp_parse_url(home_url('/'), PHP_URL_PATH);
+            $home_path = rtrim($home_path, '/');
+            if ($home_path !== '' && strpos($path, $home_path . '/') === 0) {
+                return site_url($path === $home_path ? '/' : substr($path, strlen($home_path)));
+            }
+            return home_url($path);
+        }
+        return get_template_directory_uri() . '/' . ltrim($path, '/');
+    }
+}
+
+if (!function_exists('bk_sanitize_asset_or_url')) {
+    /**
+     * Sanitize a value that may be a theme asset path, a site-relative path or an
+     * absolute URL. Unlike esc_url_raw(), relative paths are preserved.
+     * Google Drive share links are converted to direct thumbnail URLs.
+     */
+    function bk_sanitize_asset_or_url($val) {
+        $val = trim(wp_strip_all_tags((string) $val));
+        if ($val === '') {
+            return '';
+        }
+        // Google Drive helper: /file/d/{id}/view or open?id={id}
+        if (strpos($val, 'drive.google.com') !== false) {
+            if (preg_match('#/d/([a-zA-Z0-9_-]{10,})#', $val, $m) || preg_match('#[?&]id=([a-zA-Z0-9_-]{10,})#', $val, $m)) {
+                return 'https://drive.google.com/thumbnail?id=' . $m[1] . '&sz=w1200';
+            }
+        }
+        if (preg_match('#^(https?:)?//#i', $val)) {
+            return esc_url_raw($val);
+        }
+        // Relative path: allow only safe characters and block traversal / schemes.
+        if (strpos($val, '..') !== false || preg_match('#^[a-z0-9+.-]+:#i', $val)) {
+            return '';
+        }
+        $clean = preg_replace('#[^A-Za-z0-9/_\-.%~]#', '', $val);
+        return $clean;
+    }
+}
+
+if (!function_exists('bk_fip_get_homepage_defaults')) {
+    /**
+     * Default content for all Editorial Calm homepage sections (editable via WP-Admin).
+     */
+    function bk_fip_get_homepage_defaults() {
+        return array(
+            'top_strip_badge' => 'BK-CONNECT',
+            'top_strip_text'  => 'Ekosistem digital layanan akademik & konseling Jurusan PPB FIP UNM',
+            'portal_auth_url' => 'https://bk-connect-fipunm.vercel.app/auth',
+            'sipadu_url'      => 'https://bk-connect-fipunm.vercel.app/sipadu',
+            'stats' => array(
+                array('code' => '01 // MUTU',      'badge' => 'LAMDIK', 'number' => 'Unggul',       'desc' => 'Terakreditasi Unggul S1 & S2. Baik Sekali S3'),
+                array('code' => '02 // SEJARAH',   'badge' => 'EST.',   'number' => '1969',         'desc' => '57 tahun melahirkan konselor & pendidik Nusantara'),
+                array('code' => '03 // SDM DOSEN', 'badge' => 'AKTIF',  'number' => '25 Dosen',     'desc' => '4 Guru Besar · Doktor · 421 Publikasi Ilmiah'),
+                array('code' => '04 // JENJANG',   'badge' => 'LINIER', 'number' => 'S1 · S2 · S3', 'desc' => 'Kurikulum OBE 2025 terintegrasi SDGs & MBKM'),
+            ),
+            'kajur_nama'    => 'Dr. Suciani Latif, M.Pd.',
+            'kajur_jabatan' => 'KETUA JURUSAN PPB FIP UNM',
+            'kajur_quote'   => 'Pendidikan konseling di FIP UNM dirancang untuk melahirkan sarjana, magister, dan doktor yang berintegritas moral, peka terhadap keragaman sosio-kultural, serta adaptif memanfaatkan inovasi psikoedukasi dan telekonseling.',
+            'degrees' => array(
+                's1' => array(
+                    'code' => 'S1', 'tab_label' => 'S1 Sarjana',
+                    'kkni' => 'KKNI Level 6 · Akreditasi Unggul LAMDIK',
+                    'title' => 'S1 Bimbingan dan Konseling',
+                    'summary' => 'Mempersiapkan calon konselor sekolah dan praktisi bimbingan yang menguasai asesmen psikologis, mikrokonseling, serta desain program BK komprehensif berbasis teknologi dan empati budaya.',
+                    'gelar' => 'Sarjana Pendidikan (S.Pd.)', 'beban' => '144–146 SKS · 8 Semester',
+                    'kurikulum' => 'OBE 2025 Terintegrasi MBKM',
+                    'sk' => 'SK LAMDIK No. 742/SK/LAMDIK/Ak/S/VIII/2023 (s.d. 2028)',
+                    'kompetensi' => "Mikrokonseling & Teknik Terapi Kognitif-Perilaku (CBT / SFBT)\nAsesmen Psikologi Tes & Non-Tes (IST, RMIB, AUM, DCM, IKMS)\nManajemen Program BK Komprehensif, Karir & Konseling Digital",
+                    'url' => '/akademik/kurikulum/',
+                ),
+                's2' => array(
+                    'code' => 'S2', 'tab_label' => 'S2 Magister',
+                    'kkni' => 'KKNI Level 8 · Akreditasi Unggul LAMDIK',
+                    'title' => 'S2 Bimbingan dan Konseling',
+                    'summary' => 'Mengembangkan penguasaan metodologi riset lanjut, rekayasa model intervensi psikososial, konseling lintas budaya, serta kepemimpinan akademik dan profesi konseling pada jenjang pascasarjana.',
+                    'gelar' => 'Magister Pendidikan (M.Pd.)', 'beban' => '38–42 SKS · 4 Semester',
+                    'kurikulum' => 'Riset Terapan & Supervisi Klinis',
+                    'sk' => 'SK LAMDIK No. 412/SK/LAMDIK/Ak/M/V/2024',
+                    'kompetensi' => "Metodologi Penelitian Kuantitatif, Kualitatif & R&D BK\nPengembangan Modul & Instrumen Psikometri Terapan\nKonseling Krisis, Rehabilitasi & Trauma Multi-Kultur",
+                    'url' => '/akademik/kurikulum/',
+                ),
+                's3' => array(
+                    'code' => 'S3', 'tab_label' => 'S3 Doktoral',
+                    'kkni' => 'KKNI Level 9 · Terakreditasi Baik Sekali LAMDIK',
+                    'title' => 'S3 Ilmu Pendidikan (Konsentrasi BK)',
+                    'summary' => 'Mencetak filosof keilmuan, akademisi perguruan tinggi, dan perumus kebijakan nasional yang melahirkan kebaruan teori (novelty) intervensi konseling berakar kearifan budaya Nusantara.',
+                    'gelar' => 'Doktor (Dr.)', 'beban' => '42–48 SKS · 6 Semester',
+                    'kurikulum' => 'Disertasi & Kebaruan Teori Indigenos',
+                    'sk' => 'SK LAMDIK No. 189/SK/LAMDIK/Ak/D/X/2023',
+                    'kompetensi' => "Filsafat Keilmuan & Epistemologi Konseling Kontemporer\nKonstruksi Model Konseling Indigenos & Kearifan Lokal\nPublikasi Bereputasi Internasional (Scopus/WoS) & Kebijakan",
+                    'url' => '/akademik/kurikulum/',
+                ),
+            ),
+            'video_chapters' => array(
+                array(
+                    'num' => '01', 'duration' => '03:45', 'badge' => 'Bagian 1 · Visi & Sejarah 1969',
+                    'title' => '57 Tahun Mendidik Calon Konselor Nusantara',
+                    'desc' => 'Dari Bimbingan Penyuluhan (1969) menjadi prodi terakreditasi Unggul LAMDIK untuk jenjang Sarjana dan Magister di Fakultas Ilmu Pendidikan UNM.',
+                    'date' => 'Profil Jurusan · Kampus Tidung', 'thumb' => 'assets/img/hero-campus.jpg', 'video_url' => '',
+                ),
+                array(
+                    'num' => '02', 'duration' => '04:12', 'badge' => 'Bagian 2 · Lab BK Gunungsari',
+                    'title' => '4 Bilik Mikrokonseling One-Way Mirror & Asesmen Psikologi',
+                    'desc' => 'Tur fasilitas laboratorium psikologi kedap suara, instrumen IST/CFIT/DAT, studio cybercounseling, dan workstation Rasch/Jamovi.',
+                    'date' => 'Fasilitas Praktikum · Kampus Gunungsari', 'thumb' => 'assets/img/lab-studio.jpg', 'video_url' => '',
+                ),
+                array(
+                    'num' => '03', 'duration' => '02:58', 'badge' => 'Bagian 3 · Kurikulum OBE 2025',
+                    'title' => '144 SKS Terintegrasi SDGs, MBKM & Ekosistem BK-Connect',
+                    'desc' => "Implementasi Case Method, Team-Based Project, penelitian berbasis kearifan budaya Siri' na Pacce, serta praktik lapangan di 35+ sekolah mitra.",
+                    'date' => 'Akademik & Inovasi · 2025', 'thumb' => 'assets/img/hero-campus.jpg', 'video_url' => '',
+                ),
+            ),
+            'portal_cards' => array(
+                array('code' => 'P-01', 'title' => 'Kurikulum OBE 2025', 'desc' => '144 SKS, RPS 16 pertemuan, CPL & indikator SDGs.', 'url' => '/akademik/kurikulum/', 'icon' => 'layers'),
+                array('code' => 'P-02', 'title' => 'Persuratan F-01..F-06', 'desc' => 'Template DOCX resmi pengajuan judul, bimbingan & sidang.', 'url' => '/layanan/akademik/', 'icon' => 'file-text'),
+                array('code' => 'P-03', 'title' => 'Laboratorium BK', 'desc' => '4 bilik one-way mirror, alat tes IST/CFIT & studio.', 'url' => '/laboratorium/', 'icon' => 'flask-conical'),
+                array('code' => 'P-04', 'title' => 'E-Library & Modul', 'desc' => 'Modul praktikum, buku ajar & repositori artikel.', 'url' => '/e-library/', 'icon' => 'library'),
+                array('code' => 'P-05', 'title' => 'Direktori 25 Dosen', 'desc' => 'Guru Besar, Doktor, kepakaran & profil SINTA.', 'url' => '/profil/dosen/', 'icon' => 'users'),
+                array('code' => 'P-06', 'title' => 'Akreditasi Unggul', 'desc' => 'SK LAMDIK S1–S3 & eviden 9 Kriteria mutu.', 'url' => '/akreditasi/', 'icon' => 'award'),
+            ),
+            'admisi_title' => 'Penerimaan Mahasiswa Baru 2026',
+            'admisi_desc'  => 'Jalur SNBP, SNBT, dan Mandiri UNM untuk S1 Bimbingan dan Konseling — serta Pascasarjana S2 & S3.',
+            'admisi_btn'   => 'Info Admisi UNM',
+            'admisi_url'   => 'https://penerimaan.unm.ac.id',
+            'footer_address'    => 'Gedung Jurusan PPB, Fakultas Ilmu Pendidikan UNM, Kampus Tidung Jl. Tamalate I, Makassar, Sulawesi Selatan',
+            'footer_akreditasi' => 'S1 & S2 Terakreditasi Unggul LAMDIK · S3 Baik Sekali',
+            'footer_copyright'  => '© ' . gmdate('Y') . ' Jurusan Psikologi Pendidikan dan Bimbingan · FIP Universitas Negeri Makassar',
+        );
+    }
+}
+
+if (!function_exists('bk_fip_get_homepage_config')) {
+    /**
+     * Merged homepage config (WP options over defaults). Large arrays are stored with autoload = false.
+     */
+    function bk_fip_get_homepage_config() {
+        $d = bk_fip_get_homepage_defaults();
+        $cfg = array(
+            'top_strip_badge'   => get_option('bk_top_strip_badge', $d['top_strip_badge']),
+            'top_strip_text'    => get_option('bk_top_strip_text', $d['top_strip_text']),
+            'portal_auth_url'   => get_option('bk_portal_auth_url', $d['portal_auth_url']),
+            'sipadu_url'        => get_option('bk_sipadu_url', $d['sipadu_url']),
+            'kajur_nama'        => get_option('bk_kajur_nama', $d['kajur_nama']),
+            'kajur_jabatan'     => get_option('bk_kajur_jabatan', $d['kajur_jabatan']),
+            'kajur_quote'       => get_option('bk_kajur_quote', $d['kajur_quote']),
+            'admisi_title'      => get_option('bk_admisi_title', $d['admisi_title']),
+            'admisi_desc'       => get_option('bk_admisi_desc', $d['admisi_desc']),
+            'admisi_btn'        => get_option('bk_admisi_btn', $d['admisi_btn']),
+            'admisi_url'        => get_option('bk_admisi_url', $d['admisi_url']),
+            'footer_address'    => get_option('bk_footer_address', $d['footer_address']),
+            'footer_akreditasi' => get_option('bk_footer_akreditasi', $d['footer_akreditasi']),
+            'footer_copyright'  => get_option('bk_footer_copyright', $d['footer_copyright']),
+        );
+        $cfg['stats'] = array(
+            array(
+                'code'   => $d['stats'][0]['code'],
+                'badge'  => $d['stats'][0]['badge'],
+                'number' => get_option('bk_stat_akreditasi_val', $d['stats'][0]['number']),
+                'desc'   => get_option('bk_stat_akreditasi_desc', $d['stats'][0]['desc']),
+            ),
+            array(
+                'code'   => $d['stats'][1]['code'],
+                'badge'  => $d['stats'][1]['badge'],
+                'number' => get_option('bk_stat_tradisi_val', $d['stats'][1]['number']),
+                'desc'   => get_option('bk_stat_tradisi_desc', $d['stats'][1]['desc']),
+            ),
+            array(
+                'code'   => $d['stats'][2]['code'],
+                'badge'  => $d['stats'][2]['badge'],
+                'number' => get_option('bk_stat_dosen_val', $d['stats'][2]['number']),
+                'desc'   => get_option('bk_stat_dosen_desc', $d['stats'][2]['desc']),
+            ),
+            array(
+                'code'   => $d['stats'][3]['code'],
+                'badge'  => $d['stats'][3]['badge'],
+                'number' => get_option('bk_stat_riset_val', $d['stats'][3]['number']),
+                'desc'   => get_option('bk_stat_riset_desc', $d['stats'][3]['desc']),
+            ),
+        );
+        $cfg['degrees'] = array();
+        foreach (array('s1', 's2', 's3') as $k) {
+            $saved = get_option('bk_degree_' . $k, array());
+            $cfg['degrees'][$k] = is_array($saved) ? array_merge($d['degrees'][$k], array_filter($saved, 'strlen')) : $d['degrees'][$k];
+        }
+        $vc = get_option('bk_video_chapters', array());
+        $cfg['video_chapters'] = (is_array($vc) && count($vc) === 3) ? $vc : $d['video_chapters'];
+        $pc = get_option('bk_portal_cards', array());
+        $cfg['portal_cards'] = (is_array($pc) && count($pc) === 6) ? $pc : $d['portal_cards'];
+        return $cfg;
+    }
+}
+
+if (!function_exists('bk_fip_get_search_index')) {
+    /**
+     * Build the client-side Ctrl+K command search index (window.BK_SEARCH_INDEX).
+     */
+    function bk_fip_get_search_index() {
+        $cached = get_transient('bk_search_index_v3');
+        if (is_array($cached)) {
+            return $cached;
+        }
+        $idx = array();
+        $add = function ($type, $title, $sub, $url) use (&$idx) {
+            $idx[] = array('type' => $type, 'title' => wp_strip_all_tags($title), 'sub' => wp_strip_all_tags($sub), 'url' => $url);
+        };
+
+        // 1. Core pages
+        $pages = array(
+            array('Profil Jurusan & Visi Keilmuan', 'Visi, misi & nilai CARA\'DE', '/profil/'),
+            array('Direktori Dosen', '25 dosen, Guru Besar & Doktor', '/profil/dosen/'),
+            array('Akreditasi Unggul LAMDIK', 'SK S1–S3 & 9 Kriteria', '/akreditasi/'),
+            array('Kurikulum OBE 2025', '144 SKS, RPS & SDGs', '/akademik/kurikulum/'),
+            array('Jadwal Seminar & Ujian', 'Proposal, hasil & skripsi', '/akademik/jadwal-ujian/'),
+            array('Riset & Jurnal JKBK', 'Hibah PNBP, PkM & publikasi', '/mis-pnbp/'),
+            array('Layanan Akademik & Persuratan', 'Template F-01..F-06 & SOP', '/layanan/akademik/'),
+            array('Laboratorium BK', 'Bilik mikrokonseling & alat tes', '/laboratorium/'),
+            array('E-Library & Repositori', 'Modul, buku ajar & artikel', '/e-library/'),
+            array('Berita & Pengumuman', 'Warta jurusan terbaru', '/berita/'),
+        );
+        foreach ($pages as $p) {
+            $add('Halaman', $p[0], $p[1], home_url($p[2]));
+        }
+
+        // 2. Lecturers
+        $dosen_file = get_template_directory() . '/dosen-data.json';
+        if (file_exists($dosen_file)) {
+            $dosen = json_decode((string) file_get_contents($dosen_file), true);
+            if (is_array($dosen)) {
+                foreach ($dosen as $ds) {
+                    if (empty($ds['nama']) || empty($ds['slug'])) continue;
+                    $kp = !empty($ds['kepakaran']) && is_array($ds['kepakaran']) ? implode(', ', array_slice($ds['kepakaran'], 0, 2)) : ($ds['unit'] ?? '');
+                    $add('Dosen', $ds['nama'], $kp, home_url('/profil/dosen/' . $ds['slug'] . '/'));
+                }
+            }
+        }
+
+        // 3. E-Library items
+        if (function_exists('ppb_get_elibrary_items')) {
+            foreach ((array) ppb_get_elibrary_items() as $it) {
+                if (empty($it['title'])) continue;
+                $add('E-Library', $it['title'], trim(($it['code'] ?? '') . ' · ' . ($it['author'] ?? ''), ' ·'), home_url('/e-library/') . '#' . rawurlencode($it['code'] ?? ''));
+            }
+        }
+
+        // 4. Persuratan templates
+        $forms = array(
+            'F-01' => 'Pengajuan Judul Skripsi', 'F-02' => 'Kartu Bimbingan Skripsi', 'F-03' => 'Permohonan Seminar Proposal',
+            'F-04' => 'Permohonan Seminar Hasil', 'F-05' => 'Permohonan Ujian Skripsi', 'F-06' => 'Surat Izin Penelitian',
+        );
+        foreach ($forms as $code => $t) {
+            $add('Formulir', $code . ' · ' . $t, 'Template DOCX resmi', home_url('/layanan/akademik/'));
+        }
+
+        // 5. Lab BK
+        $add('Lab BK', 'Peminjaman Alat Tes Psikologi', 'IST, CFIT, RMIB, SDS', home_url('/laboratorium/'));
+        $add('Lab BK', 'Reservasi Bilik Mikrokonseling', '4 bilik one-way mirror', home_url('/laboratorium/'));
+        $add('Layanan', 'Portal SIPADU Daring', 'Pengajuan surat & SK bimbingan', get_option('bk_sipadu_url', 'https://bk-connect-fipunm.vercel.app/sipadu'));
+
+        // 6. Recent posts
+        $recent = get_posts(array('numberposts' => 12, 'post_status' => 'publish', 'post_type' => array('post', 'berita'), 'suppress_filters' => false));
+        foreach ($recent as $rp) {
+            $add('Berita', get_the_title($rp), get_the_date('d M Y', $rp), get_permalink($rp));
+        }
+
+        set_transient('bk_search_index_v3', $idx, 6 * HOUR_IN_SECONDS);
+        return $idx;
+    }
+
+    // Invalidate the search index when content changes.
+    $bk_flush_search_index = function () { delete_transient('bk_search_index_v3'); };
+    add_action('save_post', $bk_flush_search_index);
+    add_action('update_option_ppb_elibrary_items', $bk_flush_search_index);
+    add_action('update_option_bk_sipadu_url', $bk_flush_search_index);
+}
+
 function bk_fip_theme_setup() {
 
     add_theme_support('title-tag');
@@ -394,13 +692,13 @@ add_action('after_setup_theme', 'bk_fip_theme_setup');
 
 function bk_fip_enqueue_scripts() {
 
-    // Google Fonts: Poppins (Sans) & Fraunces (Editorial Display Serif)
+    // Google Fonts: Plus Jakarta Sans (Sans), Fraunces (Editorial Display Serif) & IBM Plex Mono
 
     wp_enqueue_style(
 
         'bk-fip-fonts',
 
-        'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Poppins:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap',
+        'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap',
 
         array(),
 
@@ -418,13 +716,19 @@ function bk_fip_enqueue_scripts() {
 
         tailwind.config = {
 
+            corePlugins: {
+
+                preflight: false,
+
+            },
+
             theme: {
 
                 extend: {
 
                     fontFamily: {
 
-                        sans: ['Poppins', 'sans-serif'],
+                        sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
 
                         display: ['Fraunces', 'Georgia', 'serif'],
 
@@ -486,14 +790,17 @@ function bk_fip_enqueue_scripts() {
 
     wp_add_inline_script('lucide-icons', 'document.addEventListener("DOMContentLoaded", function() { if (window.lucide) { lucide.createIcons(); } });');
 
-
-
-    // Theme Stylesheet (Auto cache busting with theme version)
-    wp_enqueue_style('bk-fip-style', get_stylesheet_uri(), array(), wp_get_theme()->get('Version'));
-
 }
 
-add_action('wp_enqueue_scripts', 'bk_fip_enqueue_scripts');
+add_action('wp_enqueue_scripts', 'bk_fip_enqueue_scripts', 10);
+
+function bk_fip_enqueue_theme_stylesheet() {
+    $style_path = get_stylesheet_directory() . '/style.css';
+    $style_ver  = file_exists($style_path) ? (string) filemtime($style_path) : wp_get_theme()->get('Version');
+    wp_enqueue_style('bk-fip-style', get_stylesheet_uri(), array('bk-fip-fonts'), $style_ver);
+}
+
+add_action('wp_enqueue_scripts', 'bk_fip_enqueue_theme_stylesheet', 30);
 
 
 
@@ -683,11 +990,41 @@ function bk_fip_render_dosen_metabox($post) {
 
     </div>
 
-    <div style="margin-top: 10px; padding: 10px; background: #f0f7f3; border-left: 4px solid #185333;">
-
-        <small><strong>Tips:</strong> Untuk foto dosen, gunakan fitur <strong>"Featured Image" (Gambar Unggulan)</strong> di panel sebelah kanan.</small>
-
+    <?php
+    $foto_link = get_post_meta($post->ID, '_dosen_foto_link', true);
+    $foto_prev = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($foto_link) : $foto_link;
+    wp_enqueue_media();
+    ?>
+    <div style="display:grid; grid-template-columns: 96px 1fr; gap: 16px; align-items:center; margin-top: 12px; padding: 14px; background:#FAF8F5; border:1px solid #E6E2DA; border-radius:10px;">
+        <div style="width:96px;height:120px;border-radius:10px;overflow:hidden;background:#0D3B22;border:2px solid #F5B82E;">
+            <img id="bk-dosen-foto-preview" src="<?php echo esc_url($foto_prev); ?>" alt="" style="width:100%;height:100%;object-fit:cover;object-position:50% 18%;<?php echo $foto_prev ? '' : 'display:none;'; ?>">
+        </div>
+        <div>
+            <label style="display:block; font-weight:600; margin-bottom: 5px;">Foto Potret Dosen (URL / Media Library / assets/img/...):</label>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="bk-dosen-foto-link" name="dosen_foto_link" value="<?php echo esc_attr($foto_link); ?>" style="flex:1;" placeholder="https://... atau assets/img/dosen-nama.jpg">
+                <button type="button" class="button" id="bk-dosen-foto-pick">Pilih dari Media</button>
+                <button type="button" class="button-link-delete" id="bk-dosen-foto-clear">Hapus</button>
+            </div>
+            <small style="color:#666;">Potret rasio 4:5 (mis. 480×600px) dengan wajah di sepertiga atas. Tampil di kartu direktori (54px, crop 50% 22%) dan dossier profil (96×120px, crop 50% 18%). Jika kosong/gagal dimuat, inisial nama ditampilkan otomatis. Featured Image tetap dipakai sebagai cadangan.</small>
+        </div>
     </div>
+    <script>
+    (function(){
+        var input = document.getElementById('bk-dosen-foto-link'), prev = document.getElementById('bk-dosen-foto-preview');
+        var base = <?php echo wp_json_encode(trailingslashit(get_template_directory_uri())); ?>;
+        function upd(v){ v = (v||'').trim(); if (v.indexOf('assets/') === 0) v = base + v; if (v) { prev.src = v; prev.style.display = 'block'; } else { prev.style.display = 'none'; } }
+        input.addEventListener('input', function(){ upd(input.value); });
+        document.getElementById('bk-dosen-foto-clear').addEventListener('click', function(){ input.value = ''; upd(''); });
+        document.getElementById('bk-dosen-foto-pick').addEventListener('click', function(e){
+            e.preventDefault();
+            if (typeof wp === 'undefined' || !wp.media) return;
+            var frame = wp.media({ title: 'Pilih Foto Dosen', button: { text: 'Gunakan Foto Ini' }, library: { type: 'image' }, multiple: false });
+            frame.on('select', function(){ var att = frame.state().get('selection').first().toJSON(); input.value = att.url; upd(att.url); });
+            frame.open();
+        });
+    })();
+    </script>
 
     <?php
 
@@ -721,6 +1058,11 @@ function bk_fip_save_dosen_metabox($post_id) {
 
     }
 
+    if (isset($_POST['dosen_foto_link'])) {
+        $foto = function_exists('bk_sanitize_asset_or_url') ? bk_sanitize_asset_or_url(wp_unslash($_POST['dosen_foto_link'])) : esc_url_raw(wp_unslash($_POST['dosen_foto_link']));
+        update_post_meta($post_id, '_dosen_foto_link', $foto);
+    }
+
 }
 
 add_action('save_post_dosen', 'bk_fip_save_dosen_metabox');
@@ -745,384 +1087,350 @@ function bk_fip_register_settings_menu() {}
 
 
 function bk_fip_render_settings_page() {
-
     if (!current_user_can('manage_options')) return;
 
+    $defaults = function_exists('bk_fip_get_homepage_defaults') ? bk_fip_get_homepage_defaults() : array();
 
-
-    // Simpan pengaturan jika form disubmit
-
-    if (isset($_POST['bk_save_settings']) && check_admin_referer('bk_settings_verify')) {
-
-        $options = array(
-
-            'bk_hero_badge',
-
-            'bk_hero_h1_part1',
-
-            'bk_hero_h1_highlight',
-
-            'bk_hero_h1_part2',
-
-            'bk_hero_desc',
-
-            'bk_stat_akreditasi_val',
-
-            'bk_stat_akreditasi_desc',
-
-            'bk_stat_tradisi_val',
-
-            'bk_stat_tradisi_desc',
-
-            'bk_stat_dosen_val',
-
-            'bk_stat_dosen_desc',
-
-            'bk_stat_riset_val',
-
-            'bk_stat_riset_desc',
-
-            'bk_kajur_nama',
-
-            'bk_kajur_jabatan',
-
-            'bk_kajur_quote',
-
-            'bk_portal_auth_url',
-
+    // ---------------------------------------------------------------------
+    // RESET ke default (opsi besar dihapus, nilai bawaan kembali dipakai)
+    // ---------------------------------------------------------------------
+    if (isset($_POST['bk_reset_settings']) && check_admin_referer('bk_settings_verify')) {
+        $reset_section = sanitize_key($_POST['bk_reset_section'] ?? 'all');
+        $groups = array(
+            'degrees' => array('bk_degree_s1', 'bk_degree_s2', 'bk_degree_s3'),
+            'video'   => array('bk_video_chapters'),
+            'portal'  => array('bk_portal_cards', 'bk_admisi_title', 'bk_admisi_desc', 'bk_admisi_btn', 'bk_admisi_url'),
+            'footer'  => array('bk_footer_address', 'bk_footer_akreditasi', 'bk_footer_copyright'),
         );
-
-
-
-        foreach ($options as $opt) {
-
-            if (isset($_POST[$opt])) {
-
-                update_option($opt, wp_unslash($_POST[$opt]));
-
-            }
-
+        $to_delete = ($reset_section === 'all') ? call_user_func_array('array_merge', array_values($groups)) : ($groups[$reset_section] ?? array());
+        foreach ($to_delete as $opt) {
+            delete_option($opt);
         }
-
-        echo '<div class="notice notice-success is-dismissible"><p>Pengaturan teks beranda berhasil disimpan!</p></div>';
-
+        delete_transient('bk_search_index_v3');
+        echo '<div class="notice notice-warning is-dismissible"><p>Bagian pengaturan berhasil dikembalikan ke nilai bawaan.</p></div>';
     }
 
+    // ---------------------------------------------------------------------
+    // SIMPAN
+    // ---------------------------------------------------------------------
+    if (isset($_POST['bk_save_settings']) && check_admin_referer('bk_settings_verify')) {
+        $text_options = array(
+            'bk_hero_badge', 'bk_hero_h1_part1', 'bk_hero_h1_highlight', 'bk_hero_h1_part2',
+            'bk_stat_akreditasi_val', 'bk_stat_tradisi_val', 'bk_stat_dosen_val', 'bk_stat_riset_val',
+            'bk_kajur_nama', 'bk_kajur_jabatan', 'bk_top_strip_badge', 'bk_top_strip_text',
+            'bk_admisi_title', 'bk_admisi_btn', 'bk_footer_akreditasi', 'bk_footer_copyright',
+        );
+        foreach ($text_options as $opt) {
+            if (isset($_POST[$opt])) {
+                update_option($opt, sanitize_text_field(wp_unslash($_POST[$opt])));
+            }
+        }
+        $textarea_options = array(
+            'bk_hero_desc', 'bk_stat_akreditasi_desc', 'bk_stat_tradisi_desc', 'bk_stat_dosen_desc',
+            'bk_stat_riset_desc', 'bk_kajur_quote', 'bk_admisi_desc', 'bk_footer_address',
+        );
+        foreach ($textarea_options as $opt) {
+            if (isset($_POST[$opt])) {
+                update_option($opt, sanitize_textarea_field(wp_unslash($_POST[$opt])));
+            }
+        }
+        $url_options = array('bk_portal_auth_url', 'bk_sipadu_url', 'bk_admisi_url');
+        foreach ($url_options as $opt) {
+            if (isset($_POST[$opt])) {
+                update_option($opt, esc_url_raw(wp_unslash($_POST[$opt])));
+            }
+        }
 
+        // Jenjang S1–S3 (array, autoload = false)
+        $degree_fields = array('tab_label', 'kkni', 'title', 'summary', 'gelar', 'beban', 'kurikulum', 'sk', 'kompetensi', 'url');
+        foreach (array('s1', 's2', 's3') as $k) {
+            if (empty($_POST['bk_degree'][$k]) || !is_array($_POST['bk_degree'][$k])) continue;
+            $raw = wp_unslash($_POST['bk_degree'][$k]);
+            $clean = array('code' => strtoupper($k));
+            foreach ($degree_fields as $f) {
+                $v = $raw[$f] ?? '';
+                if ($f === 'summary' || $f === 'kompetensi') {
+                    $clean[$f] = sanitize_textarea_field($v);
+                } elseif ($f === 'url') {
+                    $clean[$f] = bk_sanitize_asset_or_url($v);
+                } else {
+                    $clean[$f] = sanitize_text_field($v);
+                }
+            }
+            update_option('bk_degree_' . $k, $clean, false);
+        }
 
-    // Nilai default
+        // Video chapters (3 item)
+        if (!empty($_POST['bk_video']) && is_array($_POST['bk_video'])) {
+            $chapters = array();
+            foreach (array_slice(wp_unslash($_POST['bk_video']), 0, 3) as $i => $c) {
+                $chapters[] = array(
+                    'num'       => sprintf('%02d', $i + 1),
+                    'duration'  => sanitize_text_field($c['duration'] ?? ''),
+                    'badge'     => sanitize_text_field($c['badge'] ?? ''),
+                    'title'     => sanitize_text_field($c['title'] ?? ''),
+                    'desc'      => sanitize_textarea_field($c['desc'] ?? ''),
+                    'date'      => sanitize_text_field($c['date'] ?? ''),
+                    'thumb'     => bk_sanitize_asset_or_url($c['thumb'] ?? ''),
+                    'video_url' => esc_url_raw($c['video_url'] ?? ''),
+                );
+            }
+            if (count($chapters) === 3) {
+                update_option('bk_video_chapters', $chapters, false);
+            }
+        }
+
+        // Portal cards (6 item)
+        if (!empty($_POST['bk_portal']) && is_array($_POST['bk_portal'])) {
+            $cards = array();
+            foreach (array_slice(wp_unslash($_POST['bk_portal']), 0, 6) as $i => $c) {
+                $cards[] = array(
+                    'code'  => sanitize_text_field($c['code'] ?? sprintf('P-%02d', $i + 1)),
+                    'title' => sanitize_text_field($c['title'] ?? ''),
+                    'desc'  => sanitize_textarea_field($c['desc'] ?? ''),
+                    'url'   => bk_sanitize_asset_or_url($c['url'] ?? ''),
+                    'icon'  => sanitize_key($c['icon'] ?? 'arrow-right'),
+                );
+            }
+            if (count($cards) === 6) {
+                update_option('bk_portal_cards', $cards, false);
+            }
+        }
+
+        delete_transient('bk_search_index_v3');
+        echo '<div class="notice notice-success is-dismissible"><p>Pengaturan beranda berhasil disimpan!</p></div>';
+    }
+
+    // ---------------------------------------------------------------------
+    // Nilai saat ini
+    // ---------------------------------------------------------------------
+    $cfg = bk_fip_get_homepage_config();
 
     $hero_badge = get_option('bk_hero_badge', 'Program Studi S1 · Terakreditasi Unggul (LAMDIK)');
-
     $h1_p1 = get_option('bk_hero_h1_part1', 'Tempat di mana integritas bertumbuh menjadi');
-
     $h1_hl = get_option('bk_hero_h1_highlight', 'keunggulan');
-
     $h1_p2 = get_option('bk_hero_h1_part2', 'dan setiap calon konselor menemukan panggilannya.');
-
     $hero_desc = get_option('bk_hero_desc', 'Program Studi Bimbingan dan Konseling, Jurusan Psikologi Pendidikan dan Bimbingan, FIP Universitas Negeri Makassar menyelenggarakan pendidikan akademik adaptif OBE yang memadukan keluhuran humanistik, riset saintifik berbasis bukti, dan kepekaan sosial-budaya Nusantara.');
 
-
-
-    $stat_akr_val = get_option('bk_stat_akreditasi_val', 'Unggul');
-
-    $stat_akr_desc = get_option('bk_stat_akreditasi_desc', 'Sertifikasi mutu tertinggi Lembaga Akreditasi Mandiri Kependidikan (LAMDIK).');
-
-
-
-    $stat_trad_val = get_option('bk_stat_tradisi_val', '1969');
-
-    $stat_trad_desc = get_option('bk_stat_tradisi_desc', '55+ tahun mendidik calon konselor, guru pembimbing, dan pendidik bangsa.');
-
-
-
-    $stat_dos_val = get_option('bk_stat_dosen_val', '25+ Dosen');
-
-    $stat_dos_desc = get_option('bk_stat_dosen_desc', 'Guru Besar (Prof.), Doktor (Dr.), dan Magister berkualifikasi pendidik profesional.');
-
-
-
-    $stat_ris_val = get_option('bk_stat_riset_val', '500+');
-
-    $stat_ris_desc = get_option('bk_stat_riset_desc', 'Karya ilmiah terindeks SINTA/Scopus, buku ajar, dan sertifikasi hak cipta HKI.');
-
-
+    $stats = array(
+        array('key' => 'akreditasi', 'label' => '01 // MUTU (Akreditasi)', 'val' => get_option('bk_stat_akreditasi_val', 'Unggul'), 'desc' => get_option('bk_stat_akreditasi_desc', 'Sertifikasi mutu tertinggi Lembaga Akreditasi Mandiri Kependidikan (LAMDIK).')),
+        array('key' => 'tradisi', 'label' => '02 // TRADISI (Sejak)', 'val' => get_option('bk_stat_tradisi_val', '1969'), 'desc' => get_option('bk_stat_tradisi_desc', '55+ tahun mendidik calon konselor, guru pembimbing, dan pendidik bangsa.')),
+        array('key' => 'dosen', 'label' => '03 // PENGAJAR (Dosen)', 'val' => get_option('bk_stat_dosen_val', '25+ Dosen'), 'desc' => get_option('bk_stat_dosen_desc', 'Guru Besar (Prof.), Doktor (Dr.), dan Magister berkualifikasi pendidik profesional.')),
+        array('key' => 'riset', 'label' => '04 // JENJANG / RISET', 'val' => get_option('bk_stat_riset_val', '500+'), 'desc' => get_option('bk_stat_riset_desc', 'Karya ilmiah terindeks SINTA/Scopus, buku ajar, dan sertifikasi hak cipta HKI.')),
+    );
 
     $kajur_nama = get_option('bk_kajur_nama', 'Dr. Suciani Latif, M.Pd.');
-
     $kajur_jabatan = get_option('bk_kajur_jabatan', 'Ketua Jurusan PPB FIP UNM');
-
     $kajur_quote = get_option('bk_kajur_quote', 'Pendidikan konseling di UNM dirancang untuk melahirkan sarjana yang berintegritas moral, peka terhadap keragaman sosio-kultural, serta mahir memanfaatkan teknologi psikoedukasi dan telekonseling untuk menjawab dinamika kesehatan mental era modern.');
 
+    $card = 'background:#fff; border:1px solid #E6E2DA; border-radius:12px; padding:20px 22px; margin-bottom:22px; box-shadow:0 1px 3px rgba(0,0,0,0.04);';
+    $h2   = 'font-size:17px; color:#0D3B22; border-bottom:2px solid #E8F0EA; padding-bottom:10px; margin:0 0 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;';
+    $lbl  = 'display:block; font-weight:600; font-size:12px; color:#374151; margin:8px 0 4px;';
+    $mono = 'font-family:"IBM Plex Mono",monospace; font-size:11px; color:#92400E; letter-spacing:0.06em;';
 
-
-    $portal_url = get_option('bk_portal_auth_url', 'https://bk-connect-fipunm.vercel.app/auth');
-
+    $reset_btn = function ($section, $label = 'Reset bagian ini') {
+        return '<button type="submit" name="bk_reset_settings" value="1" class="button button-link-delete" onclick="this.form.bk_reset_section.value=\'' . esc_attr($section) . '\';return confirm(\'Kembalikan bagian ini ke nilai bawaan?\');" style="font-size:12px;">' . esc_html($label) . '</button>';
+    };
+    wp_enqueue_media();
     ?>
-
-    <div class="wrap" style="max-width: 900px;">
-
-        <h1 style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
-
-            <span class="dashicons dashicons-admin-appearance" style="font-size:32px; width:32px; height:32px;"></span>
-
-            Pengaturan Teks Beranda (Landing Page) BK FIP UNM
-
+    <div class="wrap" style="max-width: 1040px;">
+        <h1 style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <span class="dashicons dashicons-admin-appearance" style="font-size:30px; width:30px; height:30px; color:#0D3B22;"></span>
+            Pengaturan Beranda &amp; Situs (Editorial Calm v3)
         </h1>
-
-
-
-        <p style="color:#555; margin-bottom:25px;">
-
-            Halaman ini memungkinkan Anda mengubah teks utama di beranda secara langsung tanpa menyentuh kode. 
-
-            Cukup ubah teks di bawah ini dan klik <strong>"Simpan Perubahan"</strong>.
-
+        <p style="color:#555; margin:0 0 18px;">
+            Ubah seluruh konten beranda — strip atas, angka reputasi, tab jenjang S1–S3, sambutan Kajur, video profil, 6 kartu portal, strip admisi, dan footer — tanpa menyentuh kode.
+            Slide <strong>Spotlight</strong> diatur di menu <a href="<?php echo esc_url(admin_url('admin.php?page=ppb-spotlight-beranda')); ?>">Spotlight Beranda</a>, menu navigasi 4 pilar di <a href="<?php echo esc_url(admin_url('admin.php?page=ppb-mega-menu-manager')); ?>">Mega Menu</a>.
         </p>
 
-
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:18px;">
+            <?php foreach (array('#bk-s-strip' => '1. Strip & Portal', '#bk-s-ledger' => '2. Angka Reputasi', '#bk-s-degree' => '3. Jenjang S1–S3', '#bk-s-kajur' => '4. Sambutan Kajur', '#bk-s-video' => '5. Video Profil', '#bk-s-portal' => '6. Kartu Portal & Admisi', '#bk-s-footer' => '7. Footer', '#bk-s-legacy' => '8. Teks Intro') as $href => $t) : ?>
+                <a href="<?php echo esc_attr($href); ?>" class="button" style="border-radius:999px;"><?php echo esc_html($t); ?></a>
+            <?php endforeach; ?>
+        </div>
 
         <form method="post" action="">
-
             <?php wp_nonce_field('bk_settings_verify'); ?>
-
-
-
-            <!-- KELOMPOK 1: HERO SECTION -->
-
-            <div style="background:#fff; border:1px solid #ccd0d4; border-radius:12px; padding:20px; margin-bottom:25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-
-                <h2 style="font-size:18px; color:#0D3B22; border-bottom:2px solid #E8F0EA; padding-bottom:10px; margin-top:0;">
-
-                    1. Hero Section (Bagian Paling Atas)
-
-                </h2>
-
-
-
-                <table class="form-table" role="presentation">
-
-                    <tr>
-
-                        <th scope="row"><label for="bk_hero_badge">Badge Akreditasi</label></th>
-
-                        <td>
-
-                            <input name="bk_hero_badge" type="text" id="bk_hero_badge" value="<?php echo esc_attr($hero_badge); ?>" class="regular-text" style="width:100%;">
-
-                            <p class="description">Teks pill kecil di atas judul utama.</p>
-
-                        </td>
-
-                    </tr>
-
-                    <tr>
-
-                        <th scope="row"><label>Judul Utama (H1)</label></th>
-
-                        <td>
-
-                            <input name="bk_hero_h1_part1" type="text" value="<?php echo esc_attr($h1_p1); ?>" style="width:100%; margin-bottom:8px;" placeholder="Kalimat awal...">
-
-                            <input name="bk_hero_h1_highlight" type="text" value="<?php echo esc_attr($h1_hl); ?>" style="width:100%; margin-bottom:8px; font-style:italic;" placeholder="Kata sorot (kuning emas)...">
-
-                            <input name="bk_hero_h1_part2" type="text" value="<?php echo esc_attr($h1_p2); ?>" style="width:100%;" placeholder="Kalimat penutup...">
-
-                        </td>
-
-                    </tr>
-
-                    <tr>
-
-                        <th scope="row"><label for="bk_hero_desc">Paragraf Deskripsi</label></th>
-
-                        <td>
-
-                            <textarea name="bk_hero_desc" id="bk_hero_desc" rows="4" style="width:100%;"><?php echo esc_textarea($hero_desc); ?></textarea>
-
-                        </td>
-
-                    </tr>
-
-                </table>
-
-            </div>
-
-
-
-            <!-- KELOMPOK 2: METRIK REPUTASI -->
-
-            <div style="background:#fff; border:1px solid #ccd0d4; border-radius:12px; padding:20px; margin-bottom:25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-
-                <h2 style="font-size:18px; color:#0D3B22; border-bottom:2px solid #E8F0EA; padding-bottom:10px; margin-top:0;">
-
-                    2. Angka Metrik Reputasi (4 Kolom Sage)
-
-                </h2>
-
-
-
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:15px;">
-
-                    <div>
-
-                        <h4 style="margin:0 0 5px;">Metrik 1 (Akreditasi)</h4>
-
-                        <input name="bk_stat_akreditasi_val" type="text" value="<?php echo esc_attr($stat_akr_val); ?>" style="width:100%; font-weight:bold; margin-bottom:5px;">
-
-                        <textarea name="bk_stat_akreditasi_desc" rows="2" style="width:100%;"><?php echo esc_textarea($stat_akr_desc); ?></textarea>
-
-                    </div>
-
-
-
-                    <div>
-
-                        <h4 style="margin:0 0 5px;">Metrik 2 (Tradisi Akademik)</h4>
-
-                        <input name="bk_stat_tradisi_val" type="text" value="<?php echo esc_attr($stat_trad_val); ?>" style="width:100%; font-weight:bold; margin-bottom:5px;">
-
-                        <textarea name="bk_stat_tradisi_desc" rows="2" style="width:100%;"><?php echo esc_textarea($stat_trad_desc); ?></textarea>
-
-                    </div>
-
-
-
-                    <div>
-
-                        <h4 style="margin:0 0 5px;">Metrik 3 (Staf Pengajar)</h4>
-
-                        <input name="bk_stat_dosen_val" type="text" value="<?php echo esc_attr($stat_dos_val); ?>" style="width:100%; font-weight:bold; margin-bottom:5px;">
-
-                        <textarea name="bk_stat_dosen_desc" rows="2" style="width:100%;"><?php echo esc_textarea($stat_dos_desc); ?></textarea>
-
-                    </div>
-
-
-
-                    <div>
-
-                        <h4 style="margin:0 0 5px;">Metrik 4 (Riset & Publikasi)</h4>
-
-                        <input name="bk_stat_riset_val" type="text" value="<?php echo esc_attr($stat_ris_val); ?>" style="width:100%; font-weight:bold; margin-bottom:5px;">
-
-                        <textarea name="bk_stat_riset_desc" rows="2" style="width:100%;"><?php echo esc_textarea($stat_ris_desc); ?></textarea>
-
-                    </div>
-
+            <input type="hidden" name="bk_reset_section" value="all">
+
+            <!-- 1. STRIP ATAS & PORTAL -->
+            <div id="bk-s-strip" style="<?php echo esc_attr($card); ?>">
+                <h2 style="<?php echo esc_attr($h2); ?>"><span>1. Strip Atas BK-Connect &amp; Tautan Portal</span></h2>
+                <div style="display:grid; grid-template-columns: 200px 1fr; gap:12px;">
+                    <div><label style="<?php echo esc_attr($lbl); ?>">Badge Strip</label><input name="bk_top_strip_badge" type="text" value="<?php echo esc_attr($cfg['top_strip_badge']); ?>" style="width:100%;"></div>
+                    <div><label style="<?php echo esc_attr($lbl); ?>">Teks Strip (baris tipis paling atas header)</label><input name="bk_top_strip_text" type="text" value="<?php echo esc_attr($cfg['top_strip_text']); ?>" style="width:100%;"></div>
                 </div>
-
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div><label style="<?php echo esc_attr($lbl); ?>">URL Masuk Portal BK-Connect</label><input name="bk_portal_auth_url" type="url" value="<?php echo esc_attr($cfg['portal_auth_url']); ?>" style="width:100%;"><p class="description">Dipakai tautan "Masuk" pada strip atas &amp; footer.</p></div>
+                    <div><label style="<?php echo esc_attr($lbl); ?>">URL Portal SIPADU Daring</label><input name="bk_sipadu_url" type="url" value="<?php echo esc_attr($cfg['sipadu_url']); ?>" style="width:100%;"><p class="description">Tampil di mega menu <em>Layanan &amp; Warta → Portal, Advokasi &amp; Mutu</em> dan footer (bukan tombol header).</p></div>
+                </div>
             </div>
 
-
-
-            <!-- KELOMPOK 3: SAMBUTAN KETUA JURUSAN -->
-
-            <div style="background:#fff; border:1px solid #ccd0d4; border-radius:12px; padding:20px; margin-bottom:25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-
-                <h2 style="font-size:18px; color:#0D3B22; border-bottom:2px solid #E8F0EA; padding-bottom:10px; margin-top:0;">
-
-                    3. Sambutan & Kutipan Ketua Jurusan
-
-                </h2>
-
-
-
-                <table class="form-table" role="presentation">
-
-                    <tr>
-
-                        <th scope="row"><label for="bk_kajur_nama">Nama Ketua Jurusan</label></th>
-
-                        <td>
-
-                            <input name="bk_kajur_nama" type="text" id="bk_kajur_nama" value="<?php echo esc_attr($kajur_nama); ?>" style="width:100%;">
-
-                        </td>
-
-                    </tr>
-
-                    <tr>
-
-                        <th scope="row"><label for="bk_kajur_jabatan">Jabatan Struktural</label></th>
-
-                        <td>
-
-                            <input name="bk_kajur_jabatan" type="text" id="bk_kajur_jabatan" value="<?php echo esc_attr($kajur_jabatan); ?>" style="width:100%;">
-
-                        </td>
-
-                    </tr>
-
-                    <tr>
-
-                        <th scope="row"><label for="bk_kajur_quote">Teks Kutipan Sambutan</label></th>
-
-                        <td>
-
-                            <textarea name="bk_kajur_quote" id="bk_kajur_quote" rows="4" style="width:100%;"><?php echo esc_textarea($kajur_quote); ?></textarea>
-
-                        </td>
-
-                    </tr>
-
-                </table>
-
+            <!-- 2. LEDGER -->
+            <div id="bk-s-ledger" style="<?php echo esc_attr($card); ?>">
+                <h2 style="<?php echo esc_attr($h2); ?>"><span>2. Angka Reputasi (Ledger 4 Kolom di bawah Spotlight)</span></h2>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:18px;">
+                    <?php foreach ($stats as $st) : ?>
+                        <div style="background:#FAF8F5; border:1px solid #E6E2DA; border-radius:10px; padding:12px 14px;">
+                            <div style="<?php echo esc_attr($mono); ?>"><?php echo esc_html($st['label']); ?></div>
+                            <input name="bk_stat_<?php echo esc_attr($st['key']); ?>_val" type="text" value="<?php echo esc_attr($st['val']); ?>" style="width:100%; font-weight:700; margin:6px 0;">
+                            <textarea name="bk_stat_<?php echo esc_attr($st['key']); ?>_desc" rows="2" style="width:100%;"><?php echo esc_textarea($st['desc']); ?></textarea>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
 
-
-
-            <!-- KELOMPOK 4: TAUTAN PORTAL EKSTERNAL -->
-
-            <div style="background:#fff; border:1px solid #ccd0d4; border-radius:12px; padding:20px; margin-bottom:25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-
-                <h2 style="font-size:18px; color:#0D3B22; border-bottom:2px solid #E8F0EA; padding-bottom:10px; margin-top:0;">
-
-                    4. Tautan Portal Masuk Akun (CBT & Mahasiswa)
-
-                </h2>
-
-
-
-                <table class="form-table" role="presentation">
-
-                    <tr>
-
-                        <th scope="row"><label for="bk_portal_auth_url">URL Masuk Portal</label></th>
-
-                        <td>
-
-                            <input name="bk_portal_auth_url" type="url" id="bk_portal_auth_url" value="<?php echo esc_attr($portal_url); ?>" style="width:100%;">
-
-                            <p class="description">URL yang dituju saat tombol kuning "Masuk Portal" di pojok kanan atas diklik.</p>
-
-                        </td>
-
-                    </tr>
-
-                </table>
-
+            <!-- 3. JENJANG -->
+            <div id="bk-s-degree" style="<?php echo esc_attr($card); ?>">
+                <h2 style="<?php echo esc_attr($h2); ?>"><span>3. Tab Jenjang Studi (S1 Sarjana · S2 Magister · S3 Doktoral)</span><?php echo $reset_btn('degrees'); ?></h2>
+                <?php foreach ($cfg['degrees'] as $k => $dg) : ?>
+                    <details <?php echo $k === 's1' ? 'open' : ''; ?> style="border:1px solid #D4E3D8; border-radius:10px; padding:10px 14px; margin-bottom:10px; background:#F2F6F3;">
+                        <summary style="cursor:pointer; font-weight:700; color:#0D3B22;"><?php echo esc_html(strtoupper($k) . ' — ' . $dg['title']); ?></summary>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:8px;">
+                            <div><label style="<?php echo esc_attr($lbl); ?>">Label Tab</label><input type="text" name="bk_degree[<?php echo esc_attr($k); ?>][tab_label]" value="<?php echo esc_attr($dg['tab_label']); ?>" style="width:100%;"></div>
+                            <div><label style="<?php echo esc_attr($lbl); ?>">Kicker (KKNI · Akreditasi)</label><input type="text" name="bk_degree[<?php echo esc_attr($k); ?>][kkni]" value="<?php echo esc_attr($dg['kkni']); ?>" style="width:100%;"></div>
+                            <div style="grid-column:span 2;"><label style="<?php echo esc_attr($lbl); ?>">Judul Program</label><input type="text" name="bk_degree[<?php echo esc_attr($k); ?>][title]" value="<?php echo esc_attr($dg['title']); ?>" style="width:100%;"></div>
+                            <div style="grid-column:span 2;"><label style="<?php echo esc_attr($lbl); ?>">Ringkasan</label><textarea name="bk_degree[<?php echo esc_attr($k); ?>][summary]" rows="3" style="width:100%;"><?php echo esc_textarea($dg['summary']); ?></textarea></div>
+                            <div><label style="<?php echo esc_attr($lbl); ?>">Gelar</label><input type="text" name="bk_degree[<?php echo esc_attr($k); ?>][gelar]" value="<?php echo esc_attr($dg['gelar']); ?>" style="width:100%;"></div>
+                            <div><label style="<?php echo esc_attr($lbl); ?>">Beban Studi</label><input type="text" name="bk_degree[<?php echo esc_attr($k); ?>][beban]" value="<?php echo esc_attr($dg['beban']); ?>" style="width:100%;"></div>
+                            <div><label style="<?php echo esc_attr($lbl); ?>">Kurikulum</label><input type="text" name="bk_degree[<?php echo esc_attr($k); ?>][kurikulum]" value="<?php echo esc_attr($dg['kurikulum']); ?>" style="width:100%;"></div>
+                            <div><label style="<?php echo esc_attr($lbl); ?>">SK Akreditasi</label><input type="text" name="bk_degree[<?php echo esc_attr($k); ?>][sk]" value="<?php echo esc_attr($dg['sk']); ?>" style="width:100%;"></div>
+                            <div style="grid-column:span 2;"><label style="<?php echo esc_attr($lbl); ?>">Kompetensi Utama (1 per baris, maks. 3)</label><textarea name="bk_degree[<?php echo esc_attr($k); ?>][kompetensi]" rows="3" style="width:100%;"><?php echo esc_textarea($dg['kompetensi']); ?></textarea></div>
+                            <div style="grid-column:span 2;"><label style="<?php echo esc_attr($lbl); ?>">Tautan Tombol "Lihat Kurikulum"</label><input type="text" name="bk_degree[<?php echo esc_attr($k); ?>][url]" value="<?php echo esc_attr($dg['url']); ?>" style="width:100%;"></div>
+                        </div>
+                    </details>
+                <?php endforeach; ?>
             </div>
 
+            <!-- 4. KAJUR -->
+            <div id="bk-s-kajur" style="<?php echo esc_attr($card); ?>">
+                <h2 style="<?php echo esc_attr($h2); ?>"><span>4. Sambutan &amp; Kutipan Ketua Jurusan (Pull-Quote)</span></h2>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div><label style="<?php echo esc_attr($lbl); ?>">Nama Ketua Jurusan</label><input name="bk_kajur_nama" type="text" value="<?php echo esc_attr($kajur_nama); ?>" style="width:100%;"></div>
+                    <div><label style="<?php echo esc_attr($lbl); ?>">Jabatan</label><input name="bk_kajur_jabatan" type="text" value="<?php echo esc_attr($kajur_jabatan); ?>" style="width:100%;"></div>
+                </div>
+                <label style="<?php echo esc_attr($lbl); ?>">Teks Kutipan</label>
+                <textarea name="bk_kajur_quote" rows="4" style="width:100%;"><?php echo esc_textarea($kajur_quote); ?></textarea>
+            </div>
 
+            <!-- 5. VIDEO -->
+            <div id="bk-s-video" style="<?php echo esc_attr($card); ?>">
+                <h2 style="<?php echo esc_attr($h2); ?>"><span>5. Video Profil — 3 Bab (Band Hijau Tua &amp; Modal)</span><?php echo $reset_btn('video'); ?></h2>
+                <p class="description" style="margin-top:0;">URL video mendukung YouTube / Vimeo / file MP4. Jika kosong, modal menampilkan poster thumbnail dan keterangan bab.</p>
+                <?php foreach ($cfg['video_chapters'] as $i => $vc) : $n = 'bk_video[' . $i . ']'; ?>
+                    <div style="display:grid; grid-template-columns: 120px 1fr; gap:14px; border-top:1px dashed #E6E2DA; padding-top:12px; margin-top:12px;">
+                        <div>
+                            <div style="<?php echo esc_attr($mono); ?>">BAB <?php echo esc_html(sprintf('%02d', $i + 1)); ?></div>
+                            <img class="bk-media-prev" src="<?php echo esc_url(bk_resolve_theme_asset_url($vc['thumb'] ?? '')); ?>" alt="" style="width:120px;height:72px;object-fit:cover;border-radius:8px;margin-top:6px;background:#E8F0EA;">
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 120px; gap:8px;">
+                            <input type="text" name="<?php echo esc_attr($n); ?>[title]" value="<?php echo esc_attr($vc['title'] ?? ''); ?>" placeholder="Judul bab" style="width:100%; font-weight:600;">
+                            <input type="text" name="<?php echo esc_attr($n); ?>[duration]" value="<?php echo esc_attr($vc['duration'] ?? ''); ?>" placeholder="03:45">
+                            <input type="text" name="<?php echo esc_attr($n); ?>[badge]" value="<?php echo esc_attr($vc['badge'] ?? ''); ?>" placeholder="Bagian 1 · ..." style="width:100%;">
+                            <input type="text" name="<?php echo esc_attr($n); ?>[date]" value="<?php echo esc_attr($vc['date'] ?? ''); ?>" placeholder="Keterangan">
+                            <textarea name="<?php echo esc_attr($n); ?>[desc]" rows="2" style="grid-column:span 2; width:100%;" placeholder="Deskripsi"><?php echo esc_textarea($vc['desc'] ?? ''); ?></textarea>
+                            <div style="grid-column:span 2; display:flex; gap:6px;">
+                                <input type="text" class="bk-media-input" name="<?php echo esc_attr($n); ?>[thumb]" value="<?php echo esc_attr($vc['thumb'] ?? ''); ?>" placeholder="Thumbnail: assets/img/... atau URL" style="flex:1;">
+                                <button type="button" class="button bk-media-pick">Pilih Gambar</button>
+                            </div>
+                            <input type="url" name="<?php echo esc_attr($n); ?>[video_url]" value="<?php echo esc_attr($vc['video_url'] ?? ''); ?>" placeholder="URL Video (YouTube/Vimeo/MP4)" style="grid-column:span 2; width:100%;">
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
 
-            <p class="submit">
+            <!-- 6. PORTAL CARDS & ADMISI -->
+            <div id="bk-s-portal" style="<?php echo esc_attr($card); ?>">
+                <h2 style="<?php echo esc_attr($h2); ?>"><span>6. Grid 6 Kartu Portal (3×2) &amp; Strip Admisi</span><?php echo $reset_btn('portal'); ?></h2>
+                <p class="description" style="margin-top:0;">Ikon memakai nama <a href="https://lucide.dev/icons/" target="_blank" rel="noopener">Lucide</a> (mis. <code>layers</code>, <code>file-text</code>, <code>flask-conical</code>, <code>library</code>, <code>users</code>, <code>award</code>).</p>
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;">
+                    <?php foreach ($cfg['portal_cards'] as $i => $pc) : $n = 'bk_portal[' . $i . ']'; ?>
+                        <div style="background:#0D3B22; border-radius:10px; padding:12px; border-bottom:4px solid #F5B82E;">
+                            <div style="display:flex; gap:6px; margin-bottom:6px;">
+                                <input type="text" name="<?php echo esc_attr($n); ?>[code]" value="<?php echo esc_attr($pc['code'] ?? ''); ?>" style="width:64px; font-family:monospace;">
+                                <input type="text" name="<?php echo esc_attr($n); ?>[icon]" value="<?php echo esc_attr($pc['icon'] ?? ''); ?>" placeholder="ikon" style="flex:1;">
+                            </div>
+                            <input type="text" name="<?php echo esc_attr($n); ?>[title]" value="<?php echo esc_attr($pc['title'] ?? ''); ?>" placeholder="Judul" style="width:100%; font-weight:700; margin-bottom:6px;">
+                            <textarea name="<?php echo esc_attr($n); ?>[desc]" rows="2" style="width:100%; margin-bottom:6px;"><?php echo esc_textarea($pc['desc'] ?? ''); ?></textarea>
+                            <input type="text" name="<?php echo esc_attr($n); ?>[url]" value="<?php echo esc_attr($pc['url'] ?? ''); ?>" placeholder="/halaman/ atau https://" style="width:100%;">
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:16px; padding-top:14px; border-top:1px dashed #E6E2DA;">
+                    <div><label style="<?php echo esc_attr($lbl); ?>">Judul Strip Admisi</label><input name="bk_admisi_title" type="text" value="<?php echo esc_attr($cfg['admisi_title']); ?>" style="width:100%;"></div>
+                    <div><label style="<?php echo esc_attr($lbl); ?>">Teks Tombol</label><input name="bk_admisi_btn" type="text" value="<?php echo esc_attr($cfg['admisi_btn']); ?>" style="width:100%;"></div>
+                    <div><label style="<?php echo esc_attr($lbl); ?>">Deskripsi</label><textarea name="bk_admisi_desc" rows="2" style="width:100%;"><?php echo esc_textarea($cfg['admisi_desc']); ?></textarea></div>
+                    <div><label style="<?php echo esc_attr($lbl); ?>">URL Tombol</label><input name="bk_admisi_url" type="url" value="<?php echo esc_attr($cfg['admisi_url']); ?>" style="width:100%;"></div>
+                </div>
+            </div>
 
-                <input type="submit" name="bk_save_settings" id="submit" class="button button-primary" value="Simpan Perubahan Teks" style="background:#0D3B22; border-color:#0D3B22; padding:6px 24px; font-weight:bold; font-size:14px; border-radius:8px;">
+            <!-- 7. FOOTER -->
+            <div id="bk-s-footer" style="<?php echo esc_attr($card); ?>">
+                <h2 style="<?php echo esc_attr($h2); ?>"><span>7. Footer Situs</span><?php echo $reset_btn('footer'); ?></h2>
+                <label style="<?php echo esc_attr($lbl); ?>">Alamat Kampus</label>
+                <textarea name="bk_footer_address" rows="2" style="width:100%;"><?php echo esc_textarea($cfg['footer_address']); ?></textarea>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div><label style="<?php echo esc_attr($lbl); ?>">Baris Akreditasi</label><input name="bk_footer_akreditasi" type="text" value="<?php echo esc_attr($cfg['footer_akreditasi']); ?>" style="width:100%;"></div>
+                    <div><label style="<?php echo esc_attr($lbl); ?>">Teks Hak Cipta</label><input name="bk_footer_copyright" type="text" value="<?php echo esc_attr($cfg['footer_copyright']); ?>" style="width:100%;"></div>
+                </div>
+            </div>
 
-            </p>
+            <!-- 8. LEGACY HERO TEXT -->
+            <div id="bk-s-legacy" style="<?php echo esc_attr($card); ?>">
+                <h2 style="<?php echo esc_attr($h2); ?>"><span>8. Teks Intro Beranda (cadangan bila Spotlight kosong)</span></h2>
+                <label style="<?php echo esc_attr($lbl); ?>">Badge</label>
+                <input name="bk_hero_badge" type="text" value="<?php echo esc_attr($hero_badge); ?>" style="width:100%;">
+                <label style="<?php echo esc_attr($lbl); ?>">Judul (awal · kata sorot emas · penutup)</label>
+                <input name="bk_hero_h1_part1" type="text" value="<?php echo esc_attr($h1_p1); ?>" style="width:100%; margin-bottom:6px;">
+                <input name="bk_hero_h1_highlight" type="text" value="<?php echo esc_attr($h1_hl); ?>" style="width:100%; margin-bottom:6px; font-style:italic;">
+                <input name="bk_hero_h1_part2" type="text" value="<?php echo esc_attr($h1_p2); ?>" style="width:100%;">
+                <label style="<?php echo esc_attr($lbl); ?>">Paragraf</label>
+                <textarea name="bk_hero_desc" rows="3" style="width:100%;"><?php echo esc_textarea($hero_desc); ?></textarea>
+            </div>
 
+            <div style="position:sticky; bottom:0; background:rgba(250,248,245,0.96); border-top:1px solid #E6E2DA; padding:12px 0; display:flex; gap:12px; align-items:center; z-index:5;">
+                <input type="submit" name="bk_save_settings" class="button button-primary" value="Simpan Semua Perubahan" style="background:#0D3B22; border-color:#0D3B22; padding:6px 24px; font-weight:700; border-radius:8px;">
+                <button type="submit" name="bk_reset_settings" value="1" class="button" onclick="this.form.bk_reset_section.value='all';return confirm('Kembalikan Jenjang, Video, Kartu Portal, Admisi & Footer ke nilai bawaan?');">Reset Semua ke Default</button>
+                <a href="<?php echo esc_url(home_url('/')); ?>" target="_blank" class="button">Lihat Beranda ↗</a>
+            </div>
         </form>
-
     </div>
-
+    <script>
+    (function(){
+        var base = <?php echo wp_json_encode(trailingslashit(get_template_directory_uri())); ?>;
+        document.querySelectorAll('.bk-media-pick').forEach(function(btn){
+            btn.addEventListener('click', function(e){
+                e.preventDefault();
+                if (typeof wp === 'undefined' || !wp.media) return;
+                var wrap = btn.closest('div[style*="grid-template-columns: 120px"]');
+                var input = btn.parentNode.querySelector('.bk-media-input');
+                var frame = wp.media({ title: 'Pilih Gambar', button: { text: 'Gunakan' }, library: { type: 'image' }, multiple: false });
+                frame.on('select', function(){
+                    var url = frame.state().get('selection').first().toJSON().url;
+                    input.value = url;
+                    var prev = wrap ? wrap.querySelector('.bk-media-prev') : null;
+                    if (prev) prev.src = url;
+                });
+                frame.open();
+            });
+        });
+        document.querySelectorAll('.bk-media-input').forEach(function(inp){
+            inp.addEventListener('change', function(){
+                var wrap = inp.closest('div[style*="grid-template-columns: 120px"]');
+                var prev = wrap ? wrap.querySelector('.bk-media-prev') : null;
+                var v = inp.value.trim();
+                if (prev) prev.src = v.indexOf('assets/') === 0 ? base + v : v;
+            });
+        });
+    })();
+    </script>
     <?php
-
 }
 
 
 
 // =============================================================================
+
 
 // SUBNAV & PRODI LAYOUT CLEANUP FILTER
 
@@ -1134,7 +1442,7 @@ add_filter('the_content', function($content) {
 
         // Auto-inject E-Library into Layanan subnav sticky wrap if not yet present
         if (strpos($content, '/layanan/akademik/') !== false && strpos($content, '/e-library/') === false) {
-            $elib_subnav_item = '<li style="flex-shrink:0"><a href="/e-library/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;text-decoration:none;background:transparent;color:#4B5563;font-weight:500">E-Library &amp; Modul</a></li>';
+            $elib_subnav_item = '<li style="flex-shrink:0"><a href="/e-library/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;text-decoration:none;background:transparent;color:#4B5563;font-weight:500">E-Library &amp; Modul</a></li>';
             $content = str_replace('<li style="flex-shrink:0"><a href="/layanan/akademik/"', $elib_subnav_item . '<li style="flex-shrink:0"><a href="/layanan/akademik/"', $content);
         }
 
@@ -1198,7 +1506,7 @@ function ppb_auto_sync_pages_content() {
 
 
 
-    if ($synced_version === '20.0' && !$force) {
+    if ($synced_version === '21.0' && !$force) {
         return;
     }
 
@@ -1598,13 +1906,16 @@ function ppb_auto_sync_pages_content() {
                     update_post_meta($existing_id, '_dosen_kepakaran', implode(', ', $d['kepakaran'] ?? array()));
                     update_post_meta($existing_id, '_dosen_publikasi', $d['stat']['publikasi'] ?? 0);
                     update_post_meta($existing_id, '_dosen_sinta_url', $d['sinta_url'] ?? '');
+                    if (!empty($d['foto_link']) && !get_post_meta($existing_id, '_dosen_foto_link', true)) {
+                        update_post_meta($existing_id, '_dosen_foto_link', function_exists('bk_sanitize_asset_or_url') ? bk_sanitize_asset_or_url($d['foto_link']) : $d['foto_link']);
+                    }
                     clean_post_cache($existing_id);
                 }
             }
         }
     }
 
-    update_option('ppb_content_synced_version', '20.0');
+    update_option('ppb_content_synced_version', '21.0');
 
 
 
@@ -2364,11 +2675,13 @@ function bk_fip_rebuild_dosen_roster_html($dosen_list) {
         list($badge_label, $badge_bg, $badge_color, $badge_border) = $get_badge($nama, $jabatan);
         $init = $get_initials($nama);
 
-        $foto_link = $d['foto_link'] ?? '';
+        $foto_link = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($d['foto_link'] ?? '') : ($d['foto_link'] ?? '');
+        $initials_html = '<div class="bk-avatar-fallback" style="width:54px;height:54px;border-radius:16px;background:#0D3B22;color:#F5B82E;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;font-family:Fraunces,Georgia,serif;border:2px solid #F5B82E;box-shadow:0 3px 10px rgba(13,59,34,0.18);user-select:none;">' . esc_html($init) . '</div>';
         if ($foto_link) {
-            $avatar_html = '<img src="' . esc_url($foto_link) . '" alt="' . esc_attr($nama) . '" style="width:54px;height:54px;border-radius:16px;object-fit:cover;border:2px solid #0D3B22;box-shadow:0 3px 8px rgba(0,0,0,0.1);">';
+            $fallback_js = "this.style.display='none';this.nextElementSibling.style.display='flex';";
+            $avatar_html = '<span class="bk-avatar" style="display:inline-flex;width:54px;height:54px;flex-shrink:0;"><img src="' . esc_url($foto_link) . '" alt="' . esc_attr($nama) . '" loading="lazy" onerror="' . esc_attr($fallback_js) . '" style="width:54px;height:54px;border-radius:16px;object-fit:cover;object-position:50% 22%;border:2px solid #0D3B22;box-shadow:0 3px 8px rgba(0,0,0,0.1);">' . str_replace('display:flex;', 'display:none;', $initials_html) . '</span>';
         } else {
-            $avatar_html = '<div style="width:54px;height:54px;border-radius:16px;background:#0D3B22;color:#F5B82E;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;font-family:Fraunces,Georgia,serif;border:2px solid #F5B82E;box-shadow:0 3px 10px rgba(13,59,34,0.18);user-select:none;">' . $init . '</div>';
+            $avatar_html = $initials_html;
         }
 
         $sinta_quick = '';
@@ -2411,12 +2724,12 @@ function bk_fip_rebuild_dosen_roster_html($dosen_list) {
     }
 
     $count_dosen = count($dosen_list);
-    $full_html = '<div class="bk-page-wrapper" style="width:100%;background:#FAF8F5;color:#1F2937;font-family:\'Poppins\',sans-serif;line-height:1.6"><section style="position:relative;overflow:hidden;background:#0D3B22;color:#ffffff;padding:var(--bk-top-clearance, 36px) 0 clamp(45px, 6vw, 60px);font-family:\'Poppins\',sans-serif">
+    $full_html = '<div class="bk-page-wrapper" style="width:100%;background:#FAF8F5;color:#1F2937;font-family:\'Plus Jakarta Sans\',sans-serif;line-height:1.6"><section style="position:relative;overflow:hidden;background:#0D3B22;color:#ffffff;padding:var(--bk-top-clearance, 36px) 0 clamp(45px, 6vw, 60px);font-family:\'Plus Jakarta Sans\',sans-serif">
         <div style="position:absolute;top:-100px;right:-10%;width:500px;height:500px;border-radius:50%;background:rgba(245,184,46,0.15);filter:blur(80px);pointer-events:none"></div>
         <div style="position:absolute;bottom:-120px;left:-10%;width:420px;height:420px;border-radius:50%;background:rgba(245,184,46,0.12);filter:blur(80px);pointer-events:none"></div>
         <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);background-size:24px 24px;pointer-events:none"></div>
 
-        <div class="bk-container" style="position:relative;max-width:100%;width:100%;margin:0 auto">
+        <div class="bk-container" style="position:relative;max-width:var(--max-w, 1160px);width:100%;margin:0 auto">
             <div style="display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:9999px;background:rgba(245,184,46,0.15);border:1px solid rgba(245,184,46,0.3);color:#F5B82E;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:16px">
                 <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#F5B82E"></span>
                 <span>Profil &middot; Program Studi Bimbingan &amp; Konseling</span>
@@ -2435,7 +2748,7 @@ function bk_fip_rebuild_dosen_roster_html($dosen_list) {
                     <span style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:#0D3B22;display:flex;align-items:center;pointer-events:none">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </span>
-                    <input type="text" id="bk-dosen-search-input" placeholder="Cari nama dosen, NIP, atau bidang kepakaran..." style="width:100%;padding:14px 20px 14px 48px;border-radius:14px;border:2px solid rgba(255,255,255,0.3);background:#ffffff;color:#111827;font-size:13.5px;font-family:\'Poppins\',sans-serif;outline:none;box-shadow:0 8px 24px rgba(0,0,0,0.18);">
+                    <input type="text" id="bk-dosen-search-input" placeholder="Cari nama dosen, NIP, atau bidang kepakaran..." style="width:100%;padding:14px 20px 14px 48px;border-radius:14px;border:2px solid rgba(255,255,255,0.3);background:#ffffff;color:#111827;font-size:13.5px;font-family:\'Plus Jakarta Sans\',sans-serif;outline:none;box-shadow:0 8px 24px rgba(0,0,0,0.18);">
                 </div>
                 <div style="font-size:12px;margin-top:10px;color:rgba(255,255,255,0.85);" id="bk-dosen-count-info">
                     Menampilkan seluruh <strong style="color:#F5B82E;">' . $count_dosen . '</strong> dosen &amp; tenaga pengajar Jurusan PPB
@@ -2445,31 +2758,31 @@ function bk_fip_rebuild_dosen_roster_html($dosen_list) {
     </section>
 
 <div class="bk-subnav-sticky-wrap" style="position:relative;z-index:30;margin-top:-28px;padding:0 var(--bk-edge-pad, 1rem);margin-bottom:30px">
-    <div style="border:1px solid #D4E3D8;border-radius:18px;padding:6px 8px;background:#ffffff;box-shadow:0 4px 16px rgba(0,0,0,0.03);max-width:100%;width:100%;margin:0 auto;overflow-x:auto;">
+    <div style="border:1px solid #D4E3D8;border-radius:18px;padding:6px 8px;background:#ffffff;box-shadow:0 4px 16px rgba(0,0,0,0.03);max-width:var(--max-w, 1160px);width:100%;margin:0 auto;overflow-x:auto;">
         <ul class="no-scrollbar" style="display:flex;align-items:center;gap:6px;margin:0;padding:0;white-space:nowrap;list-style:none;">
-            <li style="flex-shrink:0"><a href="/profil/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Ringkasan</a></li>
-            <li style="flex-shrink:0"><a href="/profil/sejarah/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Sejarah</a></li>
-            <li style="flex-shrink:0"><a href="/profil/visi-misi/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Visi &amp; Misi</a></li>
-            <li style="flex-shrink:0"><a href="/profil/visi-keilmuan/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Visi Keilmuan &amp; Kepakaran</a></li>
-            <li style="flex-shrink:0"><a href="/profil/struktur/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Struktur Organisasi</a></li>
-            <li style="flex-shrink:0"><a href="/profil/kerjasama-tridharma/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Kerjasama Tridharma</a></li>
-            <li style="flex-shrink:0"><a href="/profil/dosen/" class="bk-subnav-item bk-active" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:700;color:#F5B82E;background:#0D3B22;text-decoration:none;">Dosen &amp; Staf</a></li>
-            <li style="flex-shrink:0"><a href="/profil/buku-dosen/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Koleksi Buku Dosen</a></li>
-            <li style="flex-shrink:0"><a href="/profil/kepakaran-dosen/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Peta Kepakaran &amp; SINTA</a></li>
-            <li style="flex-shrink:0"><a href="/profil/sarana-prasarana/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Sarana &amp; Prasarana</a></li>
-            <li style="flex-shrink:0"><a href="/profil/roadmap/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Roadmap Riset</a></li>
-            <li style="flex-shrink:0"><a href="/profil/dokumen/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Poppins\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Dokumen Mutu</a></li>
+            <li style="flex-shrink:0"><a href="/profil/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Ringkasan</a></li>
+            <li style="flex-shrink:0"><a href="/profil/sejarah/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Sejarah</a></li>
+            <li style="flex-shrink:0"><a href="/profil/visi-misi/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Visi &amp; Misi</a></li>
+            <li style="flex-shrink:0"><a href="/profil/visi-keilmuan/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Visi Keilmuan &amp; Kepakaran</a></li>
+            <li style="flex-shrink:0"><a href="/profil/struktur/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Struktur Organisasi</a></li>
+            <li style="flex-shrink:0"><a href="/profil/kerjasama-tridharma/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Kerjasama Tridharma</a></li>
+            <li style="flex-shrink:0"><a href="/profil/dosen/" class="bk-subnav-item bk-active" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:700;color:#F5B82E;background:#0D3B22;text-decoration:none;">Dosen &amp; Staf</a></li>
+            <li style="flex-shrink:0"><a href="/profil/buku-dosen/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Koleksi Buku Dosen</a></li>
+            <li style="flex-shrink:0"><a href="/profil/kepakaran-dosen/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Peta Kepakaran &amp; SINTA</a></li>
+            <li style="flex-shrink:0"><a href="/profil/sarana-prasarana/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Sarana &amp; Prasarana</a></li>
+            <li style="flex-shrink:0"><a href="/profil/roadmap/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Roadmap Riset</a></li>
+            <li style="flex-shrink:0"><a href="/profil/dokumen/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Dokumen Mutu</a></li>
         </ul>
     </div>
 </div>
 
-<section style="padding:0 var(--bk-edge-pad, 1rem) 45px;font-family:\'Poppins\',sans-serif">
-    <div style="max-width:100%;width:100%;margin:0 auto">
+<section style="padding:0 var(--bk-edge-pad, 1rem) 45px;font-family:\'Plus Jakarta Sans\',sans-serif">
+    <div style="max-width:var(--max-w, 1160px);width:100%;margin:0 auto">
         <div id="bk-dosen-grid" class="bk-dosen-grid-container">
 ' . $cards_html . '
         </div>
 
-        <div style="background:#E8F0EA;border:1px solid #D4E3D8;border-radius:24px;padding:clamp(20px, 4vw, 32px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px;margin-top:40px;font-family:\'Poppins\',sans-serif">
+        <div style="background:#E8F0EA;border:1px solid #D4E3D8;border-radius:24px;padding:clamp(20px, 4vw, 32px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px;margin-top:40px;font-family:\'Plus Jakarta Sans\',sans-serif">
             <div style="max-width:640px">
                 <h3 style="font-family:Fraunces,Georgia,serif;font-size:clamp(18px, 2.2vw, 24px);color:#0D3B22;margin:0 0 6px 0;font-weight:600">Ingin Mengetahui Arah Riset &amp; Pengabdian Dosen?</h3>
                 <p style="font-size:13px;color:#4D6354;margin:0;line-height:1.6">Pelajari Roadmap Penelitian 3 Pilar Keilmuan, Lembar Pengesahan Senat, dan Research Groups Program Studi.</p>
@@ -2567,7 +2880,7 @@ function bk_fip_render_sync_dosen_page() {
                 $cd['jabatan_fungsional'] = sanitize_text_field($_POST['jabatan_fungsional'] ?? $cd['jabatan_fungsional']);
                 $cd['jabatan_struktural'] = sanitize_text_field($_POST['jabatan_struktural'] ?? '');
                 $cd['unit']               = sanitize_text_field($_POST['unit'] ?? ($cd['unit'] ?? 'S1 Bimbingan dan Konseling'));
-                $cd['foto_link']          = esc_url_raw($_POST['foto_link'] ?? '');
+                $cd['foto_link']          = function_exists('bk_sanitize_asset_or_url') ? bk_sanitize_asset_or_url(wp_unslash($_POST['foto_link'] ?? '')) : esc_url_raw($_POST['foto_link'] ?? '');
                 $cd['sinta_id']           = sanitize_text_field($_POST['sinta_id'] ?? '');
                 $cd['sinta_url']          = esc_url_raw($_POST['sinta_url'] ?? '');
                 $cd['scholar_url']        = esc_url_raw($_POST['scholar_url'] ?? '');
@@ -2934,7 +3247,7 @@ function bk_fip_render_sync_dosen_page() {
                                     </td>
                                     <td style="text-align:center;vertical-align:middle;padding:8px 6px;">
                                         <?php if ($foto_link) : ?>
-                                            <img src="<?php echo esc_url($foto_link); ?>" alt="<?php echo esc_attr($nama_lengkap); ?>" style="width:40px;height:40px;border-radius:10px;object-fit:cover;border:1.5px solid #0D3B22;display:block;margin:0 auto;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+                                            <img src="<?php echo esc_url(function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($foto_link) : $foto_link); ?>" alt="<?php echo esc_attr($nama_lengkap); ?>" style="width:40px;height:40px;border-radius:10px;object-fit:cover;object-position:50% 18%;border:1.5px solid #0D3B22;display:block;margin:0 auto;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
                                         <?php else : ?>
                                             <div style="width:40px;height:40px;border-radius:10px;background:#0D3B22;color:#F5B82E;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin:0 auto;">
                                                 <?php echo esc_html(strtoupper(substr($slug, 0, 2))); ?>
@@ -3077,14 +3390,14 @@ function bk_fip_render_sync_dosen_page() {
 
                         <div style="display:flex;align-items:flex-start;gap:18px;">
                             <div style="width:100px;height:120px;border-radius:12px;background:#0D3B22;border:2px dashed #F5B82E;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;" id="edit-photo-preview-box">
-                                <img src="" id="edit-photo-preview" style="width:100%;height:100%;object-fit:contain;object-position:bottom center;display:none;">
+                                <img src="" id="edit-photo-preview" style="width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:none;">
                                 <span id="edit-photo-none" style="font-size:11px;color:#F5B82E;font-weight:600;text-align:center;padding:6px;">Tanpa Foto</span>
                             </div>
 
                             <div style="flex:1;">
                                 <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:4px;">URL Foto Profil:</label>
                                 <div style="display:flex;gap:8px;margin-bottom:8px;">
-                                    <input type="url" name="foto_link" id="edit-foto-link" placeholder="https://..." style="flex:1;height:38px;border-radius:8px;border:1.5px solid #D1D5DB;padding:0 12px;font-size:13px;" oninput="bkUpdatePhotoPreview(this.value)">
+                                    <input type="text" name="foto_link" id="edit-foto-link" placeholder="https://... atau assets/img/nama.jpg" style="flex:1;height:38px;border-radius:8px;border:1.5px solid #D1D5DB;padding:0 12px;font-size:13px;" oninput="bkUpdatePhotoPreview(this.value)">
                                     <button type="button" class="button" onclick="bkChooseMediaPhoto()" style="background:#0D3B22;color:#ffffff;border:none;font-weight:700;border-radius:8px;padding:0 16px;height:38px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                                         <span>📁 Pilih / Upload Media</span>
                                     </button>
@@ -3444,6 +3757,10 @@ function bk_fip_render_sync_dosen_page() {
         var img = document.getElementById('edit-photo-preview');
         var none = document.getElementById('edit-photo-none');
         if (url && url.trim().length > 5) {
+            url = url.trim();
+            if (url.indexOf('assets/') === 0) {
+                url = <?php echo wp_json_encode(trailingslashit(get_template_directory_uri())); ?> + url;
+            }
             img.src = url;
             img.style.display = 'block';
             none.style.display = 'none';
@@ -3575,7 +3892,7 @@ if (!function_exists('bk_parse_spotlight_image_url')) {
             return $url;
         }
 
-        return $url;
+        return function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($url) : $url;
     }
 }
 
@@ -3666,6 +3983,19 @@ function bk_fip_run_site_health_db_optimization() {
         'ppb_portal_initial_seeded_v2',
         'bk_local_url_cleaned_v2',
         'bk_site_health_optimized_v1',
+        'bk_site_health_optimized_v2',
+        'bk_site_health_optimized_v3',
+        'bk_mega_menu_spotlights',
+        'bk_video_chapters',
+        'bk_portal_cards',
+        'bk_degree_s1',
+        'bk_degree_s2',
+        'bk_degree_s3',
+        'ppb_elibrary_items',
+        'ppb_elibrary_portal_links',
+        'ppb_elibrary_submissions',
+        'ppb_mega_menu_autoseeded_v3',
+        'ppb_spotlight_defaults_v2',
     );
 
     foreach ($large_options as $opt_name) {
@@ -3825,9 +4155,9 @@ function bk_fip_recursive_delete_dir($dir) {
 
 // Otomatis jalankan pada reload admin
 add_action('admin_init', function() {
-    if (get_option('bk_site_health_optimized_v2') !== '1') {
+    if (get_option('bk_site_health_optimized_v3') !== '1') {
         bk_fip_run_site_health_db_optimization();
-        update_option('bk_site_health_optimized_v2', '1', false);
+        update_option('bk_site_health_optimized_v3', '1', false);
     }
 }, 5);
 

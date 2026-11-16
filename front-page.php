@@ -1,12 +1,14 @@
 <?php
 /**
  * The template for displaying the Front Page (Landing Page)
- * Redesigned with Swiss Modernism 2.0 + Academic Editorial + shadcn/ui Architecture
- * Zero "AI Slop" — Distinct compositional patterns per section (Ledger, Matrix, Hairline Index, Data Table, Bento Split)
+ * "Editorial Calm & Progressive Disclosure" — Forest Green & Royal Gold
+ * Full-Screen 100vh Spotlight Hero + UGM-Inspired Sections + 1160px Editorial Container
  */
 get_header();
 
-// Load real Dosen data from dosen-data.json (fallback to curated list if missing)
+$cfg = function_exists('bk_fip_get_homepage_config') ? bk_fip_get_homepage_config() : array();
+
+// Load real Dosen data from dosen-data.json + merge CPT overrides (_dosen_foto_link)
 $dosen_json_path = get_template_directory() . '/dosen-data.json';
 $dosen_all = array();
 if (file_exists($dosen_json_path)) {
@@ -16,17 +18,44 @@ if (file_exists($dosen_json_path)) {
     }
 }
 
+// Overlay custom photo / jabatan from 'dosen' CPT if updated in WP-Admin
+$cpt_photo_map = array();
+if (function_exists('get_posts')) {
+    $dosen_posts = get_posts(array(
+        'post_type'      => 'dosen',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+    ));
+    foreach ($dosen_posts as $dp) {
+        $meta_foto = get_post_meta($dp->ID, '_dosen_foto_link', true);
+        if (empty($meta_foto) && has_post_thumbnail($dp->ID)) {
+            $meta_foto = get_the_post_thumbnail_url($dp->ID, 'medium_large');
+        }
+        if (!empty($meta_foto)) {
+            $cpt_photo_map[$dp->post_name] = $meta_foto;
+        }
+    }
+}
+
+foreach ($dosen_all as &$d_entry) {
+    $d_slug = $d_entry['slug'] ?? '';
+    if ($d_slug && !empty($cpt_photo_map[$d_slug])) {
+        $d_entry['foto_link'] = $cpt_photo_map[$d_slug];
+    }
+}
+unset($d_entry);
+
 // Helper for initials
 if (!function_exists('bk_home_initials')) {
     function bk_home_initials($name) {
-        $parts = explode(',', $name);
+        $parts = explode(',', (string)$name);
         $clean = $parts[0];
-        $prefixes = array('prof', 'dr', 'dra', 'drs', 'ir', 'h', 'hj');
+        $prefixes = array('prof', 'dr', 'dra', 'drs', 'ir', 'h', 'hj', 's', 'm', 'pd', 'psi', 'kons');
         $words = preg_split('/[\s\.]+/', $clean);
         $filtered = array();
         foreach ($words as $w) {
             $w = trim($w);
-            if ($w && !in_array(strtolower($w), $prefixes)) {
+            if ($w !== '' && !in_array(strtolower($w), $prefixes, true)) {
                 $filtered[] = $w;
             }
         }
@@ -36,6 +65,29 @@ if (!function_exists('bk_home_initials')) {
             return strtoupper(substr($filtered[0], 0, 2));
         }
         return 'BK';
+    }
+}
+
+// Helper for portal/mega SVG icons
+if (!function_exists('bk_home_svg_icon')) {
+    function bk_home_svg_icon($name, $size = 20) {
+        $px = intval($size) ?: 20;
+        $icons = array(
+            'award'         => '<circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>',
+            'users'         => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+            'mail'          => '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+            'file-text'     => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+            'lab'           => '<path d="M9 3h6"/><path d="M10 3v6l-4.5 7.5A2 2 0 0 0 7.2 19.5h9.6a2 2 0 0 0 1.7-3L14 9V3"/>',
+            'flask-conical' => '<path d="M9 3h6"/><path d="M10 3v6l-4.5 7.5A2 2 0 0 0 7.2 19.5h9.6a2 2 0 0 0 1.7-3L14 9V3"/>',
+            'book'          => '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+            'library'       => '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+            'shield'        => '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+            'compass'       => '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+            'layers'        => '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/>',
+            'globe'         => '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>',
+        );
+        $path = $icons[$name] ?? $icons['award'];
+        return '<svg width="' . esc_attr($px) . '" height="' . esc_attr($px) . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $path . '</svg>';
     }
 }
 
@@ -63,1627 +115,683 @@ if (!empty($dosen_all)) {
 }
 
 $total_dosen_count = !empty($dosen_all) ? count($dosen_all) : 25;
-$featured_dosen = !empty($dosen_all) ? array_slice($dosen_all, 0, 10) : array();
+$featured_dosen = !empty($dosen_all) ? array_slice($dosen_all, 0, 12) : array();
+
+// Spotlight slides & settings
+$spotlight_slides = function_exists('ppb_get_spotlight_slides') ? ppb_get_spotlight_slides() : array();
+$spotlight_settings = function_exists('ppb_get_spotlight_settings') ? ppb_get_spotlight_settings() : array(
+    'autoplay'           => '1',
+    'speed'              => 8,
+    'fit_mode'           => 'cover',
+    'height_mode'        => 'fullscreen',
+    'mobile_height_mode' => 'fullscreen',
+);
+if (empty($spotlight_slides) && function_exists('ppb_get_default_spotlight_slides')) {
+    $spotlight_slides = ppb_get_default_spotlight_slides();
+}
+$total_slides = count($spotlight_slides);
+
+// Stats, Degrees, Video Chapters, Portal Cards from $cfg
+$stats_list     = $cfg['stats'] ?? array();
+$degrees_map    = $cfg['degrees'] ?? array();
+$video_chapters = $cfg['video_chapters'] ?? array();
+$portal_cards   = $cfg['portal_cards'] ?? array();
+
+$kajur_quote   = $cfg['kajur_quote'] ?? 'Pendidikan konseling di FIP UNM dirancang untuk melahirkan sarjana, magister, dan doktor yang berintegritas moral, peka terhadap keragaman sosio-kultural, serta adaptif memanfaatkan inovasi psikoedukasi dan telekonseling.';
+$kajur_nama    = $cfg['kajur_nama'] ?? 'Dr. Suciani Latif, M.Pd.';
+$kajur_jabatan = $cfg['kajur_jabatan'] ?? 'KETUA JURUSAN PPB FIP UNM';
+$kajur_link    = $cfg['kajur_link'] ?? home_url('/profil/struktur/');
+
+$admisi_kicker     = $cfg['admisi_kicker'] ?? 'Admisi UNM & BK-Connect';
+$admisi_title      = $cfg['admisi_title'] ?? 'Penerimaan Mahasiswa Baru & Portal Akademik';
+$admisi_desc       = $cfg['admisi_desc'] ?? 'Jalur SNBP, SNBT, Ujian Mandiri (S1), serta Pascasarjana S2 & S3 Bimbingan dan Konseling — terhubung ke SIPADU & Asesmen BK-Connect.';
+$admisi_btn1_label = $cfg['admisi_btn1_label'] ?? 'Pelajari Profil Prodi →';
+$admisi_btn1_url   = $cfg['admisi_btn1_url'] ?? home_url('/profil/visi-misi/');
+$admisi_btn2_label = $cfg['admisi_btn2_label'] ?? 'Masuk BK-Connect ↗';
+$admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.vercel.app/auth';
 ?>
 
 <style>
-/* ==========================================================================
-   SWISS MODERNISM 2.0 + SHADCN ACADEMIC EDITORIAL SYSTEM (HOMEPAGE)
-   ========================================================================== */
-:root {
-    --bk-bg-warm: #FAF8F5;
-    --bk-bg-surface: #FFFFFF;
-    --bk-bg-muted: #F2EFE9;
-    --bk-bg-sage: #E8F0EA;
-    --bk-ink: #0F172A;
-    --bk-ink-muted: #475569;
-    --bk-ink-subtle: #64748B;
-    --bk-forest: #0D3B22;
-    --bk-forest-mid: #164E30;
-    --bk-forest-deep: #072314;
-    --bk-gold: #F5B82E;
-    --bk-gold-muted: #B45309;
-    --bk-border: #D4E3D8;
-    --bk-border-strong: #94A3B8;
-    --bk-border-subtle: #E2E8F0;
-    --bk-radius-sm: 6px;
-    --bk-radius-md: 10px;
-    --bk-radius-lg: 14px;
-}
-
-.bk-mono {
-    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-    font-variant-numeric: tabular-nums;
-}
-
-.bk-serif {
-    font-family: 'Fraunces', Georgia, serif !important;
-}
-
-.bk-sans {
-    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif !important;
-}
-
-/* Section Header Architecture */
-.bk-sec-kicker {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--bk-forest);
-    margin-bottom: 10px;
-}
-.bk-sec-kicker::before {
-    content: "";
-    display: inline-block;
-    width: 14px;
-    height: 2px;
-    background-color: var(--bk-gold-muted);
-}
-
-/* Buttons: shadcn-inspired crisp architectural proportions (not cartoon 30px pills) */
-.bk-btn-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background-color: var(--bk-gold);
-    color: var(--bk-forest-deep);
-    font-family: 'Poppins', sans-serif;
-    font-size: 13.5px;
-    font-weight: 600;
-    padding: 12px 22px;
-    border-radius: var(--bk-radius-md);
-    border: 1px solid var(--bk-gold);
-    text-decoration: none;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    cursor: pointer;
-}
-.bk-btn-primary:hover {
-    background-color: #fbcb46;
-    transform: translateY(-1px);
-    box-shadow: 0 8px 20px -4px rgba(245, 184, 46, 0.4);
-}
-
-.bk-btn-outline-light {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background-color: rgba(255, 255, 255, 0.04);
-    color: #FFFFFF;
-    font-family: 'Poppins', sans-serif;
-    font-size: 13.5px;
-    font-weight: 500;
-    padding: 12px 22px;
-    border-radius: var(--bk-radius-md);
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    text-decoration: none;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.bk-btn-outline-light:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.45);
-}
-
-.bk-btn-outline-dark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background-color: #FFFFFF;
-    color: var(--bk-forest);
-    font-family: 'Poppins', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 10px 18px;
-    border-radius: var(--bk-radius-md);
-    border: 1px solid var(--bk-border);
-    text-decoration: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-.bk-btn-outline-dark:hover {
-    background-color: var(--bk-bg-sage);
-    border-color: var(--bk-forest);
-}
-
-/* 1. HERO SECTION ARCHITECTURAL FRAME */
-.bk-hero-grid-layout {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 36px;
-    align-items: stretch;
-}
-.bk-hero-col-left {
-    grid-column: span 7 / span 7;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-.bk-hero-col-right {
-    grid-column: span 5 / span 5;
-    display: flex;
-    flex-direction: column;
-}
-
-.bk-hero-dossier {
-    background: rgba(7, 35, 20, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: var(--bk-radius-lg);
+/* Homepage career matrix & dosen carousel refinements */
+.bk-career-table {
+    border: 1px solid var(--border-hairline, #E4E0D8);
+    border-radius: var(--r-lg, 14px);
+    background: var(--bg-surface, #FFFFFF);
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.35);
-}
-.bk-hero-photo-frame {
-    position: relative;
-    height: 250px;
-    overflow: hidden;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-    background: #061d11;
-}
-.bk-hero-photo-frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    filter: contrast(1.04) saturate(0.95);
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.bk-hero-dossier:hover .bk-hero-photo-frame img {
-    transform: scale(1.03);
-}
-.bk-hero-ledger-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(0, 0, 0, 0.2);
-}
-.bk-hero-ledger-cell {
-    padding: 14px 16px;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-}
-.bk-hero-ledger-cell:last-child {
-    border-right: none;
-}
-
-/* 2. SWISS HAIRLINE METRICS BAR */
-.bk-ledger-strip {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    border: 1px solid var(--bk-border);
-    border-radius: var(--bk-radius-lg);
-    background: #FFFFFF;
-    overflow: hidden;
-}
-.bk-ledger-item {
-    padding: 24px 26px;
-    border-right: 1px solid var(--bk-border);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: background-color 0.2s ease;
-}
-.bk-ledger-item:last-child {
-    border-right: none;
-}
-.bk-ledger-item:hover {
-    background-color: #FAF8F5;
-}
-
-/* 3. PRODI UNIFIED ARCHITECTURAL MATRIX + SHADCN TABS */
-.bk-tabs-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 24px;
-}
-.bk-tabs-list {
-    display: inline-flex;
-    align-items: center;
-    background: #EAE6DF;
-    padding: 4px;
-    border-radius: var(--bk-radius-md);
-    border: 1px solid var(--bk-border);
-    gap: 4px;
-}
-.bk-tab-trigger {
-    appearance: none;
-    border: none;
-    background: transparent;
-    color: var(--bk-ink-muted);
-    font-family: 'Poppins', sans-serif;
-    font-size: 12.5px;
-    font-weight: 600;
-    padding: 8px 16px;
-    border-radius: 7px;
-    cursor: pointer;
-    transition: all 0.18s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-.bk-tab-trigger:hover {
-    color: var(--bk-ink);
-}
-.bk-tab-trigger.is-active {
-    background: #FFFFFF;
-    color: var(--bk-forest);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
-}
-
-.bk-prodi-matrix {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    background: #FFFFFF;
-    border: 1px solid var(--bk-border);
-    border-radius: var(--bk-radius-lg);
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(13, 59, 34, 0.03);
-}
-.bk-prodi-col {
-    border-right: 1px solid var(--bk-border);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: background-color 0.2s ease;
-}
-.bk-prodi-col:last-child {
-    border-right: none;
-}
-.bk-prodi-col:hover {
-    background-color: #FCFBF9;
-}
-.bk-spec-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 9px 0;
-    border-bottom: 1px dashed #E2E8F0;
-    font-size: 12px;
-}
-.bk-spec-row:last-child {
-    border-bottom: none;
-}
-
-/* 4. ABOUT & PILLARS: SWISS HORIZONTAL HAIRLINE INDEX */
-.bk-about-split {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 40px;
-    align-items: start;
-}
-.bk-about-left {
-    grid-column: span 5 / span 5;
-}
-.bk-about-right {
-    grid-column: span 7 / span 7;
-}
-.bk-pillar-row {
-    display: grid;
-    grid-template-columns: 48px 1fr auto;
-    gap: 20px;
-    align-items: start;
-    padding: 24px 0;
-    border-bottom: 1px solid var(--bk-border);
-    transition: all 0.2s ease;
-}
-.bk-pillar-row:first-child {
-    border-top: 2px solid var(--bk-forest);
-}
-
-/* 5. CAREER PROSPECTUS: SHADCN DATA TABLE / ARCHITECTURAL LEDGER */
-.bk-career-table-wrap {
-    background: #FFFFFF;
-    border: 1px solid var(--bk-border);
-    border-radius: var(--bk-radius-lg);
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    box-shadow: var(--shadow-xs);
 }
 .bk-career-thead {
     display: grid;
-    grid-template-columns: 110px 1.3fr 1.6fr 1.3fr;
+    grid-template-columns: 120px 1.15fr 1.6fr 1.15fr;
     gap: 20px;
-    padding: 14px 24px;
-    background: #F4F1EA;
-    border-bottom: 1px solid var(--bk-border);
-    font-family: 'IBM Plex Mono', monospace;
+    padding: 13px 22px;
+    background: var(--bg-canvas-alt, #F3EFE8);
+    border-bottom: 1px solid var(--border-hairline, #E4E0D8);
+    font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 600;
-    color: var(--bk-ink-muted);
-    text-transform: uppercase;
     letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted, #55625B);
 }
 .bk-career-trow {
     display: grid;
-    grid-template-columns: 110px 1.3fr 1.6fr 1.3fr;
+    grid-template-columns: 120px 1.15fr 1.6fr 1.15fr;
     gap: 20px;
-    padding: 22px 24px;
-    border-bottom: 1px solid #E2E8F0;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border-hairline, #E4E0D8);
     align-items: start;
-    transition: background-color 0.18s ease;
+    transition: background 0.15s ease;
 }
 .bk-career-trow:last-child {
     border-bottom: none;
 }
 .bk-career-trow:hover {
-    background-color: #FAF8F5;
+    background: var(--bg-canvas, #FAF8F5);
 }
-
-/* 6. FACULTY ROSTER CARDS (ARCHITECTURAL PORTRAIT) */
-.bk-faculty-card {
-    flex: 0 0 300px;
-    background: #FFFFFF;
-    border: 1px solid var(--bk-border);
-    border-radius: var(--bk-radius-md);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    cursor: pointer;
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.bk-faculty-card:hover {
-    border-color: var(--bk-forest);
-    transform: translateY(-3px);
-    box-shadow: 0 12px 24px -8px rgba(13, 59, 34, 0.12);
-}
-
-/* 7. LAB BENTO ARCHITECTURAL SPLIT */
-.bk-lab-bento {
+.bk-faculty-carousel-track {
     display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 24px;
-    align-items: stretch;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(295px, 320px);
+    gap: 16px;
+    overflow-x: auto;
+    padding: 4px 2px 12px;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
 }
-.bk-lab-main {
-    grid-column: span 6 / span 6;
-    background: var(--bk-forest);
-    color: #FFFFFF;
-    border-radius: var(--bk-radius-lg);
-    padding: 32px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    position: relative;
-    overflow: hidden;
+.bk-faculty-carousel-track::-webkit-scrollbar {
+    display: none;
 }
-.bk-lab-side {
-    grid-column: span 6 / span 6;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-.bk-lab-module {
-    background: #FFFFFF;
-    border: 1px solid var(--bk-border);
-    border-radius: var(--bk-radius-lg);
-    padding: 26px 28px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: border-color 0.2s ease;
-}
-.bk-lab-module:hover {
-    border-color: var(--bk-forest);
-}
-
-/* RESPONSIVE BREAKPOINTS */
-@media (max-width: 1024px) {
-    .bk-hero-col-left,
-    .bk-hero-col-right,
-    .bk-about-left,
-    .bk-about-right,
-    .bk-lab-main,
-    .bk-lab-side {
-        grid-column: span 12 / span 12;
-    }
-    .bk-ledger-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .bk-ledger-item:nth-child(2) {
-        border-right: none;
-    }
-    .bk-ledger-item:nth-child(1),
-    .bk-ledger-item:nth-child(2) {
-        border-bottom: 1px solid var(--bk-border);
-    }
-    .bk-prodi-matrix {
-        grid-template-columns: 1fr;
-    }
-    .bk-prodi-col {
-        border-right: none;
-        border-bottom: 1px solid var(--bk-border);
-    }
-    .bk-prodi-col:last-child {
-        border-bottom: none;
-    }
+@media (max-width: 960px) {
     .bk-career-thead {
         display: none;
     }
     .bk-career-trow {
         grid-template-columns: 1fr;
         gap: 10px;
-        padding: 20px;
-    }
-    .bk-news-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 20px !important;
-    }
-}
-
-@media (max-width: 640px) {
-    .bk-news-grid {
-        grid-template-columns: 1fr !important;
-        gap: 16px !important;
-    }
-    .bk-ledger-strip {
-        grid-template-columns: 1fr;
-    }
-    .bk-ledger-item {
-        border-right: none !important;
-        border-bottom: 1px solid var(--bk-border);
-        padding: 18px 20px;
-    }
-    .bk-ledger-item:last-child {
-        border-bottom: none;
-    }
-    .bk-pillar-row {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-    .bk-hero-ledger-grid {
-        grid-template-columns: 1fr;
-    }
-    .bk-hero-ledger-cell {
-        border-right: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .bk-tabs-list {
-        width: 100%;
-        overflow-x: auto;
-    }
-}
-
-/* ==========================================================================
-   TRUE HERO MEDIA SPOTLIGHT (RESPONSIVE DESKTOP & MOBILE CANVAS)
-   ========================================================================== */
-.bk-spotlight-hero-wrap {
-    position: relative;
-    width: 100%;
-    /* Full height accounting for fixed navbar AND WordPress admin bar (zero overflow) */
-    height: calc(100vh - var(--bk-navbar-height, 64px) - var(--bk-admin-bar-offset, 0px));
-    min-height: calc(100vh - var(--bk-navbar-height, 64px) - var(--bk-admin-bar-offset, 0px));
-    max-height: calc(100vh - var(--bk-navbar-height, 64px) - var(--bk-admin-bar-offset, 0px));
-    background: #0D3B22; /* University Forest Deep Green: blends seamlessly with navbar */
-    overflow: hidden;
-    margin-top: 0;
-    padding-top: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    display: block;
-}
-@media (min-width: 1024px) {
-    .bk-spotlight-hero-wrap {
-        height: calc(100vh - var(--bk-navbar-height, 64px) - var(--bk-admin-bar-offset, 0px));
-        min-height: calc(100vh - var(--bk-navbar-height, 64px) - var(--bk-admin-bar-offset, 0px));
-        max-height: calc(100vh - var(--bk-navbar-height, 64px) - var(--bk-admin-bar-offset, 0px));
-    }
-}
-@media (max-width: 768px) {
-    .bk-spotlight-hero-wrap {
-        height: calc(100dvh - var(--bk-navbar-height, 56px) - var(--bk-admin-bar-offset, 0px));
-        min-height: calc(100dvh - var(--bk-navbar-height, 56px) - var(--bk-admin-bar-offset, 0px));
-        max-height: calc(100dvh - var(--bk-navbar-height, 56px) - var(--bk-admin-bar-offset, 0px));
-    }
-    .bk-spotlight-hero-wrap.mobile-cinema {
-        height: clamp(480px, 72vh, 660px);
-        min-height: 480px;
-    }
-}
-
-/* Device Visibility Targeting */
-@media (max-width: 768px) {
-    .bk-spotlight-slide.bk-device-desktop-only {
-        display: none !important;
-    }
-}
-@media (min-width: 769px) {
-    .bk-spotlight-slide.bk-device-mobile-only {
-        display: none !important;
-    }
-}
-
-.bk-spotlight-stage-grid {
-    position: absolute;
-    inset: 0;
-    background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    background-size: 48px 48px;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.bk-spotlight-viewport {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    flex: 1;
-    overflow: hidden;
-    z-index: 2;
-}
-
-.bk-spotlight-slide {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    z-index: 1;
-    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.7s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-}
-.bk-spotlight-slide.is-active {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    z-index: 3;
-}
-
-/* Fullscreen Media Canvas */
-.bk-spotlight-canvas-box {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #0D3B22; /* University Forest Deep Green */
-}
-
-/* Video Player: Pinned to Top with ZERO gap and full cover fill */
-.bk-spotlight-canvas-box video,
-.bk-spotlight-video-el {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
-    display: block !important;
-    object-fit: cover !important;
-    object-position: center top !important; /* Anchors to top: ELIMINATES any black gap */
-}
-
-/* Cloud Video Embed (YouTube, Google Drive, Vimeo) - Fullscreen Cinematic Background */
-.bk-spotlight-embed-wrap {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #0D3B22;
-}
-.bk-spotlight-embed-wrap iframe {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100vw;
-    height: 56.25vw;
-    min-height: 100%;
-    min-width: 177.77vh;
-    transform: translate(-50%, -50%) scale(1.08);
-    border: none;
-    pointer-events: none;
-}
-.bk-spotlight-canvas-box picture,
-.bk-spotlight-canvas-box img {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: contain;
-    object-position: center center;
-    background: radial-gradient(circle at center, #0d3b22 0%, #051a0f 70%, #000000 100%);
-}
-.bk-spotlight-canvas-box.fit-cover picture,
-.bk-spotlight-canvas-box.fit-cover img {
-    object-fit: cover;
-}
-
-/* Click Shield Layer */
-.bk-spotlight-click-shield {
-    position: absolute;
-    inset: 0;
-    z-index: 10;
-    cursor: pointer;
-    background: transparent;
-}
-
-/* Floating Action Prompt Pill (Dead Center of Viewport & Significantly Larger) */
-.bk-spotlight-prompt-pill {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.85);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    z-index: 30;
-    background: #F5B82E;
-    color: #072314;
-    padding: 24px 52px;
-    border-radius: 999px;
-    border: 3px solid rgba(255, 255, 255, 0.65);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 0 8px rgba(245, 184, 46, 0.45);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 18px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 19px;
-    font-weight: 800;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    white-space: nowrap;
-    text-decoration: none;
-    user-select: none;
-    backdrop-filter: blur(8px);
-}
-.bk-spotlight-prompt-pill.is-shown {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translate(-50%, -50%) scale(1);
-}
-.bk-spotlight-prompt-pill:hover {
-    background: #FFFFFF;
-    color: #072314;
-    transform: translate(-50%, -50%) scale(1.06);
-    border-color: #FFFFFF;
-    box-shadow: 0 36px 90px rgba(0, 0, 0, 0.9), 0 0 0 9px rgba(255, 255, 255, 0.75);
-}
-.bk-spotlight-prompt-pill svg {
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    flex-shrink: 0;
-}
-.bk-spotlight-prompt-pill:hover svg {
-    transform: translateX(6px);
-}
-
-/* Corner Video Controls */
-.bk-spotlight-corner-ctrls {
-    position: absolute;
-    top: 24px;
-    right: 28px;
-    z-index: 20;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(7, 35, 20, 0.82);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 999px;
-    padding: 7px 16px;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
-}
-.bk-spotlight-corner-btn {
-    background: transparent;
-    border: none;
-    color: #ffffff;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 3px 6px;
-    border-radius: 4px;
-    transition: color 0.2s ease;
-}
-.bk-spotlight-corner-btn:hover {
-    color: #F5B82E;
-}
-
-/* Edge Arrow Navigation Controls (shadcn glassmorphism) */
-.bk-spotlight-arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 35;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: rgba(7, 35, 20, 0.72);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1.5px solid rgba(255, 255, 255, 0.28);
-    color: #FFFFFF;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
-    padding: 0;
-    outline: none;
-}
-.bk-spotlight-arrow:hover {
-    background: #F5B82E;
-    border-color: #F5B82E;
-    color: #0D3B22;
-    transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 16px 36px rgba(245, 184, 46, 0.55);
-}
-.bk-spotlight-arrow:focus-visible {
-    outline: 2px solid #F5B82E;
-    outline-offset: 3px;
-}
-.bk-spotlight-prev {
-    left: max(22px, env(safe-area-inset-left, 22px));
-}
-.bk-spotlight-next {
-    right: max(22px, env(safe-area-inset-right, 22px));
-}
-
-/* Bottom Bar: Hairline Progress & Slide Indicator */
-.bk-spotlight-bottom-bar {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 30;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0.4) 75%, transparent);
-    padding: 14px var(--bk-edge-pad, 2rem) 16px var(--bk-edge-pad, 2rem);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-.bk-spotlight-progress-line {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 4px;
-    background: #F5B82E;
-    width: 0%;
-    transition: width 0.15s linear;
-    z-index: 31;
-}
-
-/* Subtle Scroll Down Indicator */
-.bk-spotlight-scroll-cue {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: rgba(255, 255, 255, 0.85);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11.5px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    text-decoration: none;
-    transition: color 0.2s ease;
-    cursor: pointer;
-}
-.bk-spotlight-scroll-cue:hover {
-    color: #F5B82E;
-}
-.bk-spotlight-scroll-cue svg {
-    animation: bk-bounce-down 1.8s infinite ease-in-out;
-}
-@keyframes bk-bounce-down {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(5px); }
-}
-
-@media (max-width: 640px) {
-    .bk-spotlight-arrow {
-        width: 44px;
-        height: 44px;
-    }
-    .bk-spotlight-prev { left: 10px; }
-    .bk-spotlight-next { right: 10px; }
-    .bk-spotlight-prompt-pill {
-        top: 50%;
-        left: 50%;
-        font-size: 15px;
-        padding: 18px 32px;
-        gap: 14px;
-        max-width: calc(100vw - 40px);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 0 5px rgba(245, 184, 46, 0.45);
-    }
-    .bk-spotlight-scroll-cue span {
-        display: none;
-    }
-    .bk-spotlight-corner-ctrls {
-        top: 14px;
-        right: 14px;
-        padding: 5px 12px;
+        padding: 16px 18px;
     }
 }
 </style>
 
-<main class="flex-grow bk-sans" style="background-color: var(--bk-bg-warm); margin-top: 0; padding-top: 0;">
+<main id="bk-front-page" class="bk-sans" style="background-color: var(--bg-canvas, #FAF8F5); margin-top: 0; padding-top: 0;">
 
-<!-- =====================================================================
-     SECTION 1: HERO SPOTLIGHT & MEDIA SHOWCASE SLIDER (RESPONSIVE DESKTOP & MOBILE)
-     ===================================================================== -->
-<?php
-$spotlight_slides = function_exists('ppb_get_spotlight_slides') ? ppb_get_spotlight_slides() : array();
-$spotlight_settings = function_exists('ppb_get_spotlight_settings') ? ppb_get_spotlight_settings() : array(
-    'autoplay' => '1', 'speed' => 8, 'fit_mode' => 'contain', 'height_mode' => 'fullscreen', 'mobile_height_mode' => 'fullscreen'
-);
-$total_slides = count($spotlight_slides);
-$fit_class = ($spotlight_settings['fit_mode'] === 'cover') ? 'fit-cover' : '';
-$mobile_h_class = (($spotlight_settings['mobile_height_mode'] ?? 'fullscreen') === 'cinema') ? 'mobile-cinema' : 'mobile-fullscreen';
-?>
-<section id="hero_spotlight" class="bk-spotlight-hero-wrap <?php echo esc_attr($mobile_h_class); ?> relative w-full" aria-label="Hero Spotlight Media Showcase">
+    <!-- =====================================================================
+         SECTION 1: FULL-SCREEN 100VH SPOTLIGHT HERO & MEDIA SHOWCASE
+         ===================================================================== -->
+    <section class="bk-spotlight-hero" id="hero_spotlight" aria-label="Sorotan Utama Jurusan PPB BK FIP UNM" data-autoplay="<?php echo esc_attr($spotlight_settings['autoplay'] ?? '1'); ?>" data-speed="<?php echo esc_attr($spotlight_settings['speed'] ?? 8); ?>">
+        <div class="bk-spotlight-grid-overlay" aria-hidden="true"></div>
 
-    <!-- Ambient Grid Backdrop -->
-    <div class="bk-spotlight-stage-grid"></div>
+        <div class="bk-spotlight-track" id="bk-sp-track" role="region" aria-roledescription="carousel" aria-label="Sorotan Utama BK FIP UNM">
+            <?php foreach ($spotlight_slides as $s_idx => $sl) :
+                $is_first     = ($s_idx === 0);
+                $h_tag        = $is_first ? 'h1' : 'h2';
+                $s_type       = $sl['type'] ?? 'image';
+                $s_device     = $sl['device_target'] ?? 'all';
+                $mode_tag     = !empty($sl['mode_tag']) ? $sl['mode_tag'] : ($s_type === 'video' ? 'VIDEO PROFIL' : ($s_type === 'card' ? 'AKREDITASI UNGGUL' : 'SOROTAN UTAMA'));
+                $kicker       = !empty($sl['kicker']) ? $sl['kicker'] : ('Sorotan 0' . ($s_idx + 1) . ' · ' . $mode_tag);
+                $eyebrow      = !empty($sl['eyebrow']) ? $sl['eyebrow'] : 'AKREDITASI UNGGUL · LAMDIK';
+                $headline     = !empty($sl['headline']) ? $sl['headline'] : (!empty($sl['caption_title']) ? $sl['caption_title'] : 'Membentuk Konselor Humanis, Adaptif, dan Berintegritas.');
+                $summary      = !empty($sl['summary']) ? $sl['summary'] : 'Jurusan PPB / Prodi Bimbingan & Konseling FIP UNM memadukan sains perilaku, kearifan Bugis-Makassar, dan teknologi asesmen sejak 1969.';
+                $action_text  = !empty($sl['action_text']) ? $sl['action_text'] : 'Jelajahi Selengkapnya';
+                $target_url   = !empty($sl['target_url']) ? $sl['target_url'] : home_url('/akademik/kurikulum/');
+                $prompt_text  = !empty($sl['prompt_text']) ? $sl['prompt_text'] : $action_text;
+                $prompt_url   = !empty($sl['prompt_url']) ? $sl['prompt_url'] : $target_url;
+                $metrics      = (!empty($sl['metrics']) && is_array($sl['metrics'])) ? $sl['metrics'] : array(
+                    array('label' => 'S1 Sarjana',  'value' => 'SK 742/SK/LAMDIK (s.d. 2028)'),
+                    array('label' => 'S2 Magister', 'value' => 'SK 412/SK/LAMDIK (Unggul)'),
+                    array('label' => 'S3 Doktoral', 'value' => 'Baik Sekali · Riset Indigenos'),
+                );
 
-    <!-- Edge Arrow Navigation Buttons (Prev & Next) -->
-    <?php if ($total_slides > 1) : ?>
-        <button type="button" class="bk-spotlight-arrow bk-spotlight-prev" id="bk-spotlight-btn-prev" aria-label="Slide sebelumnya" title="Slide Sebelumnya (Arrow Left)">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        </button>
-        <button type="button" class="bk-spotlight-arrow bk-spotlight-next" id="bk-spotlight-btn-next" aria-label="Slide berikutnya" title="Slide Berikutnya (Arrow Right)">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-        </button>
-    <?php endif; ?>
+                $raw_img = $sl['image_url'] ?? '';
+                $img_url = !empty($raw_img)
+                    ? (function_exists('bk_parse_spotlight_image_url') ? bk_parse_spotlight_image_url($raw_img) : $raw_img)
+                    : (get_template_directory_uri() . '/assets/img/hero-campus.jpg');
+                $raw_mob = $sl['image_mobile_url'] ?? '';
+                $mob_url = !empty($raw_mob)
+                    ? (function_exists('bk_parse_spotlight_image_url') ? bk_parse_spotlight_image_url($raw_mob) : $raw_mob)
+                    : '';
+                $video_url_raw = trim((string)($sl['video_url'] ?? ''));
+                $video_url = '';
+                if ($video_url_raw !== '') {
+                    if (preg_match('#^(https?:)?//#i', $video_url_raw)) {
+                        $video_url = $video_url_raw;
+                    } else {
+                        $rel_vid = ltrim($video_url_raw, '/');
+                        if (file_exists(get_template_directory() . '/' . $rel_vid)) {
+                            $video_url = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($video_url_raw) : (get_template_directory_uri() . '/' . $rel_vid);
+                        }
+                    }
+                }
 
-    <!-- Slides Viewport Track (Full Viewport Screen-Filling) -->
-    <div class="bk-spotlight-viewport" id="bk-spotlight-viewport" data-autoplay="<?php echo esc_attr($spotlight_settings['autoplay']); ?>" data-speed="<?php echo esc_attr($spotlight_settings['speed']); ?>">
-        
-        <?php foreach ($spotlight_slides as $s_idx => $s_item) : 
-            $is_first = ($s_idx === 0);
-            $s_type = $s_item['type'] ?? 'image';
-            $s_device = $s_item['device_target'] ?? 'all';
-            $s_video = $s_item['video_url'] ?? '';
-            $s_raw_img = $s_item['image_url'] ?? '';
-            $s_img = !empty($s_raw_img) ? (function_exists('bk_parse_spotlight_image_url') ? bk_parse_spotlight_image_url($s_raw_img) : $s_raw_img) : (get_template_directory_uri() . '/assets/img/gedung-unm.png');
-            $s_raw_mob = $s_item['image_mobile_url'] ?? '';
-            $s_img_mobile = !empty($s_raw_mob) ? (function_exists('bk_parse_spotlight_image_url') ? bk_parse_spotlight_image_url($s_raw_mob) : $s_raw_mob) : '';
-            $target_url = $s_item['target_url'] ?? '';
-            $action_text = $s_item['action_text'] ?: 'Lihat lebih lanjut';
+                $device_cls = '';
+                if ($s_device === 'desktop_only') $device_cls = 'bk-device-desktop-only';
+                elseif ($s_device === 'mobile_only') $device_cls = 'bk-device-mobile-only';
+            ?>
+            <div class="bk-spotlight-slide <?php echo $is_first ? 'is-active' : ''; ?> <?php echo esc_attr($device_cls); ?>"
+                 data-sp-slide="<?php echo esc_attr($s_idx); ?>"
+                 data-sp-type="<?php echo esc_attr($s_type); ?>"
+                 data-sp-mode="<?php echo esc_attr($mode_tag); ?>"
+                 data-device-target="<?php echo esc_attr($s_device); ?>">
 
-            $device_class = '';
-            if ($s_device === 'desktop_only') $device_class = 'bk-device-desktop-only';
-            elseif ($s_device === 'mobile_only') $device_class = 'bk-device-mobile-only';
-        ?>
-        <div class="bk-spotlight-slide <?php echo $is_first ? 'is-active' : ''; ?> <?php echo esc_attr($device_class); ?>" 
-             data-slide-index="<?php echo $s_idx; ?>" 
-             data-slide-type="<?php echo esc_attr($s_type); ?>"
-             data-device-target="<?php echo esc_attr($s_device); ?>"
-             data-target-url="<?php echo esc_url($target_url); ?>"
-             data-action-text="<?php echo esc_attr($action_text); ?>">
-            
-            <!-- Fullscreen Unobstructed Canvas Box -->
-            <div class="bk-spotlight-canvas-box <?php echo esc_attr($fit_class); ?>">
-                
-                <?php if ($s_type === 'video' && !empty($s_video)) : 
-                    $v_source = bk_parse_spotlight_video_source($s_video);
-                ?>
-                    <?php if ($v_source && in_array($v_source['type'], ['youtube', 'gdrive', 'vimeo'])) : ?>
-                        <!-- Fullscreen Cinematic Cloud Video Stream (YouTube / Google Drive / Vimeo) -->
-                        <div class="bk-spotlight-video-el bk-spotlight-embed-wrap">
-                            <iframe id="bk-cloud-iframe-<?php echo $s_idx; ?>" 
-                                    class="bk-cloud-iframe"
-                                    src="<?php echo esc_url($v_source['embed_url']); ?>" 
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                    allowfullscreen></iframe>
+                <?php if ($s_type === 'card') : ?>
+                    <!-- Slide Variant: Full-Viewport LAMDIK / Institutional Stage Card -->
+                    <div class="bk-sp-card-slide">
+                        <div class="bk-sp-card-inner">
+                            <div class="bk-sp-card-eyebrow"><?php echo esc_html($eyebrow); ?></div>
+                            <<?php echo $h_tag; ?>><?php echo esc_html($headline); ?></<?php echo $h_tag; ?>>
+                            <p><?php echo esc_html($summary); ?></p>
+                            <div class="bk-sp-card-metrics">
+                                <?php foreach ($metrics as $m) :
+                                    $m_lbl = $m['label'] ?? ($m[0] ?? '');
+                                    $m_val = $m['value'] ?? ($m['val'] ?? ($m[1] ?? ''));
+                                    if ($m_lbl === '' && $m_val === '') continue;
+                                ?>
+                                <div class="bk-sp-metric">
+                                    <strong><?php echo esc_html($m_lbl); ?></strong>
+                                    <span><?php echo esc_html($m_val); ?></span>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <div class="bk-sp-cta-row" style="margin-top:6px;">
+                                <a href="<?php echo esc_url($target_url); ?>" class="bk-btn bk-btn-gold">
+                                    <span><?php echo esc_html($action_text); ?></span>
+                                    <span aria-hidden="true">&rarr;</span>
+                                </a>
+                            </div>
                         </div>
-
-                        <!-- Corner Video Controls for Cloud Video (YouTube / Drive) -->
-                        <div class="bk-spotlight-corner-ctrls">
-                            <button type="button" class="bk-spotlight-corner-btn btn-toggle-audio" title="Nyalakan/Matikan Suara Video">
-                                <span class="audio-icon">🔊</span>
-                                <span class="audio-text">Nyalakan Audio</span>
-                            </button>
-                            <span style="color:rgba(255,255,255,0.3);">|</span>
-                            <button type="button" class="bk-spotlight-corner-btn btn-toggle-play" title="Jeda/Putar Video">
-                                <span class="play-icon">⏸</span>
-                                <span class="play-text">Jeda</span>
-                            </button>
-                            <?php if ($v_source['type'] === 'youtube') : ?>
-                                <span style="color:rgba(255,255,255,0.3);">|</span>
-                                <span class="bk-mono" style="font-size:11px;color:#F5B82E;font-weight:700;">YOUTUBE</span>
-                            <?php endif; ?>
-                        </div>
-                    <?php else : ?>
-                        <!-- Direct MP4 Video Player -->
-                        <video class="bk-spotlight-video-el" autoplay muted playsinline preload="auto" poster="<?php echo esc_url($s_img); ?>">
-                            <source src="<?php echo esc_url($s_video); ?>" type="video/mp4">
+                    </div>
+                <?php else : ?>
+                    <!-- Slide Variant: Full-Bleed Image / Video + Editorial Lower-Left Caption Overlay -->
+                    <?php if ($s_type === 'video' && !empty($video_url) && preg_match('/\.(mp4|webm|ogg)(\?.*)?$/i', $video_url)) : ?>
+                        <video autoplay muted loop playsinline preload="metadata" poster="<?php echo esc_url($img_url); ?>">
+                            <source src="<?php echo esc_url($video_url); ?>" type="video/mp4">
                         </video>
-
-                        <!-- Corner Controls for MP4 -->
-                        <div class="bk-spotlight-corner-ctrls">
-                            <button type="button" class="bk-spotlight-corner-btn btn-toggle-audio" title="Nyalakan/Matikan Suara Narasi">
-                                <span class="audio-icon">🔊</span>
-                                <span class="audio-text">Nyalakan Audio</span>
-                            </button>
-                            <span style="color:rgba(255,255,255,0.3);">|</span>
-                            <button type="button" class="bk-spotlight-corner-btn btn-toggle-play" title="Jeda/Putar Video">
-                                <span class="play-icon">⏸</span>
-                                <span class="play-text">Jeda</span>
-                            </button>
-                        </div>
+                    <?php else : ?>
+                        <picture>
+                            <?php if (!empty($mob_url)) : ?>
+                                <source media="(max-width: 768px)" srcset="<?php echo esc_url($mob_url); ?>">
+                            <?php endif; ?>
+                            <img src="<?php echo esc_url($img_url); ?>" alt="<?php echo esc_attr($headline); ?>" loading="<?php echo $is_first ? 'eager' : 'lazy'; ?>">
+                        </picture>
                     <?php endif; ?>
 
-                <?php else : ?>
-                    <!-- Responsive Photo / News Flyer / Banner using <picture> -->
-                    <picture>
-                        <?php if (!empty($s_img_mobile)) : ?>
-                            <source media="(max-width: 768px)" srcset="<?php echo esc_url($s_img_mobile); ?>">
-                        <?php endif; ?>
-                        <img src="<?php echo esc_url($s_img); ?>" alt="Banner Informasi PPB FIP UNM" loading="<?php echo $is_first ? 'eager' : 'lazy'; ?>">
-                    </picture>
+                    <div class="bk-sp-scrim" aria-hidden="true"></div>
+
+                    <div class="bk-sp-caption-overlay">
+                        <div class="bk-sp-caption-inner">
+                            <div class="bk-sp-caption-box">
+                                <<?php echo $h_tag; ?>><?php echo esc_html($headline); ?></<?php echo $h_tag; ?>>
+                                <p class="bk-sp-caption-lead"><?php echo esc_html($summary); ?></p>
+                                <div class="bk-sp-cta-row">
+                                    <a href="<?php echo esc_url($target_url); ?>" class="bk-btn bk-btn-gold">
+                                        <span><?php echo esc_html($action_text); ?></span>
+                                        <span aria-hidden="true">&rarr;</span>
+                                    </a>
+                                    <?php if ($s_type === 'video') : ?>
+                                    <button type="button" class="bk-btn bk-btn-glass" data-open-vchap="0">
+                                        <span>Tonton Video Profil</span>
+                                        <span aria-hidden="true">&#9654;</span>
+                                    </button>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 <?php endif; ?>
 
-                <!-- Click Detection Shield (Triggers Action Prompt on first click to avoid misclicks) -->
-                <?php if (!empty($target_url)) : ?>
-                    <div class="bk-spotlight-click-shield" title="Klik untuk menampilkan aksi"></div>
-                    <div class="bk-spotlight-prompt-pill" data-href="<?php echo esc_url($target_url); ?>">
-                        <span><?php echo esc_html($action_text); ?></span>
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                    </div>
+                <!-- Top-Left Kicker Pill -->
+                <div class="bk-sp-mode-tag">
+                    <span class="bk-sp-dot-live" aria-hidden="true"></span>
+                    <span><?php echo esc_html($kicker); ?></span>
+                </div>
+
+                <!-- Top-Right Video Modal Trigger (on video slides) -->
+                <?php if ($s_type === 'video') : ?>
+                <button type="button" class="bk-sp-video-btn" data-open-vchap="0" aria-label="Tonton Video Profil Jurusan">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                    <span class="bk-sp-video-btn-text">Tonton Video</span>
+                </button>
                 <?php endif; ?>
 
-            </div>
-
-        </div>
-        <?php endforeach; ?>
-
-    </div>
-
-    <!-- Bottom Bar: Hairline Progress Line + Non-Obstructive Floating Badges -->
-    <div class="bk-spotlight-bottom-bar">
-        <div class="bk-spotlight-progress-line" id="bk-spotlight-progress-line"></div>
-
-        <!-- Left Floating Pill: Slide Counter & Dots -->
-        <div class="bk-spotlight-ctrl-pill">
-            <div class="bk-mono" style="font-size:13px;color:#ffffff;font-weight:700;display:flex;align-items:center;gap:8px;">
-                <span id="bk-spotlight-current-idx" style="color:#F5B82E;">01</span>
-                <span style="color:rgba(255,255,255,0.4);">/</span>
-                <span id="bk-spotlight-total-idx" style="color:rgba(255,255,255,0.7);"><?php echo sprintf("%02d", $total_slides); ?></span>
-            </div>
-            <span style="color:rgba(255,255,255,0.25);font-size:12px;">|</span>
-            <div style="display:flex;align-items:center;gap:6px;" id="bk-spotlight-dots">
-                <?php for ($d = 0; $d < $total_slides; $d++) : ?>
-                    <button type="button" class="bk-spotlight-dot-pill <?php echo $d === 0 ? "active" : ""; ?>" data-go-to="<?php echo $d; ?>" aria-label="Menuju Slide <?php echo $d + 1; ?>" style="width:<?php echo $d === 0 ? "30px" : "10px"; ?>;height:6px;border-radius:3px;background:<?php echo $d === 0 ? "#F5B82E" : "rgba(255,255,255,0.35)"; ?>;border:none;padding:0;cursor:pointer;transition:all 0.25s ease;"></button>
-                <?php endfor; ?>
-            </div>
-        </div>
-
-        <!-- Center Floating Pill: Scroll Down Cue -->
-        <a href="#stats_section" class="bk-spotlight-scroll-cue bk-spotlight-ctrl-pill" style="text-decoration:none;" title="Gulir ke bawah untuk melihat data &amp; rekam jejak">
-            <span>GULIR KE BAWAH</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
-        </a>
-
-        <!-- Right Floating Pill: Status & Autoplay Toggle -->
-        <div class="bk-spotlight-ctrl-pill">
-            <span class="bk-mono" id="bk-spotlight-mode-tag" style="font-size:11px;color:#F5B82E;font-weight:700;">
-                VIDEO AKTIF
-            </span>
-            <span style="color:rgba(255,255,255,0.25);font-size:12px;">|</span>
-            <button type="button" id="bk-spotlight-toggle-play" style="background:transparent;border:none;color:rgba(255,255,255,0.9);padding:0;font-size:11px;font-family:monospace;cursor:pointer;" title="Jeda/Lanjutkan pergantian slide otomatis">
-                JEDA
-            </button>
-        </div>
-    </div>
-
-</section>
-<!-- =====================================================================
-     SECTION 2: SWISS 4-COLUMN ARCHITECTURAL DATA LEDGER (STATS)
-     ===================================================================== -->
-<section id="stats_section" class="bk-section-stats_section relative w-full" style="background-color: var(--bk-bg-warm); padding-top: 36px; padding-bottom: 20px;">
-    <div class="bk-container">
-        <div class="bk-ledger-strip">
-            <!-- Metric 01 -->
-            <div class="bk-ledger-item">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-ink-subtle);letter-spacing:0.08em;">01 // MUTU AKADEMIK</span>
-                    <span class="bk-mono" style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--bk-bg-sage);color:var(--bk-forest);">LAMDIK</span>
-                </div>
-                <div>
-                    <div class="bk-serif" style="font-size:32px;font-weight:600;color:var(--bk-forest);line-height:1.05;letter-spacing:-0.02em;margin-bottom:6px;">
-                        Unggul
-                    </div>
-                    <p style="font-size:12px;color:var(--bk-ink-muted);line-height:1.5;margin:0;">
-                        Peringkat akreditasi tertinggi nasional untuk penyelenggaraan pendidikan konselor.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Metric 02 -->
-            <div class="bk-ledger-item">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-ink-subtle);letter-spacing:0.08em;">02 // TRADISI KEILMUAN</span>
-                    <span class="bk-mono" style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;background:#F1F5F9;color:#334155;">HISTORIS</span>
-                </div>
-                <div>
-                    <div class="bk-serif" style="font-size:32px;font-weight:600;color:var(--bk-ink);line-height:1.05;letter-spacing:-0.02em;margin-bottom:6px;font-variant-numeric:tabular-nums;">
-                        1969
-                    </div>
-                    <p style="font-size:12px;color:var(--bk-ink-muted);line-height:1.5;margin:0;">
-                        Lebih dari 55 tahun mencetak pendidik, konselor sekolah, dan ilmuwan psikologi pendidikan.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Metric 03 -->
-            <div class="bk-ledger-item">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-ink-subtle);letter-spacing:0.08em;">03 // OTORITAS PAKAR</span>
-                    <span class="bk-mono" style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;background:#FEF3C7;color:#92400E;">PROFESOR</span>
-                </div>
-                <div>
-                    <div class="bk-serif" style="font-size:32px;font-weight:600;color:var(--bk-ink);line-height:1.05;letter-spacing:-0.02em;margin-bottom:6px;font-variant-numeric:tabular-nums;">
-                        4 Guru Besar
-                    </div>
-                    <p style="font-size:12px;color:var(--bk-ink-muted);line-height:1.5;margin:0;">
-                        Didukung puluhan Doktor dan Lektor Kepala aktif dengan riset terindeks SINTA &amp; Scopus.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Metric 04 -->
-            <div class="bk-ledger-item">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-ink-subtle);letter-spacing:0.08em;">04 // ARSITEKTUR STUDI</span>
-                    <span class="bk-mono" style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--bk-bg-sage);color:var(--bk-forest);">KKNI 6-9</span>
-                </div>
-                <div>
-                    <div class="bk-serif" style="font-size:32px;font-weight:600;color:var(--bk-forest);line-height:1.05;letter-spacing:-0.02em;margin-bottom:6px;">
-                        S1 &middot; S2 &middot; S3
-                    </div>
-                    <p style="font-size:12px;color:var(--bk-ink-muted);line-height:1.5;margin:0;">
-                        Kesinambungan studi linier dari jenjang Sarjana, Magister, hingga Doktoral di satu jurusan.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- =====================================================================
-     SECTION 3: WARTA AKADEMIK & PENGABDIAN (EDITORIAL DISPATCH - 6 OVERVIEW)
-     ===================================================================== -->
-<section id="news_unified_section" class="bk-section-news_unified_section relative w-full" style="background-color: var(--bk-bg-warm); padding-top: 36px; padding-bottom: 56px; border-bottom: 1px solid var(--bk-border);">
-    <div class="bk-container">
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:28px;">
-            <div style="max-width:640px;">
-                <div class="bk-sec-kicker">Warta Jurusan &amp; Diseminasi</div>
-                <h2 class="bk-serif" style="font-size:clamp(26px, 3vw, 34px);color:var(--bk-ink);margin:0 0 6px 0;font-weight:500;letter-spacing:-0.02em;">
-                    Kabar Akademik, Riset &amp; Pengabdian
-                </h2>
-                <p style="font-size:13.5px;color:var(--bk-ink-muted);margin:0;line-height:1.6;">
-                    Dokumentasi kegiatan tridharma, kuliah tamu, seminar nasional, pengukuhan guru besar, serta capaian prestasi mahasiswa PPB FIP UNM.
-                </p>
-            </div>
-            <a href="<?php echo esc_url(home_url('/berita/')); ?>" class="bk-btn-outline-dark">
-                <span>Indeks Arsip Berita</span>
-                <span aria-hidden="true">&rarr;</span>
-            </a>
-        </div>
-
-        <?php echo do_shortcode('[ppb_home_news count="6"]'); ?>
-    </div>
-</section>
-
-<!-- =====================================================================
-     SECTION 4: PROGRAM STUDI TERINTEGRASI (SHADCN TABS + ARCHITECTURAL MATRIX)
-     ===================================================================== -->
-<section id="prodi_unified_section" class="bk-section-prodi_unified_section relative w-full" style="background-color: var(--bk-bg-warm); padding-top: 48px; padding-bottom: 56px;">
-    <div class="bk-container" id="prodi-section">
-        
-        <!-- Section Header + shadcn Tabs Switcher -->
-        <div class="bk-tabs-header">
-            <div style="max-width:640px;">
-                <div class="bk-sec-kicker">Kurikulum &amp; Jenjang Akademik</div>
-                <h2 class="bk-serif" style="font-size:clamp(26px, 3.2vw, 36px);color:var(--bk-ink);margin:0 0 8px 0;line-height:1.18;font-weight:500;letter-spacing:-0.02em;">
-                    Pendidikan Berkelanjutan Sarjana hingga Doktor
-                </h2>
-                <p style="font-size:13.5px;color:var(--bk-ink-muted);line-height:1.6;margin:0;">
-                    Pilih tampilan matriks perbandingan atau telaah spesifikasi kurikulum Outcome-Based Education (OBE) pada masing-masing jenjang studi.
-                </p>
-            </div>
-
-            <!-- Interactive TabsList -->
-            <div class="bk-tabs-list" role="tablist" aria-label="Pilih Jenjang Studi">
-                <button type="button" class="bk-tab-trigger is-active" data-prodi-tab="all" role="tab" aria-selected="true">
-                    <span class="bk-mono" style="font-size:11px;opacity:0.7;">00</span> Semua Jenjang
-                </button>
-                <button type="button" class="bk-tab-trigger" data-prodi-tab="s1" role="tab" aria-selected="false">
-                    <span class="bk-mono" style="font-size:11px;opacity:0.7;">S1</span> Sarjana
-                </button>
-                <button type="button" class="bk-tab-trigger" data-prodi-tab="s2" role="tab" aria-selected="false">
-                    <span class="bk-mono" style="font-size:11px;opacity:0.7;">S2</span> Magister
-                </button>
-                <button type="button" class="bk-tab-trigger" data-prodi-tab="s3" role="tab" aria-selected="false">
-                    <span class="bk-mono" style="font-size:11px;opacity:0.7;">S3</span> Doktoral
-                </button>
-            </div>
-        </div>
-
-        <!-- Unified Architectural Matrix (Shared 1px Hairlines, NOT floating AI cards) -->
-        <div class="bk-prodi-matrix" id="bk-prodi-matrix-view">
-            
-            <!-- Column S1 -->
-            <div class="bk-prodi-col" data-prodi-panel="s1">
-                <div style="padding:28px 28px 20px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--bk-border-subtle);margin-bottom:18px;">
-                        <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-forest);letter-spacing:0.06em;">JENJANG 01 // KKNI LEVEL 6</span>
-                        <span class="bk-mono" style="background:var(--bk-forest);color:var(--bk-gold);font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;">UNGGUL</span>
-                    </div>
-
-                    <h3 class="bk-serif" style="font-size:22px;color:var(--bk-ink);margin:0 0 8px 0;font-weight:600;line-height:1.25;">
-                        S1 Bimbingan dan Konseling
-                    </h3>
-                    <p style="font-size:13px;color:var(--bk-ink-muted);line-height:1.65;margin:0 0 20px 0;">
-                        Mempersiapkan sarjana pendidik dan praktisi layanan bimbingan konseling yang menguasai asesmen psikologis, konseling individual/kelompok, serta bimbingan klasikal di satuan pendidikan.
-                    </p>
-
-                    <!-- Technical Specification Ledger -->
-                    <div style="background:var(--bk-bg-warm);border:1px solid var(--bk-border-subtle);border-radius:8px;padding:10px 14px;margin-bottom:20px;">
-                        <div class="bk-spec-row">
-                            <span style="color:var(--bk-ink-subtle);">Gelar Akademik</span>
-                            <strong class="bk-mono" style="color:var(--bk-ink);font-size:12px;">Sarjana Pendidikan (S.Pd.)</strong>
-                        </div>
-                        <div class="bk-spec-row">
-                            <span style="color:var(--bk-ink-subtle);">Beban &amp; Masa Studi</span>
-                            <strong class="bk-mono" style="color:var(--bk-ink);font-size:12px;">144–146 SKS &middot; 8 Semester</strong>
-                        </div>
-                        <div class="bk-spec-row">
-                            <span style="color:var(--bk-ink-subtle);">Kurikulum Aktif</span>
-                            <strong class="bk-mono" style="color:var(--bk-forest);font-size:12px;">OBE Terintegrasi MBKM</strong>
-                        </div>
-                    </div>
-
-                    <div class="bk-mono" style="font-size:10.5px;font-weight:600;color:var(--bk-ink-subtle);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">
-                        KOMPETENSI UTAMA KURIKULUM:
-                    </div>
-                    <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--bk-ink);">
-                        <li style="display:flex;align-items:flex-start;gap:8px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D3B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Mikrokonseling &amp; Teknik Terapi Perilaku/Kognitif</span>
-                        </li>
-                        <li style="display:flex;align-items:flex-start;gap:8px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D3B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Asesmen Psikologi Tes &amp; Non-Tes (DCM, AUM, IKMS)</span>
-                        </li>
-                        <li style="display:flex;align-items:flex-start;gap:8px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D3B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Manajemen Program BK Sekolah &amp; Konseling Karier</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <div style="padding:16px 28px;border-top:1px solid var(--bk-border-subtle);background:#FAF8F5;display:flex;justify-content:space-between;align-items:center;">
-                    <a href="<?php echo esc_url(home_url('/akademik/kurikulum/')); ?>" style="color:var(--bk-forest);font-size:12.5px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-                        <span>Struktur Kurikulum S1</span>
-                        <span aria-hidden="true">&rarr;</span>
-                    </a>
-                    <a href="<?php echo esc_url(home_url('/profil/visi-misi/')); ?>" class="bk-mono" style="font-size:11px;color:var(--bk-ink-subtle);text-decoration:none;">Visi Keilmuan</a>
-                </div>
-            </div>
-
-            <!-- Column S2 -->
-            <div class="bk-prodi-col" data-prodi-panel="s2">
-                <div style="padding:28px 28px 20px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--bk-border-subtle);margin-bottom:18px;">
-                        <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-forest);letter-spacing:0.06em;">JENJANG 02 // KKNI LEVEL 8</span>
-                        <span class="bk-mono" style="background:var(--bk-bg-sage);color:var(--bk-forest);border:1px solid var(--bk-border);font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;">TERAKREDITASI</span>
-                    </div>
-
-                    <h3 class="bk-serif" style="font-size:22px;color:var(--bk-ink);margin:0 0 8px 0;font-weight:600;line-height:1.25;">
-                        S2 Bimbingan dan Konseling
-                    </h3>
-                    <p style="font-size:13px;color:var(--bk-ink-muted);line-height:1.65;margin:0 0 20px 0;">
-                        Mengembangkan penguasaan metodologi riset lanjut, rekayasa model intervensi psikososial, konseling lintas budaya, serta kepemimpinan akademik dan profesi konseling.
-                    </p>
-
-                    <!-- Technical Specification Ledger -->
-                    <div style="background:var(--bk-bg-warm);border:1px solid var(--bk-border-subtle);border-radius:8px;padding:10px 14px;margin-bottom:20px;">
-                        <div class="bk-spec-row">
-                            <span style="color:var(--bk-ink-subtle);">Gelar Akademik</span>
-                            <strong class="bk-mono" style="color:var(--bk-ink);font-size:12px;">Magister Pendidikan (M.Pd.)</strong>
-                        </div>
-                        <div class="bk-spec-row">
-                            <span style="color:var(--bk-ink-subtle);">Beban &amp; Masa Studi</span>
-                            <strong class="bk-mono" style="color:var(--bk-ink);font-size:12px;">38–42 SKS &middot; 4 Semester</strong>
-                        </div>
-                        <div class="bk-spec-row">
-                            <span style="color:var(--bk-ink-subtle);">Fokus Luaran</span>
-                            <strong class="bk-mono" style="color:var(--bk-forest);font-size:12px;">Tesis &amp; Jurnal Terindeks</strong>
-                        </div>
-                    </div>
-
-                    <div class="bk-mono" style="font-size:10.5px;font-weight:600;color:var(--bk-ink-subtle);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">
-                        KOMPETENSI UTAMA KURIKULUM:
-                    </div>
-                    <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--bk-ink);">
-                        <li style="display:flex;align-items:flex-start;gap:8px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D3B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Metodologi Penelitian Kuantitatif, Kualitatif &amp; R&amp;D BK</span>
-                        </li>
-                        <li style="display:flex;align-items:flex-start;gap:8px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D3B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Pengembangan Modul &amp; Instrumen Psikometri Terapan</span>
-                        </li>
-                        <li style="display:flex;align-items:flex-start;gap:8px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D3B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Konseling Krisis, Rehabilitasi &amp; Trauma Multi-Kultur</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <div style="padding:16px 28px;border-top:1px solid var(--bk-border-subtle);background:#FAF8F5;display:flex;justify-content:space-between;align-items:center;">
-                    <a href="<?php echo esc_url(home_url('/akademik/')); ?>" style="color:var(--bk-forest);font-size:12.5px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-                        <span>Informasi Akademik S2</span>
-                        <span aria-hidden="true">&rarr;</span>
-                    </a>
-                    <a href="<?php echo esc_url(home_url('/profil/roadmap/')); ?>" class="bk-mono" style="font-size:11px;color:var(--bk-ink-subtle);text-decoration:none;">Peta Riset</a>
-                </div>
-            </div>
-
-            <!-- Column S3 -->
-            <div class="bk-prodi-col" data-prodi-panel="s3">
-                <div style="padding:28px 28px 20px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--bk-border-subtle);margin-bottom:18px;">
-                        <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-forest);letter-spacing:0.06em;">JENJANG 03 // KKNI LEVEL 9</span>
-                        <span class="bk-mono" style="background:var(--bk-bg-sage);color:var(--bk-forest);border:1px solid var(--bk-border);font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;">TERAKREDITASI</span>
-                    </div>
-
-                    <h3 class="bk-serif" style="font-size:22px;color:var(--bk-ink);margin:0 0 8px 0;font-weight:600;line-height:1.25;">
-                        S3 Bimbingan dan Konseling
-                    </h3>
-                    <p style="font-size:13px;color:var(--bk-ink-muted);line-height:1.65;margin:0 0 20px 0;">
-                        Mencetak filosof keilmuan, akademisi tingkat universitas, dan perumus kebijakan nasional yang mampu melahirkan kebaruan teori (novelty) konseling berakar kearifan budaya.
-                    </p>
-
-                    <!-- Technical Specification Ledger -->
-                    <div style="background:var(--bk-bg-warm);border:1px solid var(--bk-border-subtle);border-radius:8px;padding:10px 14px;margin-bottom:20px;">
-                        <div class="bk-spec-row">
-                            <span style="color:var(--bk-ink-subtle);">Gelar Akademik</span>
-                            <strong class="bk-mono" style="color:var(--bk-ink);font-size:12px;">Doktor (Dr.)</strong>
-                        </div>
-                        <div class="bk-spec-row">
-                            <span style="color:var(--bk-ink-subtle);">Beban &amp; Masa Studi</span>
-                            <strong class="bk-mono" style="color:var(--bk-ink);font-size:12px;">42–48 SKS &middot; 6 Semester</strong>
-                        </div>
-                        <div class="bk-spec-row">
-                            <span style="color:var(--bk-ink-subtle);">Fokus Luaran</span>
-                            <strong class="bk-mono" style="color:var(--bk-forest);font-size:12px;">Disertasi &amp; Scopus/WoS</strong>
-                        </div>
-                    </div>
-
-                    <div class="bk-mono" style="font-size:10.5px;font-weight:600;color:var(--bk-ink-subtle);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">
-                        KOMPETENSI UTAMA KURIKULUM:
-                    </div>
-                    <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--bk-ink);">
-                        <li style="display:flex;align-items:flex-start;gap:8px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D3B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Filsafat Keilmuan &amp; Epistemologi Konseling Kontemporer</span>
-                        </li>
-                        <li style="display:flex;align-items:flex-start;gap:8px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D3B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Konstruksi Model Konseling Indigenos &amp; Kearifan Lokal</span>
-                        </li>
-                        <li style="display:flex;align-items:flex-start;gap:8px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D3B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Publikasi Bereputasi Internasional &amp; Kebijakan Pendidikan</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <div style="padding:16px 28px;border-top:1px solid var(--bk-border-subtle);background:#FAF8F5;display:flex;justify-content:space-between;align-items:center;">
-                    <a href="<?php echo esc_url(home_url('/akademik/panduan/')); ?>" style="color:var(--bk-forest);font-size:12.5px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-                        <span>Pedoman Akademik S3</span>
-                        <span aria-hidden="true">&rarr;</span>
-                    </a>
-                    <a href="<?php echo esc_url(home_url('/jurnal-bk/')); ?>" class="bk-mono" style="font-size:11px;color:var(--bk-ink-subtle);text-decoration:none;">Jurnal Ilmiah</a>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- =====================================================================
-     SECTION 5: VISI KEILMUAN & PILAR KELEMBAGAAN (SWISS HAIRLINE INDEX)
-     ===================================================================== -->
-<section id="about_section" class="bk-section-about_section relative w-full" style="background-color: #FFFFFF; padding-top: 60px; padding-bottom: 64px; border-top: 1px solid var(--bk-border); border-bottom: 1px solid var(--bk-border);">
-    <div class="bk-container">
-        <div class="bk-about-split">
-            
-            <!-- Left Column (5 cols): Editorial Essay & Leadership Pull-Quote -->
-            <div class="bk-about-left">
-                <div class="bk-sec-kicker">Identitas &amp; Filosofi Keilmuan</div>
-                <h2 class="bk-serif" style="font-size:clamp(26px, 3vw, 34px);color:var(--bk-ink);margin:0 0 14px 0;line-height:1.2;font-weight:500;letter-spacing:-0.02em;">
-                    Berakar pada Integritas Insani, Bertumbuh melalui Sains &amp; Empati
-                </h2>
-                <p style="font-size:13.5px;color:var(--bk-ink-muted);line-height:1.7;margin:0 0 24px 0;">
-                    Jurusan Psikologi Pendidikan dan Bimbingan (PPB) FIP UNM menyelenggarakan tridharma perguruan tinggi yang memadukan etika humanistik, praktik berbasis bukti (<em>evidence-based counseling</em>), dan nilai budaya lokal Sulawesi Selatan serta Nusantara.
-                </p>
-
-                <!-- Editorial Pull-Quote (Architectural Left Double Rule, not a rounded card) -->
-                <blockquote style="margin:0 0 24px 0;padding:18px 20px;background:var(--bk-bg-warm);border-left:3px solid var(--bk-forest);border-top:1px solid var(--bk-border);border-right:1px solid var(--bk-border);border-bottom:1px solid var(--bk-border);border-radius:0 10px 10px 0;">
-                    <p class="bk-serif" style="font-size:14.5px;font-style:italic;color:var(--bk-ink);line-height:1.65;margin:0 0 14px 0;">
-                        &ldquo;Pendidikan konseling di FIP UNM dirancang untuk melahirkan sarjana, magister, dan doktor yang berintegritas moral, peka terhadap keragaman sosio-kultural, serta adaptif memanfaatkan inovasi psikoedukasi dan telekonseling.&rdquo;
-                    </p>
-                    <footer style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--bk-border);padding-top:10px;">
-                        <div>
-                            <div style="font-weight:700;color:var(--bk-forest);font-size:12.5px;">Dr. Suciani Latif, M.Pd.</div>
-                            <div class="bk-mono" style="font-size:10.5px;color:var(--bk-ink-subtle);">KETUA JURUSAN PPB FIP UNM</div>
-                        </div>
-                        <a href="<?php echo esc_url(home_url('/profil/struktur/')); ?>" class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-forest);text-decoration:none;">Struktur Pimpinan &rarr;</a>
-                    </footer>
-                </blockquote>
-
-                <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                    <a href="<?php echo esc_url(home_url('/profil/dokumen/')); ?>" class="bk-btn-outline-dark">
-                        <span>Dokumen Mutu &amp; Akreditasi</span>
-                        <span aria-hidden="true">&rarr;</span>
-                    </a>
-                    <a href="<?php echo esc_url(home_url('/profil/roadmap/')); ?>" class="bk-btn-outline-dark">
-                        <span>Roadmap Riset &amp; PkM</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Right Column (7 cols): Swiss Horizontal Hairline Rows (Replaces 3 boxy AI cards) -->
-            <div class="bk-about-right">
-                <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;">
-                    <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-ink-subtle);letter-spacing:0.08em;">PILAR EKOSISTEM AKADEMIK // 01&mdash;03</span>
-                    <span class="bk-mono" style="font-size:11px;color:var(--bk-forest);font-weight:600;">STANDAR NASIONAL &amp; ABKIN</span>
-                </div>
-
-                <!-- Pillar Row 01 -->
-                <div class="bk-pillar-row">
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-                        <span class="bk-mono" style="font-size:13px;font-weight:700;color:var(--bk-forest);">01</span>
-                        <div style="width:36px;height:36px;border-radius:8px;border:1px solid var(--bk-border);background:var(--bk-bg-warm);display:flex;align-items:center;justify-content:center;color:var(--bk-forest);">
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                        </div>
-                    </div>
-                    <div>
-                        <h3 class="bk-serif" style="font-size:18px;font-weight:600;color:var(--bk-ink);margin:0 0 6px 0;">
-                            Laboratorium Mikrokonseling &amp; Asesmen Terpadu
-                        </h3>
-                        <p style="font-size:13px;color:var(--bk-ink-muted);line-height:1.6;margin:0;">
-                            Fasilitas praktikum konseling individual dan kelompok berstandar akustik dengan <em>one-way mirror</em>, sistem supervisi audio-visual PTZ resolusi tinggi, serta repositori instrumen tes psikologi dan non-tes (IKMS Digital).
-                        </p>
-                    </div>
-                    <div style="text-align:right;">
-                        <span class="bk-mono" style="display:inline-block;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:4px;background:var(--bk-bg-sage);color:var(--bk-forest);white-space:nowrap;">
-                            Lab BK Terpadu
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Pillar Row 02 -->
-                <div class="bk-pillar-row">
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-                        <span class="bk-mono" style="font-size:13px;font-weight:700;color:var(--bk-forest);">02</span>
-                        <div style="width:36px;height:36px;border-radius:8px;border:1px solid var(--bk-border);background:var(--bk-bg-warm);display:flex;align-items:center;justify-content:center;color:var(--bk-forest);">
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-                        </div>
-                    </div>
-                    <div>
-                        <h3 class="bk-serif" style="font-size:18px;font-weight:600;color:var(--bk-ink);margin:0 0 6px 0;">
-                            Produktivitas Riset SINTA, Scopus &amp; Hibah PNBP
-                        </h3>
-                        <p style="font-size:13px;color:var(--bk-ink-muted);line-height:1.6;margin:0;">
-                            Sivitas akademika aktif menyelenggarakan penelitian kompetitif nasional (DRTPM Kemendikbudristek) dan PNBP UNM, serta mengelola publikasi berkala melalui Jurnal Ilmiah Program Studi Bimbingan dan Konseling.
-                        </p>
-                    </div>
-                    <div style="text-align:right;">
-                        <span class="bk-mono" style="display:inline-block;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:4px;background:#F1F5F9;color:#334155;white-space:nowrap;">
-                            SINTA &amp; Scopus
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Pillar Row 03 -->
-                <div class="bk-pillar-row">
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-                        <span class="bk-mono" style="font-size:13px;font-weight:700;color:var(--bk-forest);">03</span>
-                        <div style="width:36px;height:36px;border-radius:8px;border:1px solid var(--bk-border);background:var(--bk-bg-warm);display:flex;align-items:center;justify-content:center;color:var(--bk-forest);">
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        </div>
-                    </div>
-                    <div>
-                        <h3 class="bk-serif" style="font-size:18px;font-weight:600;color:var(--bk-ink);margin:0 0 6px 0;">
-                            Kemitraan Profesi ABKIN, MGBK &amp; Jejaring Instansi
-                        </h3>
-                        <p style="font-size:13px;color:var(--bk-ink-muted);line-height:1.6;margin:0;">
-                            Kolaborasi erat bersama Pengurus Daerah/Cabang ABKIN, Musyawarah Guru Bimbingan dan Konseling (MGBK), sekolah mitra PLP/PPL, BNN, dinas pemberdayaan perempuan-anak, serta lembaga layanan psikososial.
-                        </p>
-                    </div>
-                    <div style="text-align:right;">
-                        <span class="bk-mono" style="display:inline-block;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:4px;background:var(--bk-bg-sage);color:var(--bk-forest);white-space:nowrap;">
-                            Mitra Strategis
-                        </span>
-                    </div>
-                </div>
-
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- =====================================================================
-     SECTION 6: PROSPEK PROFESI & KARIER LULUSAN (SHADCN DATA TABLE LEDGER)
-     ===================================================================== -->
-<section id="lulusan_unified_section" class="bk-section-lulusan_unified_section relative w-full" style="background-color: var(--bk-bg-warm); padding-top: 56px; padding-bottom: 60px;">
-    <div class="bk-container">
-        
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
-            <div style="max-width:660px;">
-                <div class="bk-sec-kicker">Profil Lulusan &amp; Keterserapan Kerja</div>
-                <h2 class="bk-serif" style="font-size:clamp(26px, 3vw, 34px);color:var(--bk-ink);margin:0 0 6px 0;font-weight:500;letter-spacing:-0.02em;">
-                    Matriks Karier &amp; Kualifikasi Lulusan PPB UNM
-                </h2>
-                <p style="font-size:13.5px;color:var(--bk-ink-muted);line-height:1.6;margin:0;">
-                    Pemetaan profil lulusan berdasarkan Capaian Pembelajaran Lulusan (CPL) dan data penelusuran alumni (Tracer Study) pada berbagai sektor pendidikan dan layanan masyarakat.
-                </p>
-            </div>
-            <a href="<?php echo esc_url(home_url('/kemahasiswaan/alumni/')); ?>" class="bk-btn-outline-dark">
-                <span>Direktori Alumni &amp; Tracer Study</span>
-                <span aria-hidden="true">&rarr;</span>
-            </a>
-        </div>
-
-        <!-- Structured Prospectus Table (Replaces 3 identical cards) -->
-        <div class="bk-career-table-wrap">
-            <div class="bk-career-thead">
-                <div>KODE // JALUR</div>
-                <div>PROFIL PROFESI UTAMA</div>
-                <div>DESKRIPSI PERAN &amp; RANAH INSTITUSI</div>
-                <div>KOMPETENSI INTI TERUJI</div>
-            </div>
-
-            <!-- Row 1 -->
-            <div class="bk-career-trow">
-                <div>
-                    <span class="bk-mono" style="font-size:11.5px;font-weight:700;color:var(--bk-forest);display:block;">PRF-01</span>
-                    <span class="bk-mono" style="font-size:10px;color:var(--bk-ink-subtle);background:var(--bk-bg-sage);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:4px;">PENDIDIKAN</span>
-                </div>
-                <div>
-                    <h3 class="bk-serif" style="font-size:17px;font-weight:600;color:var(--bk-ink);margin:0 0 3px 0;">Konselor Satuan Pendidikan</h3>
-                    <div style="font-size:12px;color:var(--bk-forest);font-weight:600;">Guru Bimbingan dan Konseling (SD/SMP/SMA/SMK)</div>
-                </div>
-                <div style="font-size:12.5px;color:var(--bk-ink-muted);line-height:1.6;">
-                    Merancang, melaksanakan, dan mengevaluasi layanan dasar, layanan responsif, perencanaan individual, serta dukungan sistem pada sekolah negeri maupun swasta.
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Konseling Individual</span>
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Bimbingan Klasikal</span>
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Asesmen IKMS</span>
-                </div>
-            </div>
-
-            <!-- Row 2 -->
-            <div class="bk-career-trow">
-                <div>
-                    <span class="bk-mono" style="font-size:11.5px;font-weight:700;color:var(--bk-forest);display:block;">PRF-02</span>
-                    <span class="bk-mono" style="font-size:10px;color:var(--bk-ink-subtle);background:#F1F5F9;padding:2px 6px;border-radius:4px;display:inline-block;margin-top:4px;">PRAKTISI</span>
-                </div>
-                <div>
-                    <h3 class="bk-serif" style="font-size:17px;font-weight:600;color:var(--bk-ink);margin:0 0 3px 0;">Konselor Komunitas &amp; Edupreneur</h3>
-                    <div style="font-size:12px;color:var(--bk-forest);font-weight:600;">Praktisi Pengembangan Potensi &amp; Biro Konsultasi</div>
-                </div>
-                <div style="font-size:12.5px;color:var(--bk-ink-muted);line-height:1.6;">
-                    Mengelola biro layanan konsultasi psikologi-pendidikan, bimbingan keluarga, <em>career coaching</em>, rehabilitasi sosial (BNN/Lapas/P2TP2A), serta pelatihan SDM.
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Career Coaching</span>
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Konseling Keluarga</span>
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Fasilitator Pelatihan</span>
-                </div>
-            </div>
-
-            <!-- Row 3 -->
-            <div class="bk-career-trow">
-                <div>
-                    <span class="bk-mono" style="font-size:11.5px;font-weight:700;color:var(--bk-forest);display:block;">PRF-03</span>
-                    <span class="bk-mono" style="font-size:10px;color:var(--bk-ink-subtle);background:#F1F5F9;padding:2px 6px;border-radius:4px;display:inline-block;margin-top:4px;">RISET &amp; MEDIA</span>
-                </div>
-                <div>
-                    <h3 class="bk-serif" style="font-size:17px;font-weight:600;color:var(--bk-ink);margin:0 0 3px 0;">Peneliti &amp; Pengembang Instrumen</h3>
-                    <div style="font-size:12px;color:var(--bk-forest);font-weight:600;">Inovator Media BK &amp; Asesmen Psikometri</div>
-                </div>
-                <div style="font-size:12.5px;color:var(--bk-ink-muted);line-height:1.6;">
-                    Merancang dan memvalidasi instrumen asesmen psikologi pendidikan, mengembangkan media bimbingan berbasis digital/aplikasi, serta melaksanakan riset kebijakan pendidikan.
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Uji Psikometri</span>
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Media Cybercounseling</span>
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Publikasi Ilmiah</span>
-                </div>
-            </div>
-
-            <!-- Row 4 -->
-            <div class="bk-career-trow">
-                <div>
-                    <span class="bk-mono" style="font-size:11.5px;font-weight:700;color:var(--bk-forest);display:block;">PRF-04</span>
-                    <span class="bk-mono" style="font-size:10px;color:#92400E;background:#FEF3C7;padding:2px 6px;border-radius:4px;display:inline-block;margin-top:4px;">MAGISTER / DOKTOR</span>
-                </div>
-                <div>
-                    <h3 class="bk-serif" style="font-size:17px;font-weight:600;color:var(--bk-ink);margin:0 0 3px 0;">Akademisi &amp; Pakar Kebijakan BK</h3>
-                    <div style="font-size:12px;color:var(--bk-forest);font-weight:600;">Dosen Perguruan Tinggi, Widyaiswara &amp; Konsultan Ahli</div>
-                </div>
-                <div style="font-size:12.5px;color:var(--bk-ink-muted);line-height:1.6;">
-                    Lulusan jenjang S2 dan S3 berkiprah sebagai dosen program studi BK/Psikologi di berbagai perguruan tinggi nasional, widyaiswara balai diklat, dan pengawas/konsultan pendidikan.
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Konstruksi Teori BK</span>
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Supervisi Klinis</span>
-                    <span class="bk-mono" style="font-size:10.5px;background:var(--bk-bg-warm);border:1px solid var(--bk-border);color:var(--bk-ink);padding:3px 8px;border-radius:4px;">Riset Bereputasi</span>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</section>
-
-<!-- =====================================================================
-     SECTION 7: DIREKTORI DOSEN & KEPAKARAN AKADEMIK (DYNAMIC ROSTER)
-     ===================================================================== -->
-<section id="dosen_animated_section" class="bk-section-dosen_animated_section relative w-full" style="background-color: var(--bk-bg-sage); padding-top: 56px; padding-bottom: 60px; border-top: 1px solid var(--bk-border); border-bottom: 1px solid var(--bk-border);">
-    <div class="bk-container">
-        
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
-            <div style="max-width:680px;">
-                <div class="bk-sec-kicker">Sivitas Akademika &amp; Peneliti</div>
-                <h2 class="bk-serif" style="font-size:clamp(26px, 3vw, 34px);color:var(--bk-forest);margin:0 0 6px 0;font-weight:500;letter-spacing:-0.02em;">
-                    Dosen &amp; Otoritas Kepakaran Akademik
-                </h2>
-                <p style="font-size:13.5px;color:#334E3F;margin:0;line-height:1.6;">
-                    Profil pimpinan jurusan, Guru Besar (Prof.), Doktor (Dr.), dan tenaga pengajar beserta rekam jejak publikasi SINTA/Scopus. Geser atau klik kartu untuk membuka kurikulum vitae lengkap.
-                </p>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;">
-                <button type="button" id="bk-dosen-left" style="width:40px;height:40px;border-radius:8px;background:#ffffff;border:1px solid var(--bk-border);color:var(--bk-forest);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.04);" aria-label="Geser ke kiri">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                </button>
-                <button type="button" id="bk-dosen-right" style="width:40px;height:40px;border-radius:8px;background:#ffffff;border:1px solid var(--bk-border);color:var(--bk-forest);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.04);" aria-label="Geser ke kanan">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </button>
-                <a href="<?php echo esc_url(home_url('/profil/dosen/')); ?>" class="bk-btn-outline-dark" style="margin-left:4px;">
-                    <span>Direktori Lengkap (<?php echo esc_html($total_dosen_count); ?> Dosen)</span>
+                <!-- Anti-Misclick Background Shield + Centered Action Prompt Pill -->
+                <div class="bk-sp-shield" data-sp-shield="<?php echo esc_attr($s_idx); ?>" title="Klik area latar untuk menampilkan tautan sorotan"></div>
+                <a href="<?php echo esc_url($prompt_url); ?>" class="bk-sp-prompt">
+                    <span><?php echo esc_html($prompt_text); ?></span>
                     <span aria-hidden="true">&rarr;</span>
                 </a>
             </div>
+            <?php endforeach; ?>
         </div>
 
-        <div id="bk-dosen-container" style="position:relative;width:100%;overflow:hidden;">
-            <div id="bk-dosen-track" class="no-scrollbar" style="display:flex;gap:20px;overflow-x:auto;padding:6px 2px 14px 2px;user-select:none;cursor:grab;">
-                <?php
-                // Render Featured Dosen + Duplicate set for seamless loop
-                $render_list = array_merge($featured_dosen, $featured_dosen);
-                foreach ($render_list as $d) :
+        <?php if ($total_slides > 1) : ?>
+        <button type="button" class="bk-sp-arrow bk-sp-prev" id="bk-sp-prev" aria-label="Slide Sebelumnya">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button type="button" class="bk-sp-arrow bk-sp-next" id="bk-sp-next" aria-label="Slide Berikutnya">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="9 6 15 12 9 18"/></svg>
+        </button>
+        <?php endif; ?>
+
+        <!-- Bottom Control & Progress Bar -->
+        <div class="bk-sp-bar">
+            <div class="bk-sp-progress" id="bk-sp-prog"></div>
+
+            <div class="bk-sp-bar-group">
+                <div class="bk-sp-counter">
+                    <span id="bk-sp-curr">01</span>
+                    <span>/</span>
+                    <span id="bk-sp-total"><?php echo sprintf('%02d', max(1, $total_slides)); ?></span>
+                </div>
+                <span class="bk-sp-sep">|</span>
+                <div class="bk-sp-dots" id="bk-sp-dots" role="tablist" aria-label="Pilih Slide Sorotan">
+                    <?php foreach ($spotlight_slides as $d_idx => $d_sl) :
+                        $d_mode = $d_sl['mode_tag'] ?? ('Slide ' . ($d_idx + 1));
+                    ?>
+                    <button type="button" class="bk-sp-dot <?php echo $d_idx === 0 ? 'is-active' : ''; ?>" data-sp-dot="<?php echo esc_attr($d_idx); ?>" role="tab" aria-selected="<?php echo $d_idx === 0 ? 'true' : 'false'; ?>" aria-label="<?php echo esc_attr('Sorotan ' . ($d_idx + 1) . ': ' . $d_mode); ?>"></button>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <button type="button" class="bk-sp-scroll-btn" id="bk-sp-down" aria-label="Gulir ke ringkasan profil dan jenjang">
+                <span>Gulir ke bawah</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+            </button>
+
+            <div class="bk-sp-bar-group">
+                <span class="bk-sp-mode-label" id="bk-sp-mode">
+                    <?php echo esc_html($spotlight_slides[0]['mode_tag'] ?? 'VIDEO PROFIL'); ?>
+                </span>
+                <span class="bk-sp-sep bk-sp-sep-mode">|</span>
+                <button type="button" class="bk-sp-Pause" id="bk-sp-tog" aria-label="Jeda Slide Otomatis">⏸ Jeda</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 2: 4-COLUMN ARCHITECTURAL DATA LEDGER (#beranda-intro)
+         ===================================================================== -->
+    <section class="bk-ledger-band" id="beranda-intro" aria-label="Fakta Utama Jurusan PPB FIP UNM">
+        <div class="bk-wrap">
+            <div class="bk-ledger">
+                <?php foreach ($stats_list as $st_idx => $st) :
+                    $tag_cls = ($st_idx === 0) ? 'bk-tag-gold' : 'bk-tag-sage';
+                ?>
+                <div class="bk-ledger-cell">
+                    <div class="bk-ledger-top">
+                        <span class="bk-ledger-code"><?php echo esc_html($st['code'] ?? ''); ?></span>
+                        <span class="bk-tag <?php echo esc_attr($tag_cls); ?>"><?php echo esc_html($st['badge'] ?? ''); ?></span>
+                    </div>
+                    <div>
+                        <div class="bk-ledger-val"><?php echo esc_html($st['number'] ?? ''); ?></div>
+                        <p class="bk-ledger-desc"><?php echo esc_html($st['desc'] ?? ''); ?></p>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 3: PENDIDIKAN BERKELANJUTAN (S1 / S2 / S3 SEGMENTED TABS + KAJUR QUOTE)
+         ===================================================================== -->
+    <section class="bk-band bk-band-surface" id="prodi_unified_section" aria-label="Jenjang Pendidikan Sarjana hingga Doktor">
+        <div class="bk-wrap">
+            <div class="bk-ugm-head">
+                <div class="bk-ugm-title-block">
+                    <div class="bk-kicker">Pendidikan Berkelanjutan</div>
+                    <h2 class="bk-section-h2">Pilih Jenjang Studi Sarjana hingga Doktor</h2>
+                </div>
+                <div class="bk-sec-rule" aria-hidden="true"></div>
+                <div class="bk-ugm-actions">
+                    <div class="bk-seg-control" id="bk-degree-tabs" role="tablist" aria-label="Pilih Jenjang Studi">
+                        <?php foreach (array('s1', 's2', 's3') as $d_idx => $deg_key) :
+                            $deg_item = $degrees_map[$deg_key] ?? array();
+                            $deg_lbl  = !empty($deg_item['tab_label']) ? $deg_item['tab_label'] : ($deg_item['label'] ?? strtoupper($deg_key));
+                        ?>
+                        <button type="button" class="bk-seg-btn <?php echo $d_idx === 0 ? 'is-active' : ''; ?>" data-deg-tab="<?php echo esc_attr($deg_key); ?>" role="tab" aria-selected="<?php echo $d_idx === 0 ? 'true' : 'false'; ?>">
+                            <?php echo esc_html($deg_lbl); ?>
+                        </button>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+
+            <?php foreach (array('s1', 's2', 's3') as $d_idx => $deg_key) :
+                $dg = $degrees_map[$deg_key] ?? array();
+                if (!empty($dg['kompetensi']) && is_array($dg['kompetensi'])) {
+                    $komp_list = $dg['kompetensi'];
+                } elseif (!empty($dg['kompetensi']) && is_string($dg['kompetensi'])) {
+                    $komp_list = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $dg['kompetensi']))));
+                } else {
+                    $komp_list = array();
+                }
+                $cta_url = !empty($dg['cta_url']) ? $dg['cta_url'] : (!empty($dg['url']) ? $dg['url'] : home_url('/akademik/kurikulum/'));
+                $cert_url = !empty($dg['cert_url']) ? $dg['cert_url'] : home_url('/akreditasi/');
+                $fokus_val = !empty($dg['fokus']) ? $dg['fokus'] : ($dg['kurikulum'] ?? '');
+            ?>
+            <div class="bk-prodi-panel" data-deg-panel="<?php echo esc_attr($deg_key); ?>" style="<?php echo $d_idx === 0 ? '' : 'display:none;'; ?>">
+                <div>
+                    <span class="bk-tag bk-tag-sage" style="margin-bottom:10px;"><?php echo esc_html($dg['kkni'] ?? ''); ?></span>
+                    <h3 class="bk-font-display" style="font-size:23px;margin:0 0 8px;color:var(--text-primary, #111C16);"><?php echo esc_html($dg['title'] ?? ''); ?></h3>
+                    <p class="bk-read-width" style="font-size:14.5px;color:var(--text-secondary, #2E3D35);margin:0;line-height:1.68;"><?php echo esc_html($dg['summary'] ?? ''); ?></p>
+                    <?php if (!empty($komp_list)) : ?>
+                    <ul class="bk-check-list">
+                        <?php foreach ($komp_list as $km) : ?>
+                        <li>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span><?php echo esc_html($km); ?></span>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php endif; ?>
+                </div>
+                <div class="bk-prodi-specs">
+                    <ul class="bk-spec-list">
+                        <li>
+                            <span style="color:var(--text-muted, #55625B);">Gelar</span>
+                            <strong><?php echo esc_html($dg['gelar'] ?? ''); ?></strong>
+                        </li>
+                        <li>
+                            <span style="color:var(--text-muted, #55625B);">Beban Studi</span>
+                            <strong><?php echo esc_html($dg['beban'] ?? ''); ?></strong>
+                        </li>
+                        <li>
+                            <span style="color:var(--text-muted, #55625B);">Kurikulum &amp; Fokus</span>
+                            <strong style="color:var(--unm-forest, #0D3B22);"><?php echo esc_html($fokus_val); ?></strong>
+                        </li>
+                        <li>
+                            <span style="color:var(--text-muted, #55625B);">SK LAMDIK</span>
+                            <span class="bk-mono" style="font-size:11.5px;"><?php echo esc_html($dg['sk'] ?? ''); ?></span>
+                        </li>
+                    </ul>
+                    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+                        <a href="<?php echo esc_url($cta_url); ?>" class="bk-btn bk-btn-primary bk-btn-sm">
+                            <span>Buka Kurikulum <?php echo esc_html($dg['code'] ?? strtoupper($deg_key)); ?></span>
+                            <span aria-hidden="true">&rarr;</span>
+                        </a>
+                        <a href="<?php echo esc_url($cert_url); ?>" class="bk-btn bk-btn-ghost bk-btn-sm">Sertifikat</a>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+
+            <!-- Kajur Editorial Pull-Quote -->
+            <blockquote class="bk-quote-card" style="margin-top:26px;margin-bottom:0;">
+                <div class="bk-kicker" style="margin-bottom:6px;">Pesan Ketua Jurusan PPB FIP UNM</div>
+                <p class="bk-quote-text">&ldquo;<?php echo esc_html($kajur_quote); ?>&rdquo;</p>
+                <footer style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                    <div>
+                        <strong style="font-size:13.5px;color:var(--unm-forest, #0D3B22);display:block;"><?php echo esc_html($kajur_nama); ?></strong>
+                        <span class="bk-mono" style="font-size:11px;color:var(--text-muted, #55625B);"><?php echo esc_html($kajur_jabatan); ?></span>
+                    </div>
+                    <a href="<?php echo esc_url($kajur_link); ?>" class="bk-btn bk-btn-ghost bk-btn-sm">Sejarah &amp; Struktur Pimpinan &rarr;</a>
+                </footer>
+            </blockquote>
+        </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 4: BERITA & AGENDA TERKINI (UGM FEATURED LEAD + 3-COL GRID)
+         ===================================================================== -->
+    <section class="bk-band" id="news_unified_section" aria-label="Warta Jurusan dan Pengumuman">
+        <div class="bk-wrap">
+            <?php echo do_shortcode('[ppb_home_news count="4"]'); ?>
+        </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 5: DARK FOREST VIDEO SHOWCASE BAND (#bk-video-band)
+         ===================================================================== -->
+    <?php
+    if (!empty($video_chapters) && is_array($video_chapters)) {
+        foreach ($video_chapters as $vc_i => $vc_item) {
+            $raw_poster = !empty($vc_item['poster']) ? $vc_item['poster'] : (!empty($vc_item['thumb']) ? $vc_item['thumb'] : 'assets/img/hero-campus.jpg');
+            $video_chapters[$vc_i]['poster'] = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($raw_poster) : $raw_poster;
+            $video_chapters[$vc_i]['meta']   = !empty($vc_item['meta']) ? $vc_item['meta'] : ($vc_item['date'] ?? 'Profil Jurusan · Kampus Tidung');
+        }
+    }
+    $first_ch = $video_chapters[0] ?? array(
+        'num'       => '01',
+        'duration'  => '03:45',
+        'badge'     => 'Bagian 1 · Visi & Sejarah 1969',
+        'title'     => '57 Tahun Mendidik Calon Konselor Nusantara',
+        'desc'      => 'Dari Bimbingan Penyuluhan (1969) menjadi prodi terakreditasi Unggul LAMDIK untuk jenjang Sarjana dan Magister.',
+        'meta'      => 'Profil Jurusan · Kampus Tidung',
+        'poster'    => get_template_directory_uri() . '/assets/img/hero-campus.jpg',
+        'video_url' => '',
+    );
+    ?>
+    <section class="bk-video-band" id="bk-video-band" aria-label="Video Profil dan Dokumentasi Kampus">
+        <div class="bk-wrap">
+            <div class="bk-ugm-head">
+                <div class="bk-ugm-title-block">
+                    <div class="bk-kicker">Dokumentasi &amp; Mengenal Prodi</div>
+                    <h2 class="bk-section-h2">Video Profil &amp; Ekosistem Lab BK</h2>
+                </div>
+                <div class="bk-sec-rule" aria-hidden="true"></div>
+                <div class="bk-ugm-actions">
+                    <button type="button" class="bk-btn bk-btn-gold bk-btn-sm" id="bk-open-vid-btn" data-open-vchap="0">
+                        <span>Buka Pemutar Video</span>
+                        <span aria-hidden="true">&#9654;</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bk-video-band-grid" id="bk-video-showcase">
+                <button type="button" class="bk-video-stage-card" id="bk-vid-stage-card" data-open-vchap="0">
+                    <div class="bk-video-stage-media">
+                        <img id="bk-vid-stage-img" src="<?php echo esc_url($first_ch['poster'] ?? ''); ?>" alt="<?php echo esc_attr($first_ch['title'] ?? ''); ?>">
+                        <div class="bk-video-stage-scrim"></div>
+                        <span class="bk-video-play-ring" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                        </span>
+                    </div>
+                    <div class="bk-video-stage-body">
+                        <div class="bk-video-ch-meta">
+                            <span id="bk-vid-stage-badge"><?php echo esc_html($first_ch['badge'] ?? ''); ?></span>
+                            <span id="bk-vid-stage-dur">Durasi <?php echo esc_html($first_ch['duration'] ?? ''); ?></span>
+                        </div>
+                        <h3 class="bk-video-stage-title" id="bk-vid-stage-title"><?php echo esc_html($first_ch['title'] ?? ''); ?></h3>
+                        <p class="bk-video-stage-desc" id="bk-vid-stage-desc"><?php echo esc_html($first_ch['desc'] ?? ''); ?></p>
+                        <div class="bk-video-stage-foot">
+                            <span id="bk-vid-stage-meta"><?php echo esc_html($first_ch['meta'] ?? ''); ?></span>
+                            <span>Putar di Modal Video &#9654;</span>
+                        </div>
+                    </div>
+                </button>
+
+                <div class="bk-video-playlist" role="tablist" aria-label="Pilih Bab Video Profil">
+                    <?php foreach ($video_chapters as $vc_idx => $vc) : ?>
+                    <button type="button" class="bk-video-ch-btn <?php echo $vc_idx === 0 ? 'is-active' : ''; ?>" data-vpick="<?php echo esc_attr($vc_idx); ?>" role="tab" aria-selected="<?php echo $vc_idx === 0 ? 'true' : 'false'; ?>">
+                        <span class="bk-video-ch-num"><?php echo esc_html($vc['num'] ?? sprintf('%02d', $vc_idx + 1)); ?></span>
+                        <span class="bk-video-ch-body">
+                            <span class="bk-video-ch-meta">
+                                <span><?php echo esc_html($vc['badge'] ?? ''); ?></span>
+                                <span><?php echo esc_html($vc['duration'] ?? ''); ?></span>
+                            </span>
+                            <div class="bk-video-ch-title"><?php echo esc_html($vc['title'] ?? ''); ?></div>
+                            <div class="bk-video-ch-desc"><?php echo esc_html($vc['desc'] ?? ''); ?></div>
+                        </span>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 6: 3x2 DARK FOREST PORTAL GRID + ADMISI STRIP
+         ===================================================================== -->
+    <section class="bk-band bk-band-surface" id="portal_ecosystem_section" aria-label="Akses Cepat Layanan, Mutu dan Infrastruktur">
+        <div class="bk-wrap">
+            <div class="bk-ugm-head">
+                <div class="bk-ugm-title-block">
+                    <div class="bk-kicker">Akses Cepat Ekosistem Jurusan</div>
+                    <h2 class="bk-section-h2">Layanan, Mutu &amp; Infrastruktur</h2>
+                </div>
+                <div class="bk-sec-rule" aria-hidden="true"></div>
+                <div class="bk-ugm-actions">
+                    <a href="<?php echo esc_url(home_url('/layanan/persuratan/')); ?>" class="bk-btn bk-btn-ghost bk-btn-sm">Semua Layanan &rarr;</a>
+                </div>
+            </div>
+
+            <div class="bk-portal-grid">
+                <?php foreach ($portal_cards as $pc) :
+                    $pc_url = $pc['url'] ?? home_url('/');
+                    $pc_ext = (strpos($pc_url, 'http') === 0 && strpos($pc_url, home_url()) !== 0);
+                ?>
+                <a href="<?php echo esc_url($pc_url); ?>" class="bk-portal-card" <?php echo $pc_ext ? 'target="_blank" rel="noopener noreferrer"' : ''; ?>>
+                    <span class="bk-portal-icon"><?php echo bk_home_svg_icon($pc['icon'] ?? 'award', 20); ?></span>
+                    <div>
+                        <div class="bk-portal-title"><?php echo esc_html($pc['title'] ?? ''); ?></div>
+                        <div class="bk-portal-sub"><?php echo esc_html($pc['subtitle'] ?? ($pc['desc'] ?? '')); ?></div>
+                    </div>
+                    <span class="bk-portal-arrow" aria-hidden="true">&rarr;</span>
+                </a>
+                <?php endforeach; ?>
+            </div>
+
+            <aside class="bk-admisi-strip" aria-label="Informasi Admisi dan BK-Connect">
+                <div>
+                    <div class="bk-kicker" style="margin-bottom:4px;"><?php echo esc_html($admisi_kicker); ?></div>
+                    <h3 class="bk-font-display" style="font-size:20px;margin:0 0 4px;color:var(--text-primary, #111C16);"><?php echo esc_html($admisi_title); ?></h3>
+                    <p style="font-size:13.5px;color:var(--text-secondary, #2E3D35);margin:0;"><?php echo esc_html($admisi_desc); ?></p>
+                </div>
+                <div class="bk-admisi-strip-actions">
+                    <a href="<?php echo esc_url($admisi_btn1_url); ?>" class="bk-btn bk-btn-secondary bk-btn-sm"><?php echo esc_html($admisi_btn1_label); ?></a>
+                    <a href="<?php echo esc_url($admisi_btn2_url); ?>" target="_blank" rel="noopener noreferrer" class="bk-btn bk-btn-primary bk-btn-sm"><?php echo esc_html($admisi_btn2_label); ?></a>
+                </div>
+            </aside>
+        </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 7: PROFIL LULUSAN & PROSPEK KARIR (PRF-01 .. PRF-04 MATRIX)
+         ===================================================================== -->
+    <section class="bk-band" id="career_section" aria-label="Profil Lulusan dan Prospek Karir">
+        <div class="bk-wrap">
+            <div class="bk-ugm-head">
+                <div class="bk-ugm-title-block">
+                    <div class="bk-kicker">Luaran &amp; Keterserapan Alumni</div>
+                    <h2 class="bk-section-h2">Profil Lulusan &amp; Prospek Karir Konselor</h2>
+                </div>
+                <div class="bk-sec-rule" aria-hidden="true"></div>
+                <div class="bk-ugm-actions">
+                    <a href="<?php echo esc_url(home_url('/profil/visi-misi/')); ?>" class="bk-btn bk-btn-ghost bk-btn-sm">Visi Keilmuan &amp; CARA'DE &rarr;</a>
+                </div>
+            </div>
+
+            <div class="bk-career-table" role="region" aria-label="Matriks Profil Lulusan">
+                <div class="bk-career-thead">
+                    <div>KODE PROFIL</div>
+                    <div>PERAN UTAMA LULUSAN</div>
+                    <div>DESKRIPSI KEWENANGAN &amp; LINGKUP KERJA</div>
+                    <div>KOMPETENSI INTI</div>
+                </div>
+
+                <div class="bk-career-trow">
+                    <div>
+                        <span class="bk-mono" style="font-size:11.5px;font-weight:700;color:var(--unm-forest, #0D3B22);display:block;">PRF-01</span>
+                        <span class="bk-tag bk-tag-sage" style="margin-top:4px;">UTAMA (S1/PPG)</span>
+                    </div>
+                    <div>
+                        <h3 class="bk-font-display" style="font-size:17px;font-weight:600;color:var(--text-primary);margin:0 0 3px;">Pendidik / Guru BK &amp; Konselor</h3>
+                        <div style="font-size:12px;color:var(--unm-forest);font-weight:600;">SMP, SMA, SMK, Madrasah &amp; Perguruan Tinggi</div>
+                    </div>
+                    <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
+                        Merancang, melaksanakan, dan mengevaluasi program bimbingan dan konseling komprehensif yang memandirikan peserta didik di bidang pribadi, sosial, belajar, dan karier.
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span class="bk-tag">Asesmen Tes &amp; Non-Tes</span>
+                        <span class="bk-tag">Konseling Individual</span>
+                        <span class="bk-tag">Bimbingan Klasikal</span>
+                    </div>
+                </div>
+
+                <div class="bk-career-trow">
+                    <div>
+                        <span class="bk-mono" style="font-size:11.5px;font-weight:700;color:var(--unm-forest, #0D3B22);display:block;">PRF-02</span>
+                        <span class="bk-tag" style="margin-top:4px;">INDUSTRI &amp; SOSIAL</span>
+                    </div>
+                    <div>
+                        <h3 class="bk-font-display" style="font-size:17px;font-weight:600;color:var(--text-primary);margin:0 0 3px;">Praktisi SDM, Karier &amp; Rehabilitasi</h3>
+                        <div style="font-size:12px;color:var(--unm-forest);font-weight:600;">Biro Psikologi, HRD Korporasi, Bapas &amp; Dinas Sosial</div>
+                    </div>
+                    <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
+                        Menyelenggarakan pendampingan psikososial komunitas, pemetaan talenta dan konseling karier karyawan, serta rehabilitasi sosial di lembaga layanan masyarakat.
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span class="bk-tag">Career Coaching</span>
+                        <span class="bk-tag">Konseling Keluarga</span>
+                        <span class="bk-tag">Fasilitator Pelatihan</span>
+                    </div>
+                </div>
+
+                <div class="bk-career-trow">
+                    <div>
+                        <span class="bk-mono" style="font-size:11.5px;font-weight:700;color:var(--unm-forest, #0D3B22);display:block;">PRF-03</span>
+                        <span class="bk-tag" style="margin-top:4px;">RISET &amp; MEDIA</span>
+                    </div>
+                    <div>
+                        <h3 class="bk-font-display" style="font-size:17px;font-weight:600;color:var(--text-primary);margin:0 0 3px;">Peneliti &amp; Edupreneur Media BK</h3>
+                        <div style="font-size:12px;color:var(--unm-forest);font-weight:600;">Inovator Media BK Digital &amp; Asesmen Psikometri</div>
+                    </div>
+                    <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
+                        Merancang dan memvalidasi instrumen asesmen psikologi pendidikan, mengembangkan media bimbingan berbasis digital/aplikasi, serta melaksanakan riset kebijakan pendidikan.
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span class="bk-tag">Uji Psikometri</span>
+                        <span class="bk-tag">Media Cybercounseling</span>
+                        <span class="bk-tag">Publikasi Ilmiah</span>
+                    </div>
+                </div>
+
+                <div class="bk-career-trow">
+                    <div>
+                        <span class="bk-mono" style="font-size:11.5px;font-weight:700;color:var(--unm-forest, #0D3B22);display:block;">PRF-04</span>
+                        <span class="bk-tag bk-tag-gold" style="margin-top:4px;">MAGISTER / DOKTOR</span>
+                    </div>
+                    <div>
+                        <h3 class="bk-font-display" style="font-size:17px;font-weight:600;color:var(--text-primary);margin:0 0 3px;">Akademisi &amp; Pakar Kebijakan BK</h3>
+                        <div style="font-size:12px;color:var(--unm-forest);font-weight:600;">Dosen Perguruan Tinggi, Widyaiswara &amp; Konsultan Ahli</div>
+                    </div>
+                    <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
+                        Lulusan jenjang S2 dan S3 berkiprah sebagai dosen program studi BK/Psikologi di berbagai perguruan tinggi nasional, widyaiswara balai diklat, dan pengawas/konsultan pendidikan.
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span class="bk-tag">Konstruksi Teori BK</span>
+                        <span class="bk-tag">Supervisi Klinis</span>
+                        <span class="bk-tag">Riset Bereputasi</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 8: DIREKTORI DOSEN & KEPAKARAN AKADEMIK (#dosen_animated_section)
+         ===================================================================== -->
+    <section class="bk-band bk-band-alt" id="dosen_animated_section" aria-label="Direktori Dosen dan Kepakaran">
+        <div class="bk-wrap">
+            <div class="bk-ugm-head">
+                <div class="bk-ugm-title-block">
+                    <div class="bk-kicker">Sivitas Akademika &amp; Peneliti</div>
+                    <h2 class="bk-section-h2">Direktori <?php echo esc_html($total_dosen_count); ?> Dosen &amp; Kepakaran</h2>
+                </div>
+                <div class="bk-sec-rule" aria-hidden="true"></div>
+                <div class="bk-ugm-actions">
+                    <button type="button" id="bk-dosen-left" class="bk-btn bk-btn-secondary bk-btn-sm" aria-label="Geser ke kiri">&larr;</button>
+                    <button type="button" id="bk-dosen-right" class="bk-btn bk-btn-secondary bk-btn-sm" aria-label="Geser ke kanan">&rarr;</button>
+                    <a href="<?php echo esc_url(home_url('/profil/dosen/')); ?>" class="bk-btn bk-btn-primary bk-btn-sm">
+                        <span>Direktori Lengkap (<?php echo esc_html($total_dosen_count); ?> Dosen)</span>
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="bk-faculty-carousel-track" id="bk-dosen-track">
+                <?php foreach ($featured_dosen as $d) :
                     $nama = $d['nama_lengkap'] ?? ($d['nama'] ?? '');
                     $slug = $d['slug'] ?? '';
                     $jabatan = $d['jabatan_fungsional'] ?? 'Dosen Bimbingan & Konseling';
@@ -1694,14 +802,6 @@ $mobile_h_class = (($spotlight_settings['mobile_height_mode'] ?? 'fullscreen') =
                     $role_line = $struktural ? ($struktural . ' · ' . $jabatan) : $jabatan;
 
                     $is_prof = (stripos($nama, 'prof.') !== false || stripos($jabatan, 'guru besar') !== false);
-                    $is_dr = (!$is_prof && (stripos($nama, 'dr.') !== false || stripos($jabatan, 'doktor') !== false));
-                    $badge_txt = $is_prof ? 'GURU BESAR' : ($is_dr ? 'DOKTOR (DR.)' : 'DOSEN PPB');
-                    $top_bar_color = $is_prof ? '#F5B82E' : '#0D3B22';
-                    $badge_bg = $is_prof ? '#FEF3C7' : '#E8F0EA';
-                    $badge_fg = $is_prof ? '#92400E' : '#0D3B22';
-
-                    $pub_count = (int)($d['stat']['publikasi'] ?? count($d['publikasi'] ?? array()));
-                    $pen_count = (int)($d['stat']['penelitian'] ?? count($d['penelitian'] ?? array()));
                     $kepakaran = $d['kepakaran'] ?? array();
                     if (empty($kepakaran) && !empty($d['bidang_keahlian'])) {
                         $kepakaran = array_filter(array_map('trim', preg_split('/[,;]+/', $d['bidang_keahlian'])));
@@ -1709,860 +809,379 @@ $mobile_h_class = (($spotlight_settings['mobile_height_mode'] ?? 'fullscreen') =
                     if (empty($kepakaran)) {
                         $kepakaran = array('Bimbingan & Konseling', 'Psikologi Pendidikan');
                     }
-                    $foto = $d['foto_link'] ?? '';
+
+                    $raw_foto = $d['foto_link'] ?? '';
+                    $foto_url = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($raw_foto) : $raw_foto;
                     $init = bk_home_initials($nama);
                     $url = home_url('/profil/dosen/' . $slug . '/');
                 ?>
-                <div class="bk-faculty-card" data-url="<?php echo esc_url($url); ?>" role="link" tabindex="0">
-                    <div>
-                        <div style="height:4px;width:100%;background:<?php echo esc_attr($top_bar_color); ?>;"></div>
-                        <div style="padding:20px 20px 14px;">
-                            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
-                                <?php if (!empty($foto)) : ?>
-                                    <img src="<?php echo esc_url($foto); ?>" alt="<?php echo esc_attr($nama); ?>" style="width:46px;height:46px;border-radius:8px;object-fit:cover;border:1px solid var(--bk-border);background:var(--bk-bg-warm);">
-                                <?php else : ?>
-                                    <div class="bk-serif" style="width:46px;height:46px;border-radius:8px;background:var(--bk-forest);color:var(--bk-gold);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:16px;border:1px solid rgba(13,59,34,0.2);">
-                                        <?php echo esc_html($init); ?>
-                                    </div>
-                                <?php endif; ?>
-                                <span class="bk-mono" style="background:<?php echo esc_attr($badge_bg); ?>;color:<?php echo esc_attr($badge_fg); ?>;font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;letter-spacing:0.04em;">
-                                    <?php echo esc_html($badge_txt); ?>
-                                </span>
+                <a href="<?php echo esc_url($url); ?>" class="bk-dosen-card">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <?php if (!empty($foto_url)) : ?>
+                            <div class="bk-avatar <?php echo $is_prof ? 'is-prof' : ''; ?> has-photo" data-fb-init="<?php echo esc_attr($init); ?>">
+                                <img src="<?php echo esc_url($foto_url); ?>" alt="<?php echo esc_attr($nama); ?>" loading="lazy" onerror="var p=this.parentElement;if(p){p.classList.remove('has-photo');p.textContent=p.getAttribute('data-fb-init')||'BK';}">
                             </div>
-
-                            <h3 class="bk-serif" style="font-size:15.5px;font-weight:600;color:var(--bk-ink);line-height:1.35;margin:0 0 4px 0;">
-                                <?php echo esc_html($nama); ?>
-                            </h3>
-                            <p style="font-size:11.5px;color:var(--bk-forest);font-weight:600;margin:0 0 12px 0;line-height:1.4;">
-                                <?php echo esc_html($role_line); ?>
-                            </p>
-
-                            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;">
-                                <?php foreach (array_slice($kepakaran, 0, 2) as $tag) : ?>
-                                    <span style="background:var(--bk-bg-warm);border:1px solid var(--bk-border-subtle);font-size:10.5px;color:var(--bk-ink-muted);padding:2px 7px;border-radius:4px;">
-                                        <?php echo esc_html($tag); ?>
-                                    </span>
-                                <?php endforeach; ?>
-                            </div>
+                        <?php else : ?>
+                            <div class="bk-avatar <?php echo $is_prof ? 'is-prof' : ''; ?>"><?php echo esc_html($init); ?></div>
+                        <?php endif; ?>
+                        <div style="min-width:0;">
+                            <h3 class="bk-font-display" style="font-size:15.5px;line-height:1.3;margin:0 0 2px;color:var(--text-primary);"><?php echo esc_html($nama); ?></h3>
+                            <span style="font-size:12.5px;color:var(--text-muted);display:block;"><?php echo esc_html($role_line); ?></span>
                         </div>
                     </div>
-
-                    <div style="padding:12px 20px;background:var(--bk-bg-warm);border-top:1px solid var(--bk-border-subtle);display:flex;justify-content:space-between;align-items:center;">
-                        <div class="bk-mono" style="font-size:11px;color:var(--bk-ink-muted);">
-                            Publikasi: <strong style="color:var(--bk-forest);"><?php echo esc_html($pub_count); ?></strong> &middot; Riset: <strong style="color:var(--bk-forest);"><?php echo esc_html($pen_count); ?></strong>
-                        </div>
-                        <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-forest);">Profil &rarr;</span>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <?php foreach (array_slice($kepakaran, 0, 2) as $tag) : ?>
+                            <span class="bk-tag"><?php echo esc_html($tag); ?></span>
+                        <?php endforeach; ?>
                     </div>
-                </div>
+                </a>
                 <?php endforeach; ?>
             </div>
         </div>
-
-    </div>
-    <script>
-    (function() {
-        var track = document.getElementById('bk-dosen-track');
-        var btnLeft = document.getElementById('bk-dosen-left');
-        var btnRight = document.getElementById('bk-dosen-right');
-        if (!track) return;
-
-        if (btnLeft) {
-            btnLeft.addEventListener('click', function(e) {
-                e.preventDefault();
-                track.scrollBy({ left: -320, behavior: 'smooth' });
-            });
-        }
-        if (btnRight) {
-            btnRight.addEventListener('click', function(e) {
-                e.preventDefault();
-                track.scrollBy({ left: 320, behavior: 'smooth' });
-            });
-        }
-
-        var isDown = false;
-        var startX = 0;
-        var scrollLeft = 0;
-        var isDragging = false;
-
-        track.addEventListener('mousedown', function(e) {
-            isDown = true;
-            isDragging = false;
-            track.style.cursor = 'grabbing';
-            startX = e.pageX - track.offsetLeft;
-            scrollLeft = track.scrollLeft;
-        });
-
-        track.addEventListener('mouseleave', function() {
-            isDown = false;
-            track.style.cursor = 'grab';
-        });
-
-        track.addEventListener('mouseup', function() {
-            isDown = false;
-            track.style.cursor = 'grab';
-        });
-
-        track.addEventListener('mousemove', function(e) {
-            if (!isDown) return;
-            var x = e.pageX - track.offsetLeft;
-            var walk = (x - startX);
-            if (Math.abs(walk) > 6) {
-                isDragging = true;
-                e.preventDefault();
-                track.scrollLeft = scrollLeft - walk;
-            }
-        });
-
-        var touchStartX = 0;
-        var touchMoved = false;
-        track.addEventListener('touchstart', function(e) {
-            touchStartX = e.touches[0].clientX;
-            touchMoved = false;
-        }, { passive: true });
-
-        track.addEventListener('touchmove', function(e) {
-            var diff = Math.abs(e.touches[0].clientX - touchStartX);
-            if (diff > 8) touchMoved = true;
-        }, { passive: true });
-
-        track.querySelectorAll('.bk-faculty-card').forEach(function(card) {
-            card.addEventListener('click', function(e) {
-                if (isDragging || touchMoved) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return;
-                }
-                var targetUrl = card.getAttribute('data-url');
-                if (targetUrl) {
-                    window.location.href = targetUrl;
-                }
-            });
-            card.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    var targetUrl = card.getAttribute('data-url');
-                    if (targetUrl) window.location.href = targetUrl;
-                }
-            });
-        });
-    })();
-    </script>
-</section>
-
-<!-- =====================================================================
-     SECTION 8: LABORATORIUM BK TERPADU (ASYMMETRIC BENTO ARCHITECTURAL SPLIT)
-     ===================================================================== -->
-<section id="lab_unified_section" class="bk-section-lab_unified_section relative w-full" style="background-color: #FFFFFF; padding-top: 60px; padding-bottom: 64px; border-bottom: 1px solid var(--bk-border);">
-    <div class="bk-container">
-        
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:28px;">
-            <div style="max-width:660px;">
-                <div class="bk-sec-kicker">Infrastruktur Praktikum &amp; Layanan</div>
-                <h2 class="bk-serif" style="font-size:clamp(26px, 3vw, 34px);color:var(--bk-ink);margin:0 0 6px 0;font-weight:500;letter-spacing:-0.02em;">
-                    Laboratorium Bimbingan dan Konseling Terpadu
-                </h2>
-                <p style="font-size:13.5px;color:var(--bk-ink-muted);line-height:1.6;margin:0;">
-                    Dirancang sesuai standar kode etik dan pedoman sarana praktikum Asosiasi Bimbingan dan Konseling Indonesia (ABKIN) untuk menjamin kerahasiaan, akurasi asesmen, dan mutu supervisi klinis.
-                </p>
-            </div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                <a href="<?php echo esc_url(home_url('/lab-bk/inventaris/')); ?>" class="bk-btn-outline-dark">
-                    <span>Inventaris Alat &amp; Instrumen</span>
-                </a>
-                <a href="<?php echo esc_url(home_url('/lab-bk/')); ?>" class="bk-btn-outline-dark" style="background:var(--bk-forest);color:#ffffff;border-color:var(--bk-forest);">
-                    <span>Portal Laboratorium BK &rarr;</span>
-                </a>
-            </div>
-        </div>
-
-        <!-- Asymmetric Bento Split: 1 Dark Featured Blueprint + 2 Stacked Technical Modules (Zero Emojis) -->
-        <div class="bk-lab-bento">
-            
-            <!-- Left Main Module (6 cols) -->
-            <div class="bk-lab-main">
-                <div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
-                        <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-gold);letter-spacing:0.08em;">FASILITAS UTAMA // LAB-01</span>
-                        <span class="bk-mono" style="font-size:10px;padding:3px 9px;border-radius:4px;background:rgba(255,255,255,0.1);color:#ffffff;border:1px solid rgba(255,255,255,0.15);">REAL-TIME SUPERVISION</span>
-                    </div>
-
-                    <h3 class="bk-serif" style="font-size:26px;font-weight:500;color:#ffffff;margin:0 0 12px 0;line-height:1.25;">
-                        Studio Mikrokonseling &amp; Ruang Observasi Cermin Satu Arah
-                    </h3>
-                    <p style="font-size:13.5px;color:rgba(255,255,255,0.82);line-height:1.7;margin:0 0 28px 0;">
-                        Ruang praktikum kedap suara yang memisahkan ruang sesi konseling dan ruang pengamat melalui <em>one-way mirror glass</em>, memungkinkan dosen pembimbing dan rekan mahasiswa melakukan observasi keterampilan dasar komunikasi konseling tanpa mengganggu jalannya sesi.
-                    </p>
-                </div>
-
-                <div>
-                    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:12px;border-top:1px solid rgba(255,255,255,0.14);padding-top:20px;">
-                        <div style="background:rgba(0,0,0,0.22);border:1px solid rgba(255,255,255,0.1);padding:12px 14px;border-radius:8px;">
-                            <div class="bk-mono" style="font-size:10px;color:var(--bk-gold);margin-bottom:3px;">VISUAL &amp; OPTIK</div>
-                            <div style="font-size:12.5px;font-weight:600;color:#ffffff;">One-Way Mirror &amp; Kamera PTZ Multi-Sudut</div>
-                        </div>
-                        <div style="background:rgba(0,0,0,0.22);border:1px solid rgba(255,255,255,0.1);padding:12px 14px;border-radius:8px;">
-                            <div class="bk-mono" style="font-size:10px;color:var(--bk-gold);margin-bottom:3px;">AKUSTIK &amp; AUDIO</div>
-                            <div style="font-size:12.5px;font-weight:600;color:#ffffff;">Peredam Akustik &amp; Perekam Kondensor</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Stacked Modules (6 cols) -->
-            <div class="bk-lab-side">
-                
-                <!-- Module 02 -->
-                <div class="bk-lab-module">
-                    <div>
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-                            <div style="display:inline-flex;align-items:center;gap:10px;">
-                                <div style="width:36px;height:36px;border-radius:8px;background:var(--bk-bg-sage);color:var(--bk-forest);display:flex;align-items:center;justify-content:center;">
-                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
-                                </div>
-                                <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-forest);letter-spacing:0.06em;">LAB-02 // PSIKOMETRI &amp; DIAGNOSTIK</span>
-                            </div>
-                            <span class="bk-mono" style="font-size:10.5px;color:var(--bk-ink-subtle);background:var(--bk-bg-warm);border:1px solid var(--bk-border);padding:2px 8px;border-radius:4px;">TES &amp; NON-TES</span>
-                        </div>
-
-                        <h3 class="bk-serif" style="font-size:20px;font-weight:600;color:var(--bk-ink);margin:0 0 8px 0;">
-                            Bank Instrumen Tes Psikologi &amp; Sistem IKMS Digital
-                        </h3>
-                        <p style="font-size:13px;color:var(--bk-ink-muted);line-height:1.65;margin:0 0 16px 0;">
-                            Menyediakan perangkat tes inteligensi (SPM/CPM/CFIT), tes bakat diferensial (DAT), inventori minat jabatan (RMIB), serta instrumen non-tes terstandar seperti Alat Ungkap Masalah (AUM), Daftar Cek Masalah (DCM), dan Identifikasi Kebutuhan dan Masalah Siswa (IKMS).
-                        </p>
-                    </div>
-                    <div style="border-top:1px solid var(--bk-border-subtle);padding-top:12px;display:flex;justify-content:space-between;align-items:center;font-size:12px;">
-                        <span class="bk-mono" style="color:var(--bk-ink-subtle);font-size:11px;">Standar Praktikum Asesmen BK</span>
-                        <a href="<?php echo esc_url(home_url('/lab-bk/inventaris/')); ?>" style="color:var(--bk-forest);font-weight:600;text-decoration:none;">Lihat Katalog Alat Tes &rarr;</a>
-                    </div>
-                </div>
-
-                <!-- Module 03 -->
-                <div class="bk-lab-module">
-                    <div>
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-                            <div style="display:inline-flex;align-items:center;gap:10px;">
-                                <div style="width:36px;height:36px;border-radius:8px;background:var(--bk-bg-sage);color:var(--bk-forest);display:flex;align-items:center;justify-content:center;">
-                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
-                                </div>
-                                <span class="bk-mono" style="font-size:11px;font-weight:600;color:var(--bk-forest);letter-spacing:0.06em;">LAB-03 // LAYANAN KONSELING</span>
-                            </div>
-                            <span class="bk-mono" style="font-size:10.5px;color:var(--bk-ink-subtle);background:var(--bk-bg-warm);border:1px solid var(--bk-border);padding:2px 8px;border-radius:4px;">PRIVASI 100%</span>
-                        </div>
-
-                        <h3 class="bk-serif" style="font-size:20px;font-weight:600;color:var(--bk-ink);margin:0 0 8px 0;">
-                            Bilik Konseling Individual &amp; Ruang Dinamika Kelompok
-                        </h3>
-                        <p style="font-size:13px;color:var(--bk-ink-muted);line-height:1.65;margin:0 0 16px 0;">
-                            Bilik konseling individual dengan tata ruang ergonomis dan pencahayaan hangat untuk menjaga asas kerahasiaan konseli, dilengkapi ruang bimbingan/konseling kelompok berkapasitas 8&ndash;12 peserta untuk simulasi dinamika kelompok.
-                        </p>
-                    </div>
-                    <div style="border-top:1px solid var(--bk-border-subtle);padding-top:12px;display:flex;justify-content:space-between;align-items:center;font-size:12px;">
-                        <span class="bk-mono" style="color:var(--bk-ink-subtle);font-size:11px;">Sesuai Kode Etik Konselor Indonesia</span>
-                        <a href="<?php echo esc_url(home_url('/layanan/')); ?>" style="color:var(--bk-forest);font-weight:600;text-decoration:none;">Prosedur Layanan &rarr;</a>
-                    </div>
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-</section>
-
-
-<!-- =====================================================================
-     SECTION 9: ARCHITECTURAL ADMISSION LEDGER BANNER (PMB UNM)
-     ===================================================================== -->
-<section id="cta_section" class="bk-section-cta_section relative w-full" style="background-color: #0D3B22; padding-top: 56px; padding-bottom: 60px; border-top: 1px solid rgba(255,255,255,0.12);">
-    <div class="bk-container">
-        <div style="background:rgba(7, 35, 20, 0.72);border:1px solid rgba(255,255,255,0.16);border-radius:14px;padding:clamp(28px, 4vw, 44px);display:grid;grid-template-columns:repeat(12, minmax(0, 1fr));gap:32px;align-items:center;">
-            
-            <div style="grid-column: span 8 / span 8;" class="bk-cta-col-left">
-                <div class="bk-mono" style="font-size:11px;font-weight:600;color:#F5B82E;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">
-                    ADMISI &amp; PENERIMAAN MAHASISWA BARU // PMB UNM
-                </div>
-                <h2 class="bk-serif" style="font-size:clamp(26px, 3.2vw, 38px);color:#ffffff;margin:0 0 12px 0;line-height:1.18;font-weight:500;letter-spacing:-0.02em;">
-                    Bergabung Bersama Komunitas Akademik Bimbingan dan Konseling FIP UNM
-                </h2>
-                <p style="font-size:14px;color:rgba(255,255,255,0.82);line-height:1.65;margin:0 0 20px 0;max-width:640px;">
-                    Pendaftaran mahasiswa baru tersedia melalui jalur Seleksi Nasional Berdasarkan Prestasi (SNBP), Seleksi Nasional Berdasarkan Tes (SNBT), Jalur Mandiri UNM untuk jenjang Sarjana (S1), serta Seleksi Pascasarjana untuk jenjang Magister (S2) dan Doktoral (S3).
-                </p>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    <span class="bk-mono" style="font-size:10.5px;color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);padding:4px 10px;border-radius:4px;">JALUR SNBP</span>
-                    <span class="bk-mono" style="font-size:10.5px;color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);padding:4px 10px;border-radius:4px;">JALUR UTBK-SNBT</span>
-                    <span class="bk-mono" style="font-size:10.5px;color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);padding:4px 10px;border-radius:4px;">MANDIRI UNM</span>
-                    <span class="bk-mono" style="font-size:10.5px;color:#F5B82E;background:rgba(245,184,46,0.12);border:1px solid rgba(245,184,46,0.3);padding:4px 10px;border-radius:4px;">PASCASARJANA S2 &amp; S3</span>
-                </div>
-            </div>
-
-            <div style="grid-column: span 4 / span 4;display:flex;flex-direction:column;gap:12px;" class="bk-cta-col-right">
-                <a href="https://pmb.unm.ac.id" target="_blank" rel="noopener" class="bk-btn-primary" style="width:100%;box-sizing:border-box;">
-                    <span>Portal Resmi PMB UNM</span>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
-                </a>
-                <a href="<?php echo esc_url(home_url('/layanan/akademik/')); ?>" class="bk-btn-outline-light" style="width:100%;box-sizing:border-box;">
-                    <span>Panduan &amp; Layanan Akademik</span>
-                </a>
-                <div class="bk-mono" style="text-align:center;font-size:10.5px;color:rgba(255,255,255,0.6);margin-top:4px;">
-                    Kampus FIP UNM Tamalate &middot; Makassar
-                </div>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<style>
-@media (max-width: 1024px) {
-    .bk-cta-col-left,
-    .bk-cta-col-right {
-        grid-column: span 12 / span 12 !important;
-    }
-}
-</style>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    // Interactive Tabs for Program Studi Matrix (shadcn Tabs pattern)
-    var tabButtons = document.querySelectorAll("[data-prodi-tab]");
-    var prodiPanels = document.querySelectorAll("[data-prodi-panel]");
-    var matrixContainer = document.getElementById("bk-prodi-matrix-view");
-
-    if (tabButtons.length > 0 && prodiPanels.length > 0 && matrixContainer) {
-        tabButtons.forEach(function(btn) {
-            btn.addEventListener("click", function() {
-                var target = this.getAttribute("data-prodi-tab");
-
-                tabButtons.forEach(function(b) {
-                    b.classList.remove("is-active");
-                    b.setAttribute("aria-selected", "false");
-                });
-                this.classList.add("is-active");
-                this.setAttribute("aria-selected", "true");
-
-                if (target === "all") {
-                    matrixContainer.style.gridTemplateColumns = "";
-                    prodiPanels.forEach(function(panel) {
-                        panel.style.display = "flex";
-                    });
-                } else {
-                    matrixContainer.style.gridTemplateColumns = "1fr";
-                    prodiPanels.forEach(function(panel) {
-                        if (panel.getAttribute("data-prodi-panel") === target) {
-                            panel.style.display = "flex";
-                        } else {
-                            panel.style.display = "none";
-                        }
-                    });
-                }
-            });
-        });
-    }
-});
-</script>
-
-
-<script>
-(function() {
-    document.addEventListener('DOMContentLoaded', function() {
-        var viewport = document.getElementById('bk-spotlight-viewport');
-        if (!viewport) return;
-
-        var allSlides = Array.from(viewport.querySelectorAll('.bk-spotlight-slide'));
-        if (!allSlides || allSlides.length === 0) return;
-
-        var prevBtn = document.getElementById('bk-spotlight-btn-prev');
-        var nextBtn = document.getElementById('bk-spotlight-btn-next');
-        var dotsContainer = document.getElementById('bk-spotlight-dots');
-        var currentIdxEl = document.getElementById('bk-spotlight-current-idx');
-        var totalIdxEl = document.getElementById('bk-spotlight-total-idx');
-        var progressLine = document.getElementById('bk-spotlight-progress-line');
-        var togglePlayBtn = document.getElementById('bk-spotlight-toggle-play');
-        var modeTag = document.getElementById('bk-spotlight-mode-tag');
-
-        var isAutoplay = viewport.getAttribute('data-autoplay') === '1';
-        var standardDuration = Math.max(4, parseInt(viewport.getAttribute('data-speed'), 10) || 8) * 1000;
-        var currentVisibleIndex = 0;
-        var standardTimer = null;
-        var standardStart = 0;
-        var isManualPaused = false;
-        var promptTimeout = null;
-
-        function padZero(n) {
-            return n < 10 ? '0' + n : '' + n;
-        }
-
-        // Get currently visible slides according to screen width (Desktop vs Mobile)
-        function getVisibleSlides() {
-            var isMobile = window.innerWidth <= 768;
-            return allSlides.filter(function(s) {
-                var target = s.getAttribute('data-device-target') || 'all';
-                if (isMobile && target === 'desktop_only') return false;
-                if (!isMobile && target === 'mobile_only') return false;
-                return true;
-            });
-        }
-
-        function refreshDots() {
-            var visibleSlides = getVisibleSlides();
-            if (totalIdxEl) {
-                totalIdxEl.textContent = padZero(visibleSlides.length);
-            }
-            if (dotsContainer) {
-                dotsContainer.innerHTML = '';
-                visibleSlides.forEach(function(s, idx) {
-                    var btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'bk-spotlight-dot-pill' + (idx === currentVisibleIndex ? ' active' : '');
-                    btn.setAttribute('data-go-to', idx);
-                    btn.setAttribute('aria-label', 'Menuju Slide ' + (idx + 1));
-                    btn.style.width = (idx === currentVisibleIndex ? '30px' : '10px');
-                    btn.style.height = '6px';
-                    btn.style.borderRadius = '3px';
-                    btn.style.backgroundColor = (idx === currentVisibleIndex ? '#F5B82E' : 'rgba(255,255,255,0.35)');
-                    btn.style.border = 'none';
-                    btn.style.padding = '0';
-                    btn.style.cursor = 'pointer';
-                    btn.style.transition = 'all 0.25s ease';
-                    btn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        updateSlide(idx);
-                    });
-                    dotsContainer.appendChild(btn);
-                });
-            }
-        }
-
-        function hideAllPills() {
-            clearTimeout(promptTimeout);
-            document.querySelectorAll('.bk-spotlight-prompt-pill').forEach(function(pill) {
-                pill.classList.remove('is-shown');
-            });
-        }
-
-        var ytMutedMap = {};
-        var ytPausedMap = {};
-
-        function updateSlide(newVisibleIndex) {
-            var visibleSlides = getVisibleSlides();
-            if (visibleSlides.length === 0) return;
-
-            if (newVisibleIndex < 0) newVisibleIndex = visibleSlides.length - 1;
-            if (newVisibleIndex >= visibleSlides.length) newVisibleIndex = 0;
-
-            currentVisibleIndex = newVisibleIndex;
-            hideAllPills();
-
-            clearInterval(standardTimer);
-            if (progressLine) progressLine.style.width = '0%';
-
-            var activeSlide = visibleSlides[currentVisibleIndex];
-            var slideType = activeSlide.getAttribute('data-slide-type') || 'image';
-
-            allSlides.forEach(function(s) {
-                if (s === activeSlide) {
-                    s.classList.add('is-active');
-                    // Unpause active slide YouTube video if present
-                    var actIfr = s.querySelector('iframe');
-                    if (actIfr && actIfr.contentWindow) {
-                        try {
-                            actIfr.contentWindow.postMessage(JSON.stringify({
-                                event: 'command',
-                                func: 'playVideo',
-                                args: []
-                            }), '*');
-                        } catch(e) {}
-                    }
-                } else {
-                    s.classList.remove('is-active');
-                    // 1. Native HTML5 video pause & rewind
-                    var v = s.querySelector('video');
-                    if (v) {
-                        v.pause();
-                        v.currentTime = 0;
-                    }
-                    // 2. YouTube / External IFrame pause & mute IMMEDIATELY (no audio leak)
-                    var ifr = s.querySelector('iframe');
-                    if (ifr && ifr.contentWindow) {
-                        try {
-                            ifr.contentWindow.postMessage(JSON.stringify({
-                                event: 'command',
-                                func: 'pauseVideo',
-                                args: []
-                            }), '*');
-                            ifr.contentWindow.postMessage(JSON.stringify({
-                                event: 'command',
-                                func: 'mute',
-                                args: []
-                            }), '*');
-                        } catch(e) {}
-                    }
-                    // 3. Reset audio toggle button state on inactive slide
-                    var sIdx = s.getAttribute('data-slide-index');
-                    if (sIdx !== null && typeof ytMutedMap !== 'undefined') {
-                        ytMutedMap[sIdx] = true;
-                    }
-                    var aBtn = s.querySelector('.btn-toggle-audio');
-                    if (aBtn) {
-                        var aIcon = aBtn.querySelector('.audio-icon');
-                        var aTxt = aBtn.querySelector('.audio-text');
-                        if (aIcon) aIcon.textContent = '🔇';
-                        if (aTxt) aTxt.textContent = 'Nyalakan Audio';
-                    }
-                }
-            });
-
-            if (currentIdxEl) {
-                currentIdxEl.textContent = padZero(currentVisibleIndex + 1);
-            }
-
-            if (dotsContainer) {
-                var dots = dotsContainer.querySelectorAll('.bk-spotlight-dot-pill');
-                dots.forEach(function(d, dIdx) {
-                    if (dIdx === currentVisibleIndex) {
-                        d.classList.add('active');
-                        d.style.width = '30px';
-                        d.style.backgroundColor = '#F5B82E';
-                    } else {
-                        d.classList.remove('active');
-                        d.style.width = '10px';
-                        d.style.backgroundColor = 'rgba(255,255,255,0.35)';
-                    }
-                });
-            }
-
-            // ATURAN VIDEO: Selesaikan video terlebih dahulu sebelum lanjut
-            function runStandardSlideTimer(dur) {
-                clearInterval(standardTimer);
-                var duration = dur || standardDuration;
-                standardStart = Date.now();
-                standardTimer = setInterval(function() {
-                    var elapsed = Date.now() - standardStart;
-                    var pct = Math.min(100, (elapsed / duration) * 100);
-                    if (progressLine) {
-                        progressLine.style.width = pct + '%';
-                    }
-                    if (elapsed >= duration) {
-                        clearInterval(standardTimer);
-                        standardTimer = null;
-                        updateSlide(currentVisibleIndex + 1);
-                    }
-                }, 50);
-            }
-
-            // ATURAN VIDEO & ROTASI SLIDE
-            if (slideType === 'video') {
-                var video = activeSlide.querySelector('video');
-                var iframe = activeSlide.querySelector('iframe');
-
-                if (video) {
-                    if (modeTag) {
-                        modeTag.textContent = 'VIDEO MP4';
-                        modeTag.style.display = 'inline';
-                    }
-                    video.onerror = function() {
-                        console.warn('Video error, running standard slide timer.');
-                        if (isAutoplay && !isManualPaused && visibleSlides.length > 1) {
-                            runStandardSlideTimer();
-                        }
-                    };
-                    video.currentTime = 0;
-                    var playPromise = video.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(function() {
-                            video.muted = true;
-                            video.play().catch(function() {
-                                if (isAutoplay && !isManualPaused && visibleSlides.length > 1) {
-                                    runStandardSlideTimer();
-                                }
-                            });
-                        });
-                    }
-
-                    video.ontimeupdate = function() {
-                        if (video.duration && progressLine) {
-                            var pct = (video.currentTime / video.duration) * 100;
-                            progressLine.style.width = pct + '%';
-                        }
-                    };
-
-                    video.onended = function() {
-                        if (isAutoplay && !isManualPaused && visibleSlides.length > 1) {
-                            updateSlide(currentVisibleIndex + 1);
-                        }
-                    };
-                } else if (iframe) {
-                    // YouTube / Google Drive Cloud Video Stream
-                    if (modeTag) {
-                        modeTag.textContent = 'STREAMING VIDEO';
-                        modeTag.style.display = 'inline';
-                    }
-                    if (isAutoplay && !isManualPaused && visibleSlides.length > 1) {
-                        runStandardSlideTimer(15000); // 15 detik untuk preview streaming video
-                    }
-                } else {
-                    if (isAutoplay && !isManualPaused && visibleSlides.length > 1) {
-                        runStandardSlideTimer();
-                    }
-                }
-            } else {
-                if (modeTag) {
-                    modeTag.textContent = 'BANNER INFORMASI';
-                    modeTag.style.display = 'inline';
-                }
-                if (isAutoplay && !isManualPaused && visibleSlides.length > 1) {
-                    runStandardSlideTimer();
-                }
-            }
-        }
-
-        document.querySelectorAll('.bk-spotlight-click-shield').forEach(function(shield) {
-            shield.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                var slide = this.closest('.bk-spotlight-slide');
-                if (!slide) return;
-
-                var pill = slide.querySelector('.bk-spotlight-prompt-pill');
-                if (!pill) return;
-
-                if (pill.classList.contains('is-shown')) {
-                    var href = pill.getAttribute('data-href');
-                    if (href) {
-                        window.location.href = href;
-                    }
-                    return;
-                }
-
-                hideAllPills();
-                pill.classList.add('is-shown');
-
-                promptTimeout = setTimeout(function() {
-                    pill.classList.remove('is-shown');
-                }, 4500);
-            });
-        });
-
-        document.querySelectorAll('.bk-spotlight-prompt-pill').forEach(function(pill) {
-            pill.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var href = this.getAttribute('data-href');
-                if (href) {
-                    window.location.href = href;
-                }
-            });
-        });
-
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.bk-spotlight-canvas-box')) {
-                hideAllPills();
-            }
-        });
-
-        if (prevBtn) {
-            prevBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                updateSlide(currentVisibleIndex - 1);
-            });
-        }
-        if (nextBtn) {
-            nextBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                updateSlide(currentVisibleIndex + 1);
-            });
-        }
-
-        if (togglePlayBtn) {
-            togglePlayBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                isManualPaused = !isManualPaused;
-                var icon = this.querySelector('.status-icon');
-                var text = this.querySelector('.status-text');
-                if (isManualPaused) {
-                    clearInterval(standardTimer);
-                    var curVisible = getVisibleSlides();
-                    var act = curVisible[currentVisibleIndex];
-                    if (act) {
-                        var v = act.querySelector('video');
-                        if (v) v.pause();
-                    }
-                    if (icon) icon.textContent = '▶';
-                    if (text) text.textContent = 'JEDA';
-                    this.style.borderColor = '#F5B82E';
-                    this.style.color = '#F5B82E';
-                } else {
-                    if (icon) icon.textContent = '⏸';
-                    if (text) text.textContent = 'AUTOPLAY';
-                    this.style.borderColor = 'rgba(255,255,255,0.25)';
-                    this.style.color = 'rgba(255,255,255,0.9)';
-                    var curVis = getVisibleSlides();
-                    var actSlide = curVis[currentVisibleIndex];
-                    if (actSlide) {
-                        var curV = actSlide.querySelector('video');
-                        if (curV) curV.play();
-                    }
-                    updateSlide(currentVisibleIndex);
-                }
-            });
-        }
-
-        // yt maps hoisted to top
-
-        // Audio Toggle: supports both native HTML5 <video> and YouTube <iframe> via postMessage
-        document.querySelectorAll('.btn-toggle-audio').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var slide = this.closest('.bk-spotlight-slide');
-                if (!slide) return;
-                var slideIdx = slide.getAttribute('data-slide-index') || '0';
-                var video = slide.querySelector('video');
-                var iframe = slide.querySelector('iframe');
-                var icon = this.querySelector('.audio-icon');
-                var txt = this.querySelector('.audio-text');
-
-                if (video) {
-                    video.muted = !video.muted;
-                    if (video.muted) {
-                        if (icon) icon.textContent = '🔇';
-                        if (txt) txt.textContent = 'Nyalakan Audio';
-                    } else {
-                        if (icon) icon.textContent = '🔊';
-                        if (txt) txt.textContent = 'Matikan Suara';
-                    }
-                } else if (iframe && iframe.contentWindow) {
-                    // YouTube / Vimeo cross-origin postMessage command
-                    var isCurrentlyMuted = ytMutedMap[slideIdx] !== false; // default true (muted autoplay)
-                    if (isCurrentlyMuted) {
-                        // UNMUTE YOUTUBE
-                        iframe.contentWindow.postMessage(JSON.stringify({
-                            event: 'command',
-                            func: 'unMute',
-                            args: []
-                        }), '*');
-                        iframe.contentWindow.postMessage(JSON.stringify({
-                            event: 'command',
-                            func: 'setVolume',
-                            args: [100]
-                        }), '*');
-                        ytMutedMap[slideIdx] = false;
-                        if (icon) icon.textContent = '🔊';
-                        if (txt) txt.textContent = 'Matikan Suara';
-                    } else {
-                        // MUTE YOUTUBE
-                        iframe.contentWindow.postMessage(JSON.stringify({
-                            event: 'command',
-                            func: 'mute',
-                            args: []
-                        }), '*');
-                        ytMutedMap[slideIdx] = true;
-                        if (icon) icon.textContent = '🔇';
-                        if (txt) txt.textContent = 'Nyalakan Audio';
-                    }
-                }
-            });
-        });
-
-        // Play/Pause Toggle: supports both native HTML5 <video> and YouTube <iframe> via postMessage
-        document.querySelectorAll('.btn-toggle-play').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var slide = this.closest('.bk-spotlight-slide');
-                if (!slide) return;
-                var slideIdx = slide.getAttribute('data-slide-index') || '0';
-                var video = slide.querySelector('video');
-                var iframe = slide.querySelector('iframe');
-                var icon = this.querySelector('.play-icon');
-                var txt = this.querySelector('.play-text');
-
-                if (video) {
-                    if (video.paused) {
-                        video.play();
-                        if (icon) icon.textContent = '⏸';
-                        if (txt) txt.textContent = 'Jeda';
-                    } else {
-                        video.pause();
-                        if (icon) icon.textContent = '▶';
-                        if (txt) txt.textContent = 'Putar';
-                    }
-                } else if (iframe && iframe.contentWindow) {
-                    var isPaused = ytPausedMap[slideIdx] === true;
-                    if (isPaused) {
-                        iframe.contentWindow.postMessage(JSON.stringify({
-                            event: 'command',
-                            func: 'playVideo',
-                            args: []
-                        }), '*');
-                        ytPausedMap[slideIdx] = false;
-                        if (icon) icon.textContent = '⏸';
-                        if (txt) txt.textContent = 'Jeda';
-                    } else {
-                        iframe.contentWindow.postMessage(JSON.stringify({
-                            event: 'command',
-                            func: 'pauseVideo',
-                            args: []
-                        }), '*');
-                        ytPausedMap[slideIdx] = true;
-                        if (icon) icon.textContent = '▶';
-                        if (txt) txt.textContent = 'Putar';
-                    }
-                }
-            });
-        });
-
-        // Handle window resize dynamically between desktop and mobile views
-        var resizeTimer = null;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                refreshDots();
-                updateSlide(0);
-            }, 250);
-        });
-
-        // Keyboard navigation
-        document.addEventListener('keydown', function(e) {
-            var rect = viewport.getBoundingClientRect();
-            if (rect.bottom > 0 && rect.top < window.innerHeight) {
-                if (e.key === 'ArrowLeft') {
-                    updateSlide(currentVisibleIndex - 1);
-                } else if (e.key === 'ArrowRight') {
-                    updateSlide(currentVisibleIndex + 1);
-                }
-            }
-        });
-
-        // Mobile touch swipe
-        var touchStartX = 0;
-        var touchEndX = 0;
-        viewport.addEventListener('touchstart', function(e) {
-            touchStartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-
-        viewport.addEventListener('touchend', function(e) {
-            touchEndX = e.changedTouches[0].screenX;
-            var diff = touchStartX - touchEndX;
-            if (Math.abs(diff) > 50) {
-                if (diff > 0) {
-                    updateSlide(currentVisibleIndex + 1);
-                } else {
-                    updateSlide(currentVisibleIndex - 1);
-                }
-            }
-        }, { passive: true });
-
-        // Initial setup
-        refreshDots();
-        updateSlide(0);
-    });
-})();
-</script>
+    </section>
 
 </main>
 
-<?php
-get_footer();
+<!-- =====================================================================
+     LIGHTWEIGHT VIDEO PROFILE MODAL (#bk-video-modal)
+     ===================================================================== -->
+<div class="bk-backdrop" id="bk-vid-backdrop" aria-hidden="true"></div>
+<div class="bk-video-modal" id="bk-video-modal" role="dialog" aria-modal="true" aria-labelledby="bk-vmod-heading">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border-hairline, #E4E0D8);display:flex;justify-content:space-between;align-items:center;background:var(--bg-surface, #FFFFFF);">
+        <div>
+            <div class="bk-kicker" style="margin-bottom:2px;">PROFIL VIDEO JURUSAN PPB</div>
+            <h3 class="bk-font-display" id="bk-vmod-heading" style="margin:0;font-size:17px;color:var(--text-primary);">Mengenal Prodi Bimbingan &amp; Konseling FIP UNM</h3>
+        </div>
+        <button type="button" class="bk-icon-btn" id="bk-vmod-close" aria-label="Tutup Modal Video">&#10005;</button>
+    </div>
+    <div class="bk-video-stage">
+        <div class="bk-video-screen" id="bk-vmod-screen">
+            <img id="bk-vmod-img" src="<?php echo esc_url($first_ch['poster']); ?>" alt="<?php echo esc_attr($first_ch['title']); ?>">
+            <div id="bk-vmod-embed-mount" style="display:none;position:absolute;inset:0;z-index:2;background:#000;"></div>
+            <div class="bk-video-overlay" id="bk-vmod-overlay">
+                <span class="bk-tag bk-tag-gold" id="bk-vmod-badge" style="margin-bottom:10px;"><?php echo esc_html($first_ch['badge']); ?></span>
+                <h4 class="bk-font-display" id="bk-vmod-title" style="margin:0 0 8px;font-size:21px;color:#FFFFFF;"><?php echo esc_html($first_ch['title']); ?></h4>
+                <p id="bk-vmod-desc" style="margin:0 0 14px;font-size:13.5px;color:rgba(255,255,255,0.86);max-width:48ch;"><?php echo esc_html($first_ch['desc']); ?></p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+                    <?php foreach ($video_chapters as $vc_idx => $vc) :
+                        $short_lbl = ($vc['num'] ?? sprintf('%02d', $vc_idx + 1)) . '. ' . wp_trim_words($vc['title'] ?? 'Bab', 3, '');
+                    ?>
+                    <button type="button" class="bk-btn bk-btn-sm <?php echo $vc_idx === 0 ? 'bk-btn-gold' : 'bk-btn-secondary'; ?>" data-vchap="<?php echo esc_attr($vc_idx); ?>">
+                        <?php echo esc_html($short_lbl); ?>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.72);">Video profil dibuka melalui modal ringan agar halaman utama tetap tenang dan cepat diakses.</p>
+    </div>
+</div>
+
+<script type="application/json" id="bk-video-chapters-data"><?php echo wp_json_encode($video_chapters); ?></script>
+<script>
+(function(){
+    'use strict';
+
+    var $ = function(id) { return document.getElementById(id); };
+
+    // 1. Segmented Jenjang Tabs (S1 / S2 / S3)
+    var degTabs = document.querySelectorAll('[data-deg-tab]');
+    var degPanels = document.querySelectorAll('[data-deg-panel]');
+    degTabs.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var target = this.getAttribute('data-deg-tab');
+            degTabs.forEach(function(b) {
+                var act = (b === btn);
+                b.classList.toggle('is-active', act);
+                b.setAttribute('aria-selected', act ? 'true' : 'false');
+            });
+            degPanels.forEach(function(p) {
+                p.style.display = (p.getAttribute('data-deg-panel') === target) ? '' : 'none';
+            });
+        });
+    });
+
+    // 2. Dosen Carousel Controls (standalone fallback when bk-connect-core RAF engine is inactive)
+    var dosenTrack = $('bk-dosen-track');
+    var dosenLeft  = $('bk-dosen-left');
+    var dosenRight = $('bk-dosen-right');
+    if (dosenTrack && dosenLeft) {
+        dosenLeft.addEventListener('click', function() {
+            if (window.bkDosenMotionActive) return;
+            dosenTrack.scrollBy({ left: -330, behavior: 'smooth' });
+        });
+    }
+    if (dosenTrack && dosenRight) {
+        dosenRight.addEventListener('click', function() {
+            if (window.bkDosenMotionActive) return;
+            dosenTrack.scrollBy({ left: 330, behavior: 'smooth' });
+        });
+    }
+
+    // 3. Video Showcase & Modal
+    var vChapters = [];
+    try {
+        vChapters = JSON.parse(($('bk-video-chapters-data') || {}).textContent || '[]');
+    } catch(e) {}
+    var activeVidIdx = 0;
+
+    function selectShowcaseChap(idx) {
+        if (!vChapters.length) return;
+        activeVidIdx = ((idx % vChapters.length) + vChapters.length) % vChapters.length;
+        var ch = vChapters[activeVidIdx];
+        if ($('bk-vid-stage-img') && ch.poster) $('bk-vid-stage-img').src = ch.poster;
+        if ($('bk-vid-stage-badge')) $('bk-vid-stage-badge').textContent = ch.badge || '';
+        if ($('bk-vid-stage-dur')) $('bk-vid-stage-dur').textContent = 'Durasi ' + (ch.duration || '');
+        if ($('bk-vid-stage-title')) $('bk-vid-stage-title').textContent = ch.title || '';
+        if ($('bk-vid-stage-desc')) $('bk-vid-stage-desc').textContent = ch.desc || '';
+        if ($('bk-vid-stage-meta')) $('bk-vid-stage-meta').textContent = ch.meta || '';
+        if ($('bk-vid-stage-card')) $('bk-vid-stage-card').setAttribute('data-open-vchap', String(activeVidIdx));
+        if ($('bk-open-vid-btn')) $('bk-open-vid-btn').setAttribute('data-open-vchap', String(activeVidIdx));
+
+        document.querySelectorAll('[data-vpick]').forEach(function(b) {
+            var act = Number(b.getAttribute('data-vpick')) === activeVidIdx;
+            b.classList.toggle('is-active', act);
+            b.setAttribute('aria-selected', act ? 'true' : 'false');
+        });
+    }
+
+    function setModalChap(idx) {
+        if (!vChapters.length) return;
+        var cIdx = ((Number(idx) % vChapters.length) + vChapters.length) % vChapters.length;
+        var ch = vChapters[cIdx];
+        if ($('bk-vmod-badge')) $('bk-vmod-badge').textContent = ch.badge || '';
+        if ($('bk-vmod-title')) $('bk-vmod-title').textContent = ch.title || '';
+        if ($('bk-vmod-desc')) $('bk-vmod-desc').textContent = ch.desc || '';
+        if ($('bk-vmod-img') && ch.poster) $('bk-vmod-img').src = ch.poster;
+
+        var embedMount = $('bk-vmod-embed-mount');
+        if (embedMount) {
+            embedMount.innerHTML = '';
+            embedMount.style.display = 'none';
+            var vUrl = (ch.video_url || '').trim();
+            if (vUrl) {
+                var ytMatch = vUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/);
+                if (ytMatch && ytMatch[1]) {
+                    embedMount.style.display = 'block';
+                    embedMount.innerHTML = '<iframe src="https://www.youtube.com/embed/' + ytMatch[1] + '?autoplay=1&rel=0" style="width:100%;height:100%;border:0;" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
+                } else if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(vUrl)) {
+                    embedMount.style.display = 'block';
+                    embedMount.innerHTML = '<video src="' + vUrl.replace(/"/g, '&quot;') + '" controls autoplay playsinline style="width:100%;height:100%;object-fit:contain;background:#000;"></video>';
+                }
+            }
+        }
+
+        document.querySelectorAll('#bk-video-modal [data-vchap]').forEach(function(b) {
+            var act = Number(b.getAttribute('data-vchap')) === cIdx;
+            b.classList.toggle('bk-btn-gold', act);
+            b.classList.toggle('bk-btn-secondary', !act);
+        });
+    }
+
+    function openVideoModal(chapIdx) {
+        stopSpotlight();
+        setModalChap(chapIdx !== undefined ? chapIdx : activeVidIdx);
+        if ($('bk-vid-backdrop')) $('bk-vid-backdrop').classList.add('is-open');
+        if ($('bk-video-modal')) $('bk-video-modal').classList.add('is-open');
+    }
+
+    function closeVideoModal() {
+        var embedMount = $('bk-vmod-embed-mount');
+        if (embedMount) {
+            embedMount.innerHTML = '';
+            embedMount.style.display = 'none';
+        }
+        if ($('bk-vid-backdrop')) $('bk-vid-backdrop').classList.remove('is-open');
+        if ($('bk-video-modal')) $('bk-video-modal').classList.remove('is-open');
+        if (!spPaused) startSpotlight();
+    }
+
+    document.querySelectorAll('[data-vpick]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            selectShowcaseChap(Number(this.getAttribute('data-vpick') || 0));
+        });
+    });
+
+    document.addEventListener('click', function(e) {
+        var openBtn = e.target.closest('[data-open-vchap]');
+        if (openBtn) {
+            e.preventDefault();
+            openVideoModal(Number(openBtn.getAttribute('data-open-vchap') || 0));
+            return;
+        }
+        var chapBtn = e.target.closest('#bk-video-modal [data-vchap]');
+        if (chapBtn) {
+            e.preventDefault();
+            setModalChap(Number(chapBtn.getAttribute('data-vchap') || 0));
+        }
+    });
+
+    if ($('bk-vmod-close')) $('bk-vmod-close').addEventListener('click', closeVideoModal);
+    if ($('bk-vid-backdrop')) $('bk-vid-backdrop').addEventListener('click', closeVideoModal);
+
+    // 4. Full-Screen 100vh Spotlight Carousel
+    var heroEl = $('hero_spotlight');
+    var slides = heroEl ? Array.prototype.slice.call(heroEl.querySelectorAll('.bk-spotlight-slide')) : [];
+    var spIdx = 0;
+    var spPaused = heroEl ? (heroEl.getAttribute('data-autoplay') === '0') : false;
+    var spDuration = heroEl ? Math.max(4, parseInt(heroEl.getAttribute('data-speed') || '8', 10)) * 1000 : 7500;
+    var spTick = null;
+    var spPromptTimer = null;
+    var spStart = Date.now();
+
+    function stopSpotlight() {
+        clearInterval(spTick);
+        spTick = null;
+        clearTimeout(spPromptTimer);
+        spPromptTimer = null;
+    }
+
+    function goSpotlight(idx) {
+        if (!slides.length || !heroEl) return;
+        var total = slides.length;
+        var next = ((idx % total) + total) % total;
+        spIdx = next;
+        spStart = Date.now();
+
+        clearTimeout(spPromptTimer);
+        heroEl.querySelectorAll('.bk-sp-prompt.is-shown').forEach(function(p) {
+            p.classList.remove('is-shown');
+        });
+        slides.forEach(function(el, i) {
+            el.classList.toggle('is-active', i === next);
+        });
+        heroEl.querySelectorAll('[data-sp-dot]').forEach(function(d) {
+            var act = Number(d.getAttribute('data-sp-dot')) === next;
+            d.classList.toggle('is-active', act);
+            d.setAttribute('aria-selected', act ? 'true' : 'false');
+        });
+
+        var curSlide = slides[next];
+        if ($('bk-sp-curr')) $('bk-sp-curr').textContent = String(next + 1).padStart(2, '0');
+        if ($('bk-sp-mode') && curSlide) $('bk-sp-mode').textContent = curSlide.getAttribute('data-sp-mode') || 'SOROTAN';
+        if ($('bk-sp-prog')) $('bk-sp-prog').style.width = '0%';
+    }
+
+    function startSpotlight() {
+        clearInterval(spTick);
+        spTick = null;
+        if (spPaused || !heroEl || slides.length <= 1) return;
+        spStart = Date.now();
+        if ($('bk-sp-prog')) $('bk-sp-prog').style.width = '0%';
+        spTick = setInterval(function() {
+            if (spPaused || !heroEl) {
+                stopSpotlight();
+                return;
+            }
+            var elapsed = Date.now() - spStart;
+            var pct = Math.min(100, (elapsed / spDuration) * 100);
+            if ($('bk-sp-prog')) $('bk-sp-prog').style.width = pct.toFixed(1) + '%';
+            if (elapsed >= spDuration) {
+                goSpotlight(spIdx + 1);
+            }
+        }, 80);
+    }
+
+    if (heroEl && slides.length) {
+        if ($('bk-sp-prev')) {
+            $('bk-sp-prev').addEventListener('click', function() {
+                goSpotlight(spIdx - 1);
+                if (!spPaused) startSpotlight();
+            });
+        }
+        if ($('bk-sp-next')) {
+            $('bk-sp-next').addEventListener('click', function() {
+                goSpotlight(spIdx + 1);
+                if (!spPaused) startSpotlight();
+            });
+        }
+        heroEl.querySelectorAll('[data-sp-dot]').forEach(function(dot) {
+            dot.addEventListener('click', function() {
+                goSpotlight(Number(this.getAttribute('data-sp-dot') || 0));
+                if (!spPaused) startSpotlight();
+            });
+        });
+        if ($('bk-sp-tog')) {
+            $('bk-sp-tog').addEventListener('click', function() {
+                spPaused = !spPaused;
+                this.textContent = spPaused ? '▶ Putar' : '⏸ Jeda';
+                this.setAttribute('aria-label', spPaused ? 'Putar Slide Otomatis' : 'Jeda Slide Otomatis');
+                if (spPaused) stopSpotlight();
+                else startSpotlight();
+            });
+        }
+        if ($('bk-sp-down')) {
+            $('bk-sp-down').addEventListener('click', function() {
+                var intro = $('beranda-intro');
+                if (intro) intro.scrollIntoView({ behavior: 'smooth' });
+            });
+        }
+
+        // Anti-misclick background shield -> toggles centered prompt pill
+        heroEl.querySelectorAll('[data-sp-shield]').forEach(function(sh) {
+            sh.addEventListener('click', function() {
+                var sl = this.closest('.bk-spotlight-slide');
+                var pr = sl ? sl.querySelector('.bk-sp-prompt') : null;
+                if (pr) {
+                    var show = !pr.classList.contains('is-shown');
+                    pr.classList.toggle('is-shown', show);
+                    clearTimeout(spPromptTimer);
+                    if (show) {
+                        spPromptTimer = setTimeout(function() {
+                            pr.classList.remove('is-shown');
+                        }, 3200);
+                    }
+                }
+            });
+        });
+
+        // Touch swipe support
+        var touchX = 0;
+        heroEl.addEventListener('touchstart', function(e) {
+            if (e.touches && e.touches[0]) touchX = e.touches[0].clientX;
+        }, { passive: true });
+        heroEl.addEventListener('touchend', function(e) {
+            if (!e.changedTouches || !e.changedTouches[0]) return;
+            var dx = e.changedTouches[0].clientX - touchX;
+            if (Math.abs(dx) > 42) {
+                goSpotlight(dx < 0 ? spIdx + 1 : spIdx - 1);
+                if (!spPaused) startSpotlight();
+            }
+        }, { passive: true });
+
+        heroEl.addEventListener('mouseenter', function() {
+            if (!spPaused) {
+                clearInterval(spTick);
+                spTick = null;
+            }
+        });
+        heroEl.addEventListener('mouseleave', function() {
+            var vMod = $('bk-video-modal');
+            if (!spPaused && (!vMod || !vMod.classList.contains('is-open'))) {
+                startSpotlight();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeVideoModal();
+                return;
+            }
+            if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !['INPUT', 'TEXTAREA', 'SELECT'].includes((document.activeElement || {}).tagName)) {
+                var vMod = $('bk-video-modal');
+                if (vMod && vMod.classList.contains('is-open')) return;
+                var ae = document.activeElement;
+                if (ae && ae.closest && ae.closest('#hero_spotlight')) {
+                    e.preventDefault();
+                    goSpotlight(e.key === 'ArrowRight' ? spIdx + 1 : spIdx - 1);
+                    if (!spPaused) startSpotlight();
+                }
+            }
+        });
+
+        startSpotlight();
+    }
+})();
+</script>
+
+<?php get_footer(); ?>

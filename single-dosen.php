@@ -42,6 +42,19 @@ if (empty($current_dosen)) {
 
 $d = $current_dosen;
 
+// Prefer portrait set from WP-Admin (Dosen CPT metabox / Featured Image) over JSON data.
+$bk_cpt = get_page_by_path($d['slug'] ?? '', OBJECT, 'dosen');
+if ($bk_cpt) {
+    $bk_cpt_foto = get_post_meta($bk_cpt->ID, '_dosen_foto_link', true);
+    if (!$bk_cpt_foto && has_post_thumbnail($bk_cpt)) {
+        $bk_cpt_foto = get_the_post_thumbnail_url($bk_cpt, 'large');
+    }
+    if ($bk_cpt_foto) {
+        $d['foto_link'] = $bk_cpt_foto;
+    }
+}
+$bk_foto_url = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($d['foto_link'] ?? '') : ($d['foto_link'] ?? '');
+
 // Compute clean initials (excluding academic title prefixes like Prof, Dr)
 $name_clean = explode(',', $d['nama'])[0];
 $prefixes = array('prof', 'dr', 'dra', 'drs', 'ir', 'h', 'hj');
@@ -76,7 +89,7 @@ $pendidikan_list = $d['pendidikan'] ?? array();
 $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
 ?>
 
-<div class="bk-page-wrapper" style="width:100%;min-height:100vh;background-color:#FAF8F5;font-family:'Poppins',sans-serif;color:#111827;">
+<div class="bk-page-wrapper" style="width:100%;min-height:100vh;background-color:#FAF8F5;font-family:'Plus Jakarta Sans',sans-serif;color:#111827;">
 
     <!-- =================================================================== -->
     <!-- 1. HERO HEADER (SCHOLARO DEEP FOREST GREEN)                         -->
@@ -108,11 +121,15 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
                 
                 <!-- Left: Tall Cutout Photo / Executive Academic Seal -->
                 <div class="bk-dosen-hero-photo-wrap" style="flex:0 0 clamp(240px, 30vw, 360px);align-self:flex-end;position:relative;display:flex;align-items:flex-end;justify-content:flex-start;margin-bottom:0;line-height:0;">
-                    <?php if (!empty($d['foto_link'])) : ?>
-                        <img src="<?php echo esc_url($d['foto_link']); ?>" alt="<?php echo esc_attr($d['nama_lengkap']); ?>" style="width:100%;max-width:360px;height:auto;max-height:520px;object-fit:contain;object-position:bottom center;display:block;filter:drop-shadow(0 20px 40px rgba(0,0,0,0.55));">
-                    <?php else : ?>
-                        <!-- Executive Academic Seal Card -->
-                        <div style="width:100%;max-width:280px;height:350px;border-radius:24px;background:linear-gradient(145deg, #134e2c 0%, #082616 100%);border:2px solid rgba(245,184,46,0.45);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;box-sizing:border-box;position:relative;overflow:hidden;box-shadow:0 20px 45px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15);">
+                    <?php if (!empty($bk_foto_url)) : ?>
+                        <div class="bk-dossier-photo" style="width:100%;max-width:300px;margin-bottom:38px;line-height:normal;">
+                            <div class="bk-dossier-portrait" style="width:100%;aspect-ratio:4/5;border-radius:20px;overflow:hidden;border:2px solid rgba(245,184,46,0.55);box-shadow:0 20px 45px rgba(0,0,0,0.45);background:#072314;">
+                                <img src="<?php echo esc_url($bk_foto_url); ?>" alt="<?php echo esc_attr($d['nama_lengkap'] ?? $d['nama']); ?>" onerror="this.closest('.bk-dossier-photo').style.display='none';document.getElementById('bk-academic-seal').style.display='flex';" style="width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:block;">
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                        <!-- Executive Academic Seal Card (fallback when no photo / photo fails to load) -->
+                        <div id="bk-academic-seal" class="bk-dossier-seal" style="<?php echo !empty($bk_foto_url) ? 'display:none;' : 'display:flex;'; ?>width:100%;max-width:280px;height:350px;border-radius:24px;background:linear-gradient(145deg, #134e2c 0%, #082616 100%);border:2px solid rgba(245,184,46,0.45);flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;box-sizing:border-box;position:relative;overflow:hidden;box-shadow:0 20px 45px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15);">
                             <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0.08;pointer-events:none;">
                                 <svg width="220" height="220" viewBox="0 0 24 24" fill="currentColor" color="#F5B82E">
                                     <path d="M12 2L1 7l11 5 9-4.09V17h2V7L12 2zm0 13.5L4.2 12 2 13.09l10 5.41 10-5.41L19.8 12 12 15.5z"/>
@@ -126,7 +143,6 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
                                 <span style="font-size:11px;color:rgba(255,255,255,0.85);line-height:1.3;display:block;margin-top:3px;font-weight:500;">PPB &middot; FIP UNM</span>
                             </div>
                         </div>
-                    <?php endif; ?>
                 </div>
 
                 <!-- Right: Identity Details & Quick Stats -->
@@ -272,10 +288,10 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
     <main class="bk-container bk-subpage-main" style="padding-top:36px !important;padding-bottom:80px !important;">
         
         <!-- Tab Navigation Buttons (Enhanced Spacing, Default: Pendidikan & Mata Kuliah) -->
-        <div style="display:flex;align-items:center;gap:12px;overflow-x:auto;padding:6px 0 20px;margin-bottom:32px;border-bottom:2px solid #E5E7EB;" class="no-scrollbar" id="dosen-tab-nav">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:6px 0 20px;margin-bottom:32px;border-bottom:2px solid #E5E7EB;" id="dosen-tab-nav">
             
             <!-- TAB 1: PENDIDIKAN & MATA KULIAH (DEFAULT ACTIVE) -->
-            <button type="button" class="dosen-tab-btn active" data-tab="tab-pendidikan" style="height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 22px;border-radius:14px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:13.5px;font-weight:700;white-space:nowrap;background:#0D3B22;color:#F5B82E;border:1.5px solid #0D3B22;box-sizing:border-box;line-height:1;box-shadow:0 4px 14px rgba(13,59,34,0.18);transition:all 0.2s;">
+            <button type="button" class="dosen-tab-btn active" data-tab="tab-pendidikan" style="height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 22px;border-radius:14px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:700;white-space:nowrap;background:#0D3B22;color:#F5B82E;border:1.5px solid #0D3B22;box-sizing:border-box;line-height:1;box-shadow:0 4px 14px rgba(13,59,34,0.18);transition:all 0.2s;">
                 <span>🎓 Pendidikan &amp; Mata Kuliah</span>
                 <span class="dosen-tab-count" style="background:rgba(245,184,46,0.22);color:#F5B82E;font-size:11px;font-weight:800;padding:4px 9px;border-radius:9999px;line-height:1;">
                     <?php echo (int)$total_pedagogik_count; ?>
@@ -283,7 +299,7 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
             </button>
 
             <!-- TAB 2: PUBLIKASI ILMIAH -->
-            <button type="button" class="dosen-tab-btn" data-tab="tab-publikasi" style="height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 22px;border-radius:14px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:13.5px;font-weight:600;white-space:nowrap;background:#ffffff;color:#4B5563;border:1.5px solid #D4E3D8;box-sizing:border-box;line-height:1;transition:all 0.2s;">
+            <button type="button" class="dosen-tab-btn" data-tab="tab-publikasi" style="height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 22px;border-radius:14px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;white-space:nowrap;background:#ffffff;color:#4B5563;border:1.5px solid #D4E3D8;box-sizing:border-box;line-height:1;transition:all 0.2s;">
                 <span>📄 Publikasi Ilmiah</span>
                 <span class="dosen-tab-count" style="background:#F3F4F6;color:#6B7280;font-size:11px;font-weight:700;padding:4px 9px;border-radius:9999px;line-height:1;">
                     <?php echo (int)$stat['publikasi']; ?>
@@ -291,7 +307,7 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
             </button>
 
             <!-- TAB 3: PENELITIAN & RISET -->
-            <button type="button" class="dosen-tab-btn" data-tab="tab-penelitian" style="height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 22px;border-radius:14px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:13.5px;font-weight:600;white-space:nowrap;background:#ffffff;color:#4B5563;border:1.5px solid #D4E3D8;box-sizing:border-box;line-height:1;transition:all 0.2s;">
+            <button type="button" class="dosen-tab-btn" data-tab="tab-penelitian" style="height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 22px;border-radius:14px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;white-space:nowrap;background:#ffffff;color:#4B5563;border:1.5px solid #D4E3D8;box-sizing:border-box;line-height:1;transition:all 0.2s;">
                 <span>🔬 Penelitian &amp; Riset</span>
                 <span class="dosen-tab-count" style="background:#F3F4F6;color:#6B7280;font-size:11px;font-weight:700;padding:4px 9px;border-radius:9999px;line-height:1;">
                     <?php echo (int)$stat['penelitian']; ?>
@@ -299,7 +315,7 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
             </button>
 
             <!-- TAB 4: PENGABDIAN MASYARAKAT -->
-            <button type="button" class="dosen-tab-btn" data-tab="tab-pengabdian" style="height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 22px;border-radius:14px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:13.5px;font-weight:600;white-space:nowrap;background:#ffffff;color:#4B5563;border:1.5px solid #D4E3D8;box-sizing:border-box;line-height:1;transition:all 0.2s;">
+            <button type="button" class="dosen-tab-btn" data-tab="tab-pengabdian" style="height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 22px;border-radius:14px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;white-space:nowrap;background:#ffffff;color:#4B5563;border:1.5px solid #D4E3D8;box-sizing:border-box;line-height:1;transition:all 0.2s;">
                 <span>🤝 Pengabdian Masyarakat</span>
                 <span class="dosen-tab-count" style="background:#F3F4F6;color:#6B7280;font-size:11px;font-weight:700;padding:4px 9px;border-radius:9999px;line-height:1;">
                     <?php echo (int)$stat['pengabdian']; ?>
@@ -307,7 +323,7 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
             </button>
 
             <!-- TAB 5: BUKU & KARYA -->
-            <button type="button" class="dosen-tab-btn" data-tab="tab-buku" style="height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 22px;border-radius:14px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:13.5px;font-weight:600;white-space:nowrap;background:#ffffff;color:#4B5563;border:1.5px solid #D4E3D8;box-sizing:border-box;line-height:1;transition:all 0.2s;">
+            <button type="button" class="dosen-tab-btn" data-tab="tab-buku" style="height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 22px;border-radius:14px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;white-space:nowrap;background:#ffffff;color:#4B5563;border:1.5px solid #D4E3D8;box-sizing:border-box;line-height:1;transition:all 0.2s;">
                 <span>📚 Buku &amp; HKI</span>
                 <span class="dosen-tab-count" style="background:#F3F4F6;color:#6B7280;font-size:11px;font-weight:700;padding:4px 9px;border-radius:9999px;line-height:1;">
                     <?php echo (int)$stat['buku']; ?>

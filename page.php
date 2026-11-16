@@ -67,7 +67,7 @@ if (have_posts()) : while (have_posts()) : the_post();
     $is_truncated = ($target_page && strlen($content) < (strlen($clean_target_content) - 100));
     $is_corrupted = ($target_page && $target_page['slug'] === 'struktur' && strpos($content, 'Bagan Kepemimpinan') === false);
     $is_roadmap_corrupted = ($target_page && $target_page['slug'] === 'roadmap' && strpos($content, '3 Pilar Kepakaran') === false);
-    $force_refresh = !empty($_GET['refresh_pages']) || !empty($_GET['sync_ppb_content']);
+    $force_refresh = !empty($_GET['refresh_pages']) || !empty($_GET['sync_ppb_content']) || (get_option('ppb_content_synced_version', '') !== '21.0');
 
     if (!$has_modern_markup || $is_empty || $needs_dosen_refresh || $is_truncated || $is_corrupted || $is_roadmap_corrupted || $force_refresh) {
         if ($target_page) {
@@ -96,9 +96,9 @@ if (have_posts()) : while (have_posts()) : the_post();
         } else {
             // Full-width editorial fallback matching Scholaro design
             ?>
-            <div class="bk-page-wrapper" style="width:100%;min-height:80vh;background:#FAF8F5;color:#1F2937;font-family:'Poppins',sans-serif;line-height:1.6;margin:0;padding:0;">
+            <div class="bk-page-wrapper" style="width:100%;min-height:80vh;background:#FAF8F5;color:#1F2937;font-family:'Plus Jakarta Sans',sans-serif;line-height:1.6;margin:0;padding:0;">
                 <!-- Hero Header Band -->
-                <section style="position:relative;overflow:hidden;background:#0D3B22;color:#ffffff;padding:var(--bk-top-clearance, 125px) 0 45px;font-family:'Poppins',sans-serif;width:100%;">
+                <section style="position:relative;overflow:hidden;background:#0D3B22;color:#ffffff;padding:var(--bk-top-clearance, 36px) 0 45px;font-family:'Plus Jakarta Sans',sans-serif;width:100%;">
                     <div class="bk-container" style="position:relative;">
                         <div style="display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:9999px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#F5B82E;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:14px;">
                             <span>Jurusan PPB FIP UNM</span>
