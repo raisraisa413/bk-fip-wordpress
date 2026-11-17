@@ -1247,8 +1247,28 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
         img.addEventListener('load', syncPosterOrientation);
     });
 
-    // 4. Full-Screen 100vh Spotlight Carousel
+    // 4. Full-Screen 100vh Spotlight Carousel (active viewport-aware height)
     var heroEl = $('hero_spotlight');
+    function syncSpotlightViewportHeight() {
+        if (!heroEl) return;
+        var vpH = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+        if (!vpH) return;
+        var navEl = document.getElementById('bk-main-navbar');
+        var barEl = document.getElementById('wpadminbar');
+        var navH = navEl ? navEl.offsetHeight : 88;
+        var barH = (barEl && document.body && document.body.classList.contains('admin-bar')) ? barEl.offsetHeight : 0;
+        var avail = Math.floor(vpH - navH - barH);
+        var minH = window.innerWidth <= 768 ? 440 : 380;
+        var maxH = window.innerWidth <= 768 ? 760 : 920;
+        var clamped = Math.max(minH, Math.min(maxH, avail));
+        heroEl.style.setProperty('--bk-hero-h', clamped + 'px');
+    }
+    syncSpotlightViewportHeight();
+    window.addEventListener('resize', syncSpotlightViewportHeight);
+    window.addEventListener('load', syncSpotlightViewportHeight);
+    if (window.visualViewport && window.visualViewport.addEventListener) {
+        window.visualViewport.addEventListener('resize', syncSpotlightViewportHeight);
+    }
     var slides = heroEl ? Array.prototype.slice.call(heroEl.querySelectorAll('.bk-spotlight-slide')) : [];
     var spIdx = 0;
     var spPaused = heroEl ? (heroEl.getAttribute('data-autoplay') === '0') : false;

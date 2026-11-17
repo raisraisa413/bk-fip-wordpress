@@ -1005,8 +1005,8 @@ body.front-page main {
 .bk-spotlight-hero {
   position: relative;
   width: 100%;
-  height: calc(100vh - var(--bk-navbar-height, var(--header-h)) - var(--bk-admin-bar-offset, 0px));
-  min-height: 540px;
+  height: var(--bk-hero-h, calc(100dvh - var(--bk-navbar-height, var(--header-h)) - var(--bk-admin-bar-offset, 0px)));
+  min-height: 380px;
   max-height: 920px;
   background: var(--forest);
   overflow: hidden;
@@ -3668,8 +3668,8 @@ body.front-page main {
 
 @media (max-width: 768px) {
   .bk-spotlight-hero {
-    height: calc(100dvh - var(--bk-navbar-height, var(--header-h)) - var(--bk-admin-bar-offset, 0px));
-    min-height: 500px;
+    height: var(--bk-hero-h, calc(100dvh - var(--bk-navbar-height, var(--header-h)) - var(--bk-admin-bar-offset, 0px)));
+    min-height: 440px;
     max-height: 760px;
   }
   .bk-kpi-strip {
@@ -4707,7 +4707,7 @@ body.front-page main {
   height: 100%;
   max-width: min(1320px, 100%);
   margin: 0 auto;
-  padding: 28px clamp(74px, 7.5vw, 96px) 80px;
+  padding: clamp(12px, 2.4vh, 26px) clamp(74px, 7.5vw, 96px) clamp(62px, 8.5vh, 80px);
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
   grid-template-rows: minmax(0, 1fr);
