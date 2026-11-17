@@ -312,10 +312,16 @@ function ppb_handle_spotlight_admin_actions() {
                 $display_mode = 'poster';
             }
 
+            $mobile_layout = sanitize_text_field($s['mobile_layout'] ?? 'stacked');
+            if (!in_array($mobile_layout, ['stacked', 'overlay'], true)) {
+                $mobile_layout = 'stacked';
+            }
+
             $cleaned_slides[] = [
                 'id'               => sanitize_text_field($s['id'] ?? ('slide-' . uniqid())),
                 'type'             => $type,
                 'display_mode'     => $display_mode,
+                'mobile_layout'    => $mobile_layout,
                 'device_target'    => $device,
                 'mode_tag'         => sanitize_text_field($s['mode_tag'] ?? strtoupper($type)),
                 'kicker'           => sanitize_text_field($s['kicker'] ?? ''),
@@ -394,6 +400,7 @@ function ppb_render_spotlight_slide_card($index, $slide, $recent_posts, $is_temp
     $slide_id     = $is_template ? '__SLIDE_ID__' : ($slide['id'] ?? ('slide-' . $index));
     $default_dm   = ($slide_type === 'image' && $slide_id !== 'slide-laboratorium-bk') ? 'poster' : 'editorial';
     $display_mode = !empty($slide['display_mode']) ? $slide['display_mode'] : $default_dm;
+    $mobile_layout = !empty($slide['mobile_layout']) ? $slide['mobile_layout'] : 'stacked';
     $device       = $slide['device_target'] ?? 'all';
     $action_text = !empty($slide['action_text']) ? $slide['action_text'] : 'Lihat lebih lanjut';
     $prompt_text = $slide['prompt_text'] ?? $action_text;
@@ -469,6 +476,13 @@ function ppb_render_spotlight_slide_card($index, $slide, $recent_posts, $is_temp
                     </select>
                     <div style="font-size:11px;color:#166534;margin-top:4px;line-height:1.4;">
                         Pilih <strong>Poster / Infografis Utuh</strong> untuk spanduk/brosur bertulisan agar terbaca penuh di HP maupun desktop dan bisa diklik untuk diperbesar.
+                    </div>
+                    <div style="margin-top:8px;">
+                        <label style="display:block;font-weight:700;font-size:12px;color:#0D3B22;margin-bottom:4px;">Tampilan Mobile (HP):</label>
+                        <select name="slides[<?php echo esc_attr($idx_attr); ?>][mobile_layout]" class="slide-mobile-layout-select" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid #86EFAC;font-weight:600;">
+                            <option value="stacked" <?php selected($mobile_layout, 'stacked'); ?>>📱 Gambar di Atas, Teks/Tombol di Bawah</option>
+                            <option value="overlay" <?php selected($mobile_layout, 'overlay'); ?>>🖼 Gambar di Belakang Teks/Tombol (Layar Penuh)</option>
+                        </select>
                     </div>
                 </div>
 
@@ -807,6 +821,7 @@ function ppb_render_spotlight_admin_page() {
         'id'               => '',
         'type'             => 'image',
         'display_mode'     => 'poster',
+        'mobile_layout'    => 'stacked',
         'device_target'    => 'all',
         'mode_tag'         => 'SOROTAN BARU',
         'kicker'           => '',

@@ -4851,16 +4851,54 @@ body.front-page main {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
-    background: rgba(7, 35, 20, 0.88);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 12px;
-    padding: 10px 14px;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 4px 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     box-shadow: none;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
   }
   .bk-spotlight-slide.is-poster-mode.is-landscape-poster .bk-sp-poster-panel {
     margin-inline: 16px;
+  }
+  .bk-spotlight-slide.is-poster-mode.is-mobile-overlay .bk-sp-poster-stage {
+    display: block;
+    padding: 0;
+  }
+  .bk-spotlight-slide.is-poster-mode.is-mobile-overlay .bk-sp-poster-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding-inline: 0;
+  }
+  .bk-spotlight-slide.is-poster-mode.is-mobile-overlay .bk-sp-poster-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0;
+  }
+  .bk-spotlight-slide.is-poster-mode.is-mobile-overlay .bk-sp-poster-panel {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 68px;
+    z-index: 12;
+    margin-inline: 0;
+    background: transparent;
+    border: none;
+    padding: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.72);
+  }
+  .bk-spotlight-slide.is-poster-mode.is-mobile-overlay .bk-sp-poster-kicker,
+  .bk-spotlight-slide.is-poster-mode.is-mobile-overlay .bk-btn-glass {
+    background: rgba(7, 35, 20, 0.72);
+    border-color: rgba(255, 255, 255, 0.28);
   }
   .bk-sp-poster-kicker {
     font-size: 10px;

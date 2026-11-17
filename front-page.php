@@ -298,13 +298,15 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                     $display_mode = 'poster';
                 }
                 $is_poster_mode = (in_array($s_type, array('image', 'pinned_post'), true) && $display_mode === 'poster');
+                $mobile_layout  = !empty($sl['mobile_layout']) ? $sl['mobile_layout'] : 'stacked';
+                $mobile_ov_cls  = ($is_poster_mode && $mobile_layout === 'overlay') ? 'is-mobile-overlay' : '';
 
                 $has_no_copy = ($headline === '' && $summary === '');
                 $device_cls = '';
                 if ($s_device === 'desktop_only') $device_cls = 'bk-device-desktop-only';
                 elseif ($s_device === 'mobile_only') $device_cls = 'bk-device-mobile-only';
             ?>
-            <div class="bk-spotlight-slide <?php echo $is_first ? 'is-active' : ''; ?> <?php echo $is_poster_mode ? 'is-poster-mode' : ''; ?> <?php echo $has_no_copy ? 'has-no-copy' : ''; ?> <?php echo esc_attr($device_cls); ?>"
+            <div class="bk-spotlight-slide <?php echo $is_first ? 'is-active' : ''; ?> <?php echo $is_poster_mode ? 'is-poster-mode' : ''; ?> <?php echo $mobile_ov_cls; ?> <?php echo $has_no_copy ? 'has-no-copy' : ''; ?> <?php echo esc_attr($device_cls); ?>"
                  data-sp-slide="<?php echo esc_attr($s_idx); ?>"
                  data-sp-type="<?php echo esc_attr($s_type); ?>"
                  data-sp-mode="<?php echo esc_attr($mode_tag); ?>"
