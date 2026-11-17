@@ -1007,10 +1007,10 @@ body.front-page main {
   width: 100%;
   height: var(--bk-hero-h, calc(100dvh - var(--bk-navbar-height, var(--header-h)) - var(--bk-admin-bar-offset, 0px)));
   min-height: 380px;
-  max-height: 920px;
+  max-height: none;
   background: var(--forest);
   overflow: hidden;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: none;
 }
 
 .bk-sp-grid {
@@ -3670,7 +3670,7 @@ body.front-page main {
   .bk-spotlight-hero {
     height: var(--bk-hero-h, calc(100dvh - var(--bk-navbar-height, var(--header-h)) - var(--bk-admin-bar-offset, 0px)));
     min-height: 440px;
-    max-height: 760px;
+    max-height: none;
   }
   .bk-kpi-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));

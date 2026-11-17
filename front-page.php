@@ -354,6 +354,9 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                                      alt="<?php echo esc_attr($headline !== '' ? $headline : ($mode_tag ?: 'Poster Sorotan PPB FIP UNM')); ?>"
                                      loading="<?php echo $is_first ? 'eager' : 'lazy'; ?>"
                                      data-poster-zoom="<?php echo esc_attr($img_url); ?>"
+                                     <?php if (!empty($mob_url)) : ?>
+                                     data-poster-zoom-mobile="<?php echo esc_attr($mob_url); ?>"
+                                     <?php endif; ?>
                                      data-poster-title="<?php echo esc_attr($headline !== '' ? $headline : $mode_tag); ?>"
                                      <?php if ($img_gd_fallback !== '') : ?>
                                      data-gdrive-fallback="<?php echo esc_attr($img_gd_fallback); ?>"
@@ -381,6 +384,9 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                                 <button type="button"
                                         class="bk-btn bk-btn-glass bk-btn-sm"
                                         data-poster-zoom="<?php echo esc_attr($img_url); ?>"
+                                        <?php if (!empty($mob_url)) : ?>
+                                        data-poster-zoom-mobile="<?php echo esc_attr($mob_url); ?>"
+                                        <?php endif; ?>
                                         data-poster-title="<?php echo esc_attr($headline !== '' ? $headline : $mode_tag); ?>">
                                     <span>Perbesar Gambar</span>
                                 </button>
@@ -1226,8 +1232,19 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
         var zoomTrigger = e.target.closest('[data-poster-zoom]');
         if (zoomTrigger) {
             e.preventDefault();
+            var zoomSrc = zoomTrigger.getAttribute('data-poster-zoom') || '';
+            if (window.innerWidth <= 768) {
+                var mobZoom = zoomTrigger.getAttribute('data-poster-zoom-mobile') || '';
+                if (mobZoom) {
+                    zoomSrc = mobZoom;
+                } else {
+                    var slideEl = zoomTrigger.closest('.bk-spotlight-slide');
+                    var slideImg = slideEl ? slideEl.querySelector('.bk-sp-poster-media img') : null;
+                    if (slideImg && slideImg.currentSrc) zoomSrc = slideImg.currentSrc;
+                }
+            }
             openPosterLightbox(
-                zoomTrigger.getAttribute('data-poster-zoom') || '',
+                zoomSrc,
                 zoomTrigger.getAttribute('data-poster-title') || ''
             );
         }
@@ -1255,14 +1272,15 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
         if (!heroEl) return;
         var vpH = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
         if (!vpH) return;
+        var spacerEl = document.getElementById('bk-navbar-spacer');
         var navEl = document.getElementById('bk-main-navbar');
         var barEl = document.getElementById('wpadminbar');
         var navH = navEl ? navEl.offsetHeight : 88;
         var barH = (barEl && document.body && document.body.classList.contains('admin-bar')) ? barEl.offsetHeight : 0;
-        var avail = Math.floor(vpH - navH - barH);
+        var headerH = spacerEl ? Math.max(navH, spacerEl.getBoundingClientRect().height) : (navH + barH);
+        var avail = Math.ceil(vpH - headerH);
         var minH = window.innerWidth <= 768 ? 440 : 380;
-        var maxH = window.innerWidth <= 768 ? 760 : 920;
-        var clamped = Math.max(minH, Math.min(maxH, avail));
+        var clamped = Math.max(minH, avail);
         heroEl.style.setProperty('--bk-hero-h', clamped + 'px');
     }
     syncSpotlightViewportHeight();
