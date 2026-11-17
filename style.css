@@ -4828,17 +4828,17 @@ body.front-page main {
   .bk-spotlight-slide.is-poster-mode.has-no-copy .bk-sp-poster-stage {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 1fr) auto;
-    padding: 14px 16px 72px;
-    gap: 10px;
+    padding: 6px 8px 66px;
+    gap: 8px;
   }
   .bk-spotlight-slide.is-poster-mode.is-landscape-poster .bk-sp-poster-stage {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 1fr) auto;
-    padding: 12px 0 72px;
-    gap: 10px;
+    padding: 8px 0 66px;
+    gap: 8px;
   }
   .bk-sp-poster-media {
-    padding-inline: 36px;
+    padding-inline: 0;
   }
   .bk-spotlight-slide.is-poster-mode.is-landscape-poster .bk-sp-poster-media {
     padding-inline: 0;
