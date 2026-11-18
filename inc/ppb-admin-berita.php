@@ -653,6 +653,12 @@ function ppb_render_berita_grid_swiss() {
                 <p style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#64748B;margin:0;">Gunakan kata kunci pencarian lain atau pilih tab "Semua Kategori".</p>
             </div>
 
+            <!-- Numbered Pagination Bar (9 artikel per halaman) -->
+            <div id="bk-berita-pagination" style="display:none;margin-top:32px;padding-top:24px;border-top:1px solid #E2E8F0;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;">
+                <div id="bk-berita-page-status" style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:#64748B;letter-spacing:0.04em;"></div>
+                <nav id="bk-berita-page-nav" aria-label="Navigasi Halaman Berita" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;"></nav>
+            </div>
+
             <!-- =========================================================== -->
             <!-- BOTTOM CTA BANNER: RUANG PUBLIKASI CIVITAS AKADEMIKA        -->
             <!-- =========================================================== -->
@@ -682,50 +688,130 @@ function ppb_render_berita_grid_swiss() {
             </div>
         </div>
 
-        <!-- Script Live Search & Filter Kategori -->
+        <!-- Script Live Search, Filter Kategori & Pagination -->
         <script>
         (function(){
+            var section = document.querySelector(".bk-berita-section");
             var input = document.getElementById("bk-berita-search");
             var pills = document.querySelectorAll("#bk-berita-cat-pills .bk-berita-pill");
-            var cards = document.querySelectorAll("#bk-berita-grid .bk-berita-card-item");
+            var cards = Array.prototype.slice.call(document.querySelectorAll("#bk-berita-grid .bk-berita-card-item"));
             var emptyBox = document.getElementById("bk-berita-empty");
             var countInfo = document.getElementById("bk-berita-count");
+            var pagWrap = document.getElementById("bk-berita-pagination");
+            var pagStatus = document.getElementById("bk-berita-page-status");
+            var pagNav = document.getElementById("bk-berita-page-nav");
             var activeCat = "semua";
+            var currentPage = 1;
+            var perPage = 9;
 
-            function filterNews() {
+            function makeBtn(label, page, isActive, isDisabled, ariaLabel) {
+                var btn = document.createElement("button");
+                btn.type = "button";
+                btn.textContent = label;
+                if (ariaLabel) btn.setAttribute("aria-label", ariaLabel);
+                btn.disabled = !!isDisabled;
+                btn.style.cssText = [
+                    "min-width:36px",
+                    "height:36px",
+                    "padding:0 12px",
+                    "border-radius:6px",
+                    "font-family:'IBM Plex Mono',monospace",
+                    "font-size:12px",
+                    "font-weight:" + (isActive ? "700" : "600"),
+                    "border:1px solid " + (isActive ? "#0D3B22" : "#E2E8F0"),
+                    "background:" + (isActive ? "#0D3B22" : (isDisabled ? "#F8FAFC" : "#ffffff")),
+                    "color:" + (isActive ? "#F5B82E" : (isDisabled ? "#94A3B8" : "#1E293B")),
+                    "cursor:" + (isDisabled ? "not-allowed" : "pointer"),
+                    "transition:all 0.15s ease"
+                ].join(";");
+                if (isActive) btn.setAttribute("aria-current", "page");
+                if (!isDisabled && !isActive) {
+                    btn.addEventListener("click", function() {
+                        currentPage = page;
+                        renderPage(true);
+                    });
+                }
+                return btn;
+            }
+
+            function renderPage(shouldScroll) {
                 var query = (input ? input.value : "").toLowerCase().trim();
-                var visible = 0;
+                var matched = [];
 
                 cards.forEach(function(card) {
                     var text = card.getAttribute("data-text") || "";
                     var cat  = card.getAttribute("data-cat") || "";
-
                     var matchQuery = !query || text.indexOf(query) !== -1;
                     var matchCat   = (activeCat === "semua") || (cat === activeCat);
-
                     if (matchQuery && matchCat) {
-                        card.style.display = "flex";
-                        visible++;
+                        matched.push(card);
                     } else {
                         card.style.display = "none";
                     }
                 });
 
+                var totalMatched = matched.length;
+                var totalPages = Math.max(1, Math.ceil(totalMatched / perPage));
+                if (currentPage > totalPages) currentPage = totalPages;
+                if (currentPage < 1) currentPage = 1;
+
+                var startIdx = (currentPage - 1) * perPage;
+                var endIdx = startIdx + perPage;
+
+                matched.forEach(function(card, idx) {
+                    card.style.display = (idx >= startIdx && idx < endIdx) ? "flex" : "none";
+                });
+
                 if (emptyBox) {
-                    emptyBox.style.display = (visible === 0) ? "block" : "none";
+                    emptyBox.style.display = (totalMatched === 0) ? "block" : "none";
                 }
 
                 if (countInfo) {
                     if (query || activeCat !== "semua") {
-                        countInfo.innerHTML = "ARSIP // <span style='color:#0D3B22;font-weight:700;'>" + visible + "</span> DOKUMEN DITEMUKAN";
+                        countInfo.innerHTML = "ARSIP // <span style='color:#0D3B22;font-weight:700;'>" + totalMatched + "</span> DOKUMEN DITEMUKAN";
                     } else {
                         countInfo.innerHTML = "ARSIP // <span style='color:#0D3B22;font-weight:700;'>" + cards.length + "</span> DOKUMEN TERDATA";
                     }
                 }
+
+                if (pagWrap && pagNav && pagStatus) {
+                    if (totalMatched > perPage) {
+                        pagWrap.style.display = "flex";
+                        var showFrom = startIdx + 1;
+                        var showTo = Math.min(endIdx, totalMatched);
+                        pagStatus.textContent = "HALAMAN " + currentPage + " DARI " + totalPages + " · MENAMPILKAN " + showFrom + "–" + showTo + " DARI " + totalMatched + " ARTIKEL";
+
+                        pagNav.innerHTML = "";
+                        pagNav.appendChild(makeBtn("← Sebelumnya", currentPage - 1, false, currentPage === 1, "Halaman Sebelumnya"));
+                        for (var p = 1; p <= totalPages; p++) {
+                            if (totalPages > 7 && p !== 1 && p !== totalPages && Math.abs(p - currentPage) > 1) {
+                                if (p === 2 || p === totalPages - 1) {
+                                    var ell = document.createElement("span");
+                                    ell.textContent = "…";
+                                    ell.style.cssText = "padding:0 6px;color:#64748B;font-family:'IBM Plex Mono',monospace;";
+                                    pagNav.appendChild(ell);
+                                }
+                                continue;
+                            }
+                            pagNav.appendChild(makeBtn(String(p), p, p === currentPage, false, "Halaman " + p));
+                        }
+                        pagNav.appendChild(makeBtn("Berikutnya →", currentPage + 1, false, currentPage === totalPages, "Halaman Berikutnya"));
+                    } else {
+                        pagWrap.style.display = "none";
+                    }
+                }
+
+                if (shouldScroll && section) {
+                    var top = section.getBoundingClientRect().top + window.pageYOffset - 90;
+                    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+                }
             }
 
             if (input) {
-                input.addEventListener("input", filterNews);
+                input.addEventListener("input", function() {
+                    currentPage = 1;
+                    renderPage(false);
+                });
             }
 
             pills.forEach(function(pill) {
@@ -744,9 +830,12 @@ function ppb_render_berita_grid_swiss() {
                     this.classList.add("active");
 
                     activeCat = this.getAttribute("data-cat") || "semua";
-                    filterNews();
+                    currentPage = 1;
+                    renderPage(false);
                 });
             });
+
+            renderPage(false);
         })();
         </script>
     </section>
