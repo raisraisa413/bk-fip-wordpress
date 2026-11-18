@@ -537,7 +537,7 @@ function ppb_render_berita_grid_swiss() {
             }
         }
     </style>
-    <section class="bk-berita-section" style="padding:0 0 60px;font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;width:100%;">
+    <section class="bk-berita-section" style="padding:32px 0 60px;font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;width:100%;">
         <div class="bk-container" style="width:100%;box-sizing:border-box;">
 
             <!-- =========================================================== -->
