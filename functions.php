@@ -1523,7 +1523,7 @@ function ppb_auto_sync_pages_content() {
 
 
 
-    if ($synced_version === '21.4' && !$force) {
+    if ($synced_version === '21.5' && !$force) {
         return;
     }
 
@@ -1932,7 +1932,7 @@ function ppb_auto_sync_pages_content() {
         }
     }
 
-    update_option('ppb_content_synced_version', '21.4');
+    update_option('ppb_content_synced_version', '21.5');
 
 
 
@@ -2625,36 +2625,34 @@ function bk_fip_get_dosen_hierarchy_rank($slug, $nama, $jabatan) {
 }
 
 /**
- * Rebuild the public /profil/dosen/ page and pages-data.json from ordered lecturer list
+ * Build pure HTML for the public /profil/dosen/ page from ordered lecturer list
  */
-function bk_fip_rebuild_dosen_roster_html($dosen_list) {
-    global $wpdb;
-    if (empty($dosen_list) || !is_array($dosen_list)) return false;
+function bk_fip_build_dosen_roster_html($dosen_list) {
+    if (empty($dosen_list) || !is_array($dosen_list)) return '';
 
-    $get_badge = function($nama, $jabatan) {
-        $n = strtolower($nama);
-        $j = strtolower($jabatan);
+    $get_tier_meta = function($nama, $jabatan) {
+        $n = strtolower((string)$nama);
+        $j = strtolower((string)$jabatan);
         if (strpos($n, 'prof.') !== false || strpos($j, 'guru besar') !== false) {
-            return array('GURU BESAR', '#FEF3C7', '#92400E', '#FDE68A');
+            return array('prof', 'Guru Besar', 'bk-tag-gold');
         } elseif (strpos($n, 'dr.') !== false || strpos($j, 'doktor') !== false) {
-            return array('DOKTOR', '#E0E7FF', '#3730A3', '#C7D2FE');
-        } elseif (strpos($j, 'lektor kepala') !== false) {
-            return array('LEKTOR KEPALA', '#E8F0EA', '#0D3B22', '#D4E3D8');
-        } else {
-            return array('DOSEN PPB', '#F3F4F6', '#374151', '#E5E7EB');
+            return array('dr', 'Doktor', 'bk-tag-sage');
         }
+        return array('dosen', 'Dosen PPB', '');
     };
 
     $get_initials = function($name) {
-        $parts = explode(',', $name);
+        $parts = explode(',', (string)$name);
         $clean = $parts[0];
         $prefixes = array('prof', 'dr', 'dra', 'drs', 'ir', 'h', 'hj');
         $words = preg_split('/[\s\.]+/', $clean);
         $filtered = array();
-        foreach ($words as $w) {
-            $w = trim($w);
-            if ($w && !in_array(strtolower($w), $prefixes)) {
-                $filtered[] = $w;
+        if (is_array($words)) {
+            foreach ($words as $w) {
+                $w = trim($w);
+                if ($w !== '' && !in_array(strtolower($w), $prefixes, true)) {
+                    $filtered[] = $w;
+                }
             }
         }
         if (count($filtered) >= 2) {
@@ -2665,189 +2663,532 @@ function bk_fip_rebuild_dosen_roster_html($dosen_list) {
         return 'BK';
     };
 
+    $count_total = count($dosen_list);
+    $tier_counts = array('prof' => 0, 'dr' => 0, 'dosen' => 0);
     $cards_html = '';
+    $dossier_map = array();
+
     foreach ($dosen_list as $d) {
-        $nama = $d['nama_lengkap'] ?? ($d['nama'] ?? '');
-        $nip = trim($d['nip'] ?? '');
-        $nip_display = $nip ? 'NIP. ' . esc_html($nip) : '';
-        $jabatan = $d['jabatan_fungsional'] ?? 'Dosen Bimbingan dan Konseling';
-        $slug = $d['slug'] ?? '';
+        $nama = trim((string)($d['nama_lengkap'] ?? ($d['nama'] ?? '')));
+        $nip = trim((string)($d['nip'] ?? ''));
+        $nidn = trim((string)($d['nidn'] ?? ''));
+        $jabatan = trim((string)($d['jabatan_fungsional'] ?? 'Dosen Bimbingan dan Konseling'));
+        $slug = trim((string)($d['slug'] ?? ''));
+        if ($slug === '') continue;
+
+        $struktural = trim((string)($d['jabatan_struktural'] ?? ''));
+        if ($slug === 'abdul-saman' && $struktural === '') $struktural = 'Dekan FIP UNM';
+        if ($slug === 'suciani-latif' && $struktural === '') $struktural = 'Ketua Jurusan PPB';
+        if ($slug === 'sahril-buchori' && $struktural === '') $struktural = 'Sekretaris Jurusan PPB';
+
+        $unit = trim((string)($d['unit'] ?? 'S1 Bimbingan & Konseling'));
         $profile_url = '/profil/dosen/' . $slug . '/';
-        $sinta_url = $d['sinta_url'] ?? '';
+        $sinta_url = trim((string)($d['sinta_url'] ?? ''));
+        $scholar_url = trim((string)($d['scholar_url'] ?? ''));
+        $scopus_url = trim((string)($d['scopus_url'] ?? ''));
 
-        $stat = $d['stat'] ?? array();
-        $pub_cnt = (int)($stat['publikasi'] ?? count($d['publikasi'] ?? array()));
-        $pen_cnt = (int)($stat['penelitian'] ?? count($d['penelitian'] ?? array()));
+        $stat = is_array($d['stat'] ?? null) ? $d['stat'] : array();
+        $pubs_raw = is_array($d['publikasi'] ?? null) ? $d['publikasi'] : array();
+        $buku_raw = is_array($d['buku'] ?? null) ? $d['buku'] : array();
+        $pen_raw  = is_array($d['penelitian'] ?? null) ? $d['penelitian'] : array();
+        $pkm_raw  = is_array($d['pengabdian'] ?? null) ? $d['pengabdian'] : array();
+        $mk_raw   = is_array($d['mata_kuliah'] ?? null) ? $d['mata_kuliah'] : array();
 
-        $kepakaran = $d['kepakaran'] ?? array();
+        $pub_cnt  = (int)($stat['publikasi'] ?? count($pubs_raw));
+        $buku_cnt = (int)($stat['buku'] ?? count($buku_raw));
+        $pen_cnt  = (int)($stat['penelitian'] ?? count($pen_raw));
+        $pkm_cnt  = (int)($stat['pengabdian'] ?? count($pkm_raw));
+
+        $kepakaran = is_array($d['kepakaran'] ?? null) ? $d['kepakaran'] : array();
         if (empty($kepakaran) && !empty($d['bidang_keahlian'])) {
-            $splits = preg_split('/[,;\n]+/', $d['bidang_keahlian']);
-            foreach ($splits as $sp) {
-                $sp = trim($sp);
-                if ($sp) $kepakaran[] = $sp;
+            $splits = preg_split('/[,;\n]+/', (string)$d['bidang_keahlian']);
+            if (is_array($splits)) {
+                foreach ($splits as $sp) {
+                    $sp = trim($sp);
+                    if ($sp !== '') $kepakaran[] = $sp;
+                }
             }
         }
         if (empty($kepakaran)) {
             $kepakaran = array('Bimbingan & Konseling', 'Psikologi Pendidikan');
         }
 
-        $tags_html = '';
-        foreach (array_slice($kepakaran, 0, 3) as $t) {
-            $tags_html .= '<span style="font-size:10.5px;background:#FAF8F5;border:1px solid #E5E7EB;color:#374151;padding:3px 8px;border-radius:6px;line-height:1.2;font-weight:500;">' . esc_html($t) . '</span>';
+        list($tier_key, $badge_label, $badge_cls) = $get_tier_meta($nama, $jabatan);
+        if (isset($tier_counts[$tier_key])) {
+            $tier_counts[$tier_key]++;
         }
-
-        $search_text = esc_attr(strtolower($nama . ' ' . $nip . ' ' . $jabatan . ' ' . implode(' ', $kepakaran)));
-        list($badge_label, $badge_bg, $badge_color, $badge_border) = $get_badge($nama, $jabatan);
+        $is_prof = ($tier_key === 'prof');
         $init = $get_initials($nama);
 
-        $foto_link = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($d['foto_link'] ?? '') : ($d['foto_link'] ?? '');
-        $initials_html = '<div class="bk-avatar-fallback" style="width:54px;height:54px;border-radius:16px;background:#0D3B22;color:#F5B82E;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;font-family:Fraunces,Georgia,serif;border:2px solid #F5B82E;box-shadow:0 3px 10px rgba(13,59,34,0.18);user-select:none;">' . esc_html($init) . '</div>';
-        if ($foto_link) {
-            $fallback_js = "this.style.display='none';this.nextElementSibling.style.display='flex';";
-            $avatar_html = '<span class="bk-avatar" style="display:inline-flex;width:54px;height:54px;flex-shrink:0;"><img src="' . esc_url($foto_link) . '" alt="' . esc_attr($nama) . '" loading="lazy" onerror="' . esc_attr($fallback_js) . '" style="width:54px;height:54px;border-radius:16px;object-fit:cover;object-position:50% 22%;border:2px solid #0D3B22;box-shadow:0 3px 8px rgba(0,0,0,0.1);">' . str_replace('display:flex;', 'display:none;', $initials_html) . '</span>';
+        $raw_foto = trim((string)($d['foto_link'] ?? ''));
+        if ($raw_foto !== '') {
+            if (function_exists('bk_resolve_theme_asset_url')) {
+                $resolved = bk_resolve_theme_asset_url($raw_foto);
+                $foto_url = (strpos($resolved, '/') === 0 || preg_match('#^https?://#i', $resolved))
+                    ? $resolved
+                    : ('/wp-content/themes/bk-fip-wordpress/' . ltrim($resolved, '/'));
+            } else {
+                $foto_url = (strpos($raw_foto, 'assets/') === 0)
+                    ? ('/wp-content/themes/bk-fip-wordpress/' . $raw_foto)
+                    : $raw_foto;
+            }
         } else {
-            $avatar_html = $initials_html;
+            $foto_url = '';
         }
 
-        $sinta_quick = '';
-        if ($sinta_url) {
-            $sinta_quick = '<span style="color:#D1D5DB;">&bull;</span><a href="' . esc_url($sinta_url) . '" target="_blank" rel="noopener" style="color:#0D3B22;font-weight:700;font-size:11px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;transition:color 0.2s;" onmouseover="this.style.color=\'#185333\'" onmouseout="this.style.color=\'#0D3B22\'" title="Buka profil SINTA Dikti"><span>SINTA</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></a>';
+        $role_line = $struktural !== '' ? ($struktural . ' · ' . $jabatan) : $jabatan;
+        $tags_html = '';
+        foreach (array_slice($kepakaran, 0, 3) as $t) {
+            $tags_html .= '<span class="bk-tag">' . esc_html($t) . '</span>';
         }
 
-        $nip_block = $nip_display ? '<p class="bk-dosen-card-nip" style="font-family:monospace;font-size:11px;color:#6B7280;margin:0 0 10px 0;line-height:1.2;height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' . $nip_display . '</p>' : '<div class="bk-dosen-card-nip" style="height:16px;margin-bottom:10px;"></div>';
+        $search_text = esc_attr(strtolower($nama . ' ' . $nip . ' ' . $jabatan . ' ' . $struktural . ' ' . $badge_label . ' ' . implode(' ', $kepakaran)));
 
-        $cards_html .= '<div class="bk-dosen-card-item" data-text="' . $search_text . '" style="background:#ffffff;border:1.5px solid #D4E3D8;border-radius:20px;padding:22px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 16px rgba(13,59,34,0.04);position:relative;overflow:hidden;transition:all 0.25s cubic-bezier(0.16, 1, 0.3, 1);box-sizing:border-box;height:100%;min-height:395px;" onmouseover="this.style.transform=\'translateY(-4px)\';this.style.borderColor=\'#185333\';this.style.boxShadow=\'0 12px 28px rgba(13,59,34,0.12)\';" onmouseout="this.style.transform=\'translateY(0)\';this.style.borderColor=\'#D4E3D8\';this.style.boxShadow=\'0 4px 16px rgba(13,59,34,0.04)\';">
-            <div style="position:absolute;top:0;left:0;right:0;height:4px;background:#0D3B22;"></div>
-            <div class="bk-dosen-card-top" style="margin-top:4px;display:flex;flex-direction:column;flex:1 1 auto;">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;height:54px;">
-                    ' . $avatar_html . '
-                    <span style="font-size:9.5px;font-weight:800;background:' . $badge_bg . ';color:' . $badge_color . ';border:1px solid ' . $badge_border . ';padding:4px 10px;border-radius:9999px;letter-spacing:0.04em;text-transform:uppercase;line-height:1;display:inline-block;white-space:nowrap;">' . $badge_label . '</span>
+        if ($foto_url !== '') {
+            $av_cls = 'bk-avatar' . ($is_prof ? ' is-prof' : '') . ' has-photo';
+            $avatar_html = '<div class="' . $av_cls . '" data-fb-init="' . esc_attr($init) . '"><img src="' . esc_url($foto_url) . '" alt="' . esc_attr($nama) . '" loading="lazy" onerror="var p=this.parentElement;if(p){p.classList.remove(\'has-photo\');p.textContent=p.getAttribute(\'data-fb-init\')||\'BK\';}"></div>';
+        } else {
+            $av_cls = 'bk-avatar' . ($is_prof ? ' is-prof' : '');
+            $avatar_html = '<div class="' . $av_cls . '">' . esc_html($init) . '</div>';
+        }
+
+        $tag_classes = trim('bk-tag ' . $badge_cls);
+        $sinta_quick = $sinta_url !== ''
+            ? '<span style="color:var(--border-strong);">&bull;</span><a href="' . esc_url($sinta_url) . '" target="_blank" rel="noopener noreferrer" style="color:var(--forest);font-weight:700;font-size:11px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;">SINTA &#8599;</a>'
+            : '';
+
+        $cards_html .= '<article class="bk-dosen-card-item" data-slug="' . esc_attr($slug) . '" data-tier="' . esc_attr($tier_key) . '" data-text="' . $search_text . '">
+            <div class="bk-dosen-card-top">
+                <div class="bk-dosen-card-head">
+                    <div class="bk-dosen-identity">
+                        ' . $avatar_html . '
+                        <div style="min-width:0;">
+                            <h3 class="bk-dosen-card-name" style="margin-bottom:2px;min-height:0;"><a href="' . esc_url($profile_url) . '" data-open-dossier="' . esc_attr($slug) . '">' . esc_html($nama) . '</a></h3>
+                            <div class="bk-dosen-meta-sub">' . esc_html($role_line) . '</div>
+                            ' . ($nip !== '' ? '<div class="bk-fm" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">NIP. ' . esc_html($nip) . '</div>' : '') . '
+                        </div>
+                    </div>
+                    <span class="' . esc_attr($tag_classes) . '" style="flex-shrink:0;">' . esc_html($badge_label) . '</span>
                 </div>
-                <h3 class="bk-dosen-card-name" style="font-family:Fraunces,Georgia,serif;font-size:15.5px;font-weight:700;color:#111827;line-height:1.35;margin:0 0 4px 0;height:46px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;">
-                    <a href="' . esc_url($profile_url) . '" style="color:inherit;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color=\'#0D3B22\'" onmouseout="this.style.color=\'#111827\'">' . esc_html($nama) . '</a>
-                </h3>
-                <p class="bk-dosen-card-role" style="font-size:12px;color:#0D3B22;font-weight:600;margin:0 0 3px 0;line-height:1.3;height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' . esc_html($jabatan) . '</p>
-                ' . $nip_block . '
-                <div class="bk-dosen-card-tags-wrap" style="border-top:1px solid #F3F4F6;padding-top:10px;margin-top:auto;margin-bottom:12px;">
-                    <span style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;line-height:1;">Fokus Kepakaran:</span>
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;height:48px;overflow:hidden;align-content:flex-start;">' . $tags_html . '</div>
-                </div>
+                <div class="bk-dosen-tags" style="margin-top:12px;">' . $tags_html . '</div>
             </div>
-            <div class="bk-dosen-card-bottom" style="border-top:1px solid #F3F4F6;padding-top:12px;margin-top:auto;flex-shrink:0;">
-                <div class="dosen-stats-row" style="display:flex;justify-content:space-between;align-items:center;background:#FAF8F5;border:1px solid #E5E7EB;border-radius:10px;padding:7px 10px;margin-bottom:10px;font-size:11px;color:#0D3B22;line-height:1;box-sizing:border-box;height:34px;">
-                    <span>Publikasi: <strong style="color:#0D3B22;font-weight:700;">' . $pub_cnt . '</strong></span>
-                    <span style="color:#D1D5DB;">&bull;</span>
-                    <span>Riset: <strong style="color:#0D3B22;font-weight:700;">' . $pen_cnt . '</strong></span>
+            <div class="bk-dosen-card-bottom">
+                <div class="dosen-stats-row">
+                    <span>Publikasi: <strong>' . $pub_cnt . '</strong></span>
+                    <span style="color:var(--border-strong);">&bull;</span>
+                    <span>Buku: <strong>' . $buku_cnt . '</strong></span>
+                    <span style="color:var(--border-strong);">&bull;</span>
+                    <span>Riset: <strong>' . $pen_cnt . '</strong></span>
                     ' . $sinta_quick . '
                 </div>
-                <a href="' . esc_url($profile_url) . '" class="bk-card-btn" style="width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;background:#0D3B22;color:#F5B82E;border:1.5px solid #0D3B22;border-radius:12px;font-size:12px;font-weight:700;text-decoration:none;box-sizing:border-box;line-height:1;transition:all 0.2s;" onmouseover="this.style.background=\'#185333\';this.style.borderColor=\'#185333\';this.style.color=\'#ffffff\';" onmouseout="this.style.background=\'#0D3B22\';this.style.borderColor=\'#0D3B22\';this.style.color=\'#F5B82E\';">
-                    <span>Lihat Profil &amp; Rekam Jejak</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </a>
+                <div class="bk-dosen-actions">
+                    <button type="button" class="bk-btn bk-btn-primary bk-btn-sm" style="flex:1;" data-open-dossier="' . esc_attr($slug) . '">Lihat Dossier &rarr;</button>
+                    <a href="' . esc_url($profile_url) . '" class="bk-btn bk-btn-secondary bk-btn-sm" title="Buka halaman profil ' . esc_attr($nama) . '">Profil Lengkap</a>
+                </div>
             </div>
-        </div>' . "\n";
+        </article>' . "\n";
+
+        $mk_compact = array();
+        foreach (array_slice($mk_raw, 0, 12) as $mk) {
+            if (!is_array($mk)) continue;
+            $mk_compact[] = array(
+                trim((string)($mk['kode'] ?? '')),
+                trim((string)($mk['nama'] ?? '')),
+                trim((string)(isset($mk['sks']) ? $mk['sks'] . ' SKS' : '')) . (!empty($mk['jenjang']) ? ' · ' . trim((string)$mk['jenjang']) : ''),
+            );
+        }
+
+        $pub_compact = array();
+        foreach (array_slice($pubs_raw, 0, 10) as $pub) {
+            if (!is_array($pub)) continue;
+            $pub_compact[] = array(
+                trim((string)($pub['judul'] ?? '')),
+                trim((string)($pub['tahun'] ?? '')),
+                trim((string)($pub['media'] ?? ($pub['sumber'] ?? ''))),
+                trim((string)($pub['akreditasi'] ?? ($pub['peran'] ?? ''))),
+                trim((string)($pub['url'] ?? '')),
+            );
+        }
+
+        $buku_compact = array();
+        foreach (array_slice($buku_raw, 0, 10) as $bk) {
+            if (!is_array($bk)) continue;
+            $isbn_val = trim((string)($bk['isbn'] ?? ''));
+            $buku_compact[] = array(
+                trim((string)($bk['judul'] ?? '')),
+                trim((string)($bk['tahun'] ?? '')),
+                trim((string)($bk['penerbit'] ?? '')),
+                ($isbn_val !== '' && $isbn_val !== '-') ? $isbn_val : '',
+            );
+        }
+
+        $ris_compact = array();
+        foreach (array_slice($pen_raw, 0, 10) as $ris) {
+            if (!is_array($ris)) continue;
+            $ris_compact[] = array(
+                trim((string)($ris['judul'] ?? '')),
+                trim((string)($ris['tahun'] ?? '')),
+                trim((string)($ris['peran'] ?? '')),
+                trim((string)($ris['sumber_dana'] ?? '')),
+            );
+        }
+
+        $bio_plain = trim(wp_strip_all_tags((string)($d['bio'] ?? '')));
+        if (strlen($bio_plain) > 280) {
+            $bio_plain = substr($bio_plain, 0, 277) . '...';
+        }
+
+        $dossier_map[$slug] = array(
+            's'    => $slug,
+            'n'    => $nama,
+            'i'    => $init,
+            't'    => $tier_key,
+            'b'    => $badge_label,
+            'jf'   => $jabatan,
+            'js'   => $struktural,
+            'u'    => $unit,
+            'nip'  => $nip,
+            'nidn' => $nidn,
+            'r'    => trim((string)($d['ruang_kerja'] ?? '')),
+            'bio'  => $bio_plain,
+            'f'    => $foto_url,
+            'kp'   => array_values(array_slice($kepakaran, 0, 6)),
+            'si'   => $sinta_url,
+            'sc'   => $scholar_url,
+            'cp'   => $scopus_url,
+            'st'   => array($pub_cnt, $buku_cnt, $pen_cnt, $pkm_cnt),
+            'mk'   => $mk_compact,
+            'pub'  => $pub_compact,
+            'bk'   => $buku_compact,
+            'ris'  => $ris_compact,
+        );
     }
 
-    $count_dosen = count($dosen_list);
-    $full_html = '<div class="bk-page-wrapper" style="width:100%;background:#FAF8F5;color:#1F2937;font-family:\'Plus Jakarta Sans\',sans-serif;line-height:1.6"><section style="position:relative;overflow:hidden;background:#0D3B22;color:#ffffff;padding:var(--bk-top-clearance, 36px) 0 clamp(45px, 6vw, 60px);font-family:\'Plus Jakarta Sans\',sans-serif">
-        <div style="position:absolute;top:-100px;right:-10%;width:500px;height:500px;border-radius:50%;background:rgba(245,184,46,0.15);filter:blur(80px);pointer-events:none"></div>
-        <div style="position:absolute;bottom:-120px;left:-10%;width:420px;height:420px;border-radius:50%;background:rgba(245,184,46,0.12);filter:blur(80px);pointer-events:none"></div>
-        <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);background-size:24px 24px;pointer-events:none"></div>
+    $dossier_json = str_replace('</', '<\/', wp_json_encode($dossier_map));
 
-        <div class="bk-container" style="position:relative;max-width:var(--max-w, 1160px);width:100%;margin:0 auto">
-            <div style="display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:9999px;background:rgba(245,184,46,0.15);border:1px solid rgba(245,184,46,0.3);color:#F5B82E;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:16px">
-                <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#F5B82E"></span>
-                <span>Profil &middot; Program Studi Bimbingan &amp; Konseling</span>
+    $full_html = '<div class="bk-page-wrapper" style="width:100%;min-height:100vh;background:#FAF8F5;color:#1F2937;font-family:\'Plus Jakarta Sans\',sans-serif;line-height:1.6;">
+    <header class="bk-page-head">
+        <div class="bk-container">
+            <div class="bk-crumb">
+                <a href="/">Beranda</a>
+                <span>/</span>
+                <a href="/profil/">Profil &amp; Mutu</a>
+                <span>/</span>
+                <span>Dosen &amp; Tenaga Pengajar</span>
+            </div>
+            <h1>Dosen &amp; Tenaga Pengajar</h1>
+            <p class="bk-page-lead">Telusuri profil akademik, publikasi ilmiah SINTA/Scopus, penelitian &amp; hibah, pengabdian masyarakat, dan rekam jejak kepakaran para akademisi Jurusan PPB FIP UNM.</p>
+        </div>
+    </header>
+
+    <section class="bk-band">
+        <div class="bk-container">
+            <nav class="bk-tabs" aria-label="Sub-menu Profil &amp; Mutu">
+                <a href="/profil/visi-keilmuan/" class="bk-tab-btn">Visi &amp; Keilmuan</a>
+                <a href="/profil/sejarah/" class="bk-tab-btn">Sejarah &amp; Pimpinan</a>
+                <a href="/profil/dosen/" class="bk-tab-btn is-active" aria-current="page">Dosen &amp; Kepakaran</a>
+                <a href="/akreditasi/" class="bk-tab-btn">Akreditasi LAMDIK</a>
+                <a href="/profil/kerjasama-tridharma/" class="bk-tab-btn">Kemitraan &amp; Sarana</a>
+            </nav>
+            <div style="margin:-10px 0 28px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;">
+                <div class="bk-seg-control" role="navigation" aria-label="Bagian terkait">
+                    <a href="/profil/dosen/" class="bk-seg-btn is-active" aria-current="page">Direktori ' . $count_total . ' Dosen</a>
+                    <a href="/profil/buku-dosen/" class="bk-seg-btn">Koleksi Buku Dosen</a>
+                    <a href="/profil/kepakaran-dosen/" class="bk-seg-btn">Peta Kepakaran &amp; SINTA</a>
+                </div>
             </div>
 
-            <h1 style="font-family:Fraunces,Georgia,serif;font-size:clamp(30px, 4.2vw, 50px);font-weight:400;color:#ffffff;line-height:1.16;letter-spacing:-0.02em;margin:0 0 16px 0;max-width:860px">
-                Dosen &amp; Tenaga Pengajar
-            </h1>
-
-            <p style="font-size:clamp(14px, 1.6vw, 16px);line-height:1.7;color:rgba(255,255,255,0.85);margin:0 0 28px 0;max-width:760px;font-weight:400">
-                Telusuri profil akademik, publikasi ilmiah SINTA/Scopus, penelitian &amp; hibah, pengabdian masyarakat, dan rekam jejak kepakaran para akademisi Jurusan PPB FIP UNM.
-            </p>
-
-            <div style="margin-top:24px;max-width:560px">
-                <div style="position:relative">
-                    <span style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:#0D3B22;display:flex;align-items:center;pointer-events:none">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    </span>
-                    <input type="text" id="bk-dosen-search-input" placeholder="Cari nama dosen, NIP, atau bidang kepakaran..." style="width:100%;padding:14px 20px 14px 48px;border-radius:14px;border:2px solid rgba(255,255,255,0.3);background:#ffffff;color:#111827;font-size:13.5px;font-family:\'Plus Jakarta Sans\',sans-serif;outline:none;box-shadow:0 8px 24px rgba(0,0,0,0.18);">
+            <div class="bk-ugm-head" style="margin-bottom:20px;">
+                <div class="bk-ugm-title-block">
+                    <div class="bk-kicker">Sumber Daya Manusia</div>
+                    <h2 class="bk-section-h2">Direktori ' . $count_total . ' Dosen &amp; Kepakaran</h2>
                 </div>
-                <div style="font-size:12px;margin-top:10px;color:rgba(255,255,255,0.85);" id="bk-dosen-count-info">
-                    Menampilkan seluruh <strong style="color:#F5B82E;">' . $count_dosen . '</strong> dosen &amp; tenaga pengajar Jurusan PPB
+                <div class="bk-sec-rule" aria-hidden="true"></div>
+                <div style="font-size:12.5px;color:var(--ink-muted);">Klik Dossier untuk membuka rekam jejak SINTA, matkul &amp; buku</div>
+            </div>
+
+            <div class="bk-toolbar" style="margin-bottom:16px;">
+                <input type="search" id="bk-dosen-search" class="bk-inp" placeholder="Cari nama dosen, NIP, atau topik riset..." aria-label="Cari nama dosen, NIP, atau topik riset">
+                <div class="bk-filter-pills" id="bk-dosen-tier-pills" role="tablist" aria-label="Filter Jenjang Akademik Dosen">
+                    <button type="button" class="bk-pill is-active" data-dtier="all" role="tab" aria-selected="true">Semua (' . $count_total . ')</button>
+                    <button type="button" class="bk-pill" data-dtier="prof" role="tab" aria-selected="false">Guru Besar (' . (int)$tier_counts['prof'] . ')</button>
+                    <button type="button" class="bk-pill" data-dtier="dr" role="tab" aria-selected="false">Doktor (' . (int)$tier_counts['dr'] . ')</button>
+                    <button type="button" class="bk-pill" data-dtier="dosen" role="tab" aria-selected="false">Dosen (' . (int)$tier_counts['dosen'] . ')</button>
                 </div>
+            </div>
+
+            <div id="bk-dosen-count" style="font-size:13px;color:var(--ink-muted);margin:0 0 18px;">
+                Menampilkan seluruh <strong style="color:var(--forest);">' . $count_total . '</strong> dosen &amp; tenaga pengajar Jurusan PPB
+            </div>
+
+            <div id="bk-dosen-grid" class="bk-dosen-grid-container">
+' . $cards_html . '
+            </div>
+
+            <div class="bk-empty" id="bk-dosen-empty" style="display:none;margin-top:20px;">
+                <p style="margin:0 0 12px;">Tidak ada dosen yang sesuai dengan filter atau pencarian Anda.</p>
+                <button type="button" class="bk-btn bk-btn-secondary bk-btn-sm" id="bk-dosen-reset">Reset Filter &amp; Pencarian</button>
+            </div>
+
+            <div class="bk-card bk-card-sage" style="flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px;margin-top:36px;">
+                <div style="max-width:640px;">
+                    <div class="bk-kicker">Riset &amp; Pengembangan Keilmuan</div>
+                    <h3 class="bk-fd" style="font-size:21px;color:var(--forest);margin:0 0 6px;">Ingin Mengetahui Arah Riset &amp; Pengabdian Dosen?</h3>
+                    <p style="font-size:13.5px;color:var(--ink-2);margin:0;">Pelajari Roadmap Penelitian 3 Pilar Keilmuan, Lembar Pengesahan Senat, dan Research Groups Program Studi.</p>
+                </div>
+                <a href="/profil/roadmap/" class="bk-btn bk-btn-gold">Buka Roadmap Riset &amp; PKM &rarr;</a>
             </div>
         </div>
     </section>
 
-<div class="bk-subnav-sticky-wrap" style="position:relative;z-index:30;margin-top:-28px;padding:0 var(--bk-edge-pad, 1rem);margin-bottom:30px">
-    <div style="border:1px solid #D4E3D8;border-radius:18px;padding:6px 8px;background:#ffffff;box-shadow:0 4px 16px rgba(0,0,0,0.03);max-width:var(--max-w, 1160px);width:100%;margin:0 auto;overflow-x:auto;">
-        <ul class="no-scrollbar" style="display:flex;align-items:center;gap:6px;margin:0;padding:0;white-space:nowrap;list-style:none;">
-            <li style="flex-shrink:0"><a href="/profil/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Ringkasan</a></li>
-            <li style="flex-shrink:0"><a href="/profil/sejarah/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Sejarah</a></li>
-            <li style="flex-shrink:0"><a href="/profil/visi-misi/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Visi &amp; Misi</a></li>
-            <li style="flex-shrink:0"><a href="/profil/visi-keilmuan/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Visi Keilmuan &amp; Kepakaran</a></li>
-            <li style="flex-shrink:0"><a href="/profil/struktur/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Struktur Organisasi</a></li>
-            <li style="flex-shrink:0"><a href="/profil/kerjasama-tridharma/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Kerjasama Tridharma</a></li>
-            <li style="flex-shrink:0"><a href="/profil/dosen/" class="bk-subnav-item bk-active" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:700;color:#F5B82E;background:#0D3B22;text-decoration:none;">Dosen &amp; Staf</a></li>
-            <li style="flex-shrink:0"><a href="/profil/buku-dosen/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Koleksi Buku Dosen</a></li>
-            <li style="flex-shrink:0"><a href="/profil/kepakaran-dosen/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Peta Kepakaran &amp; SINTA</a></li>
-            <li style="flex-shrink:0"><a href="/profil/sarana-prasarana/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Sarana &amp; Prasarana</a></li>
-            <li style="flex-shrink:0"><a href="/profil/roadmap/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Roadmap Riset</a></li>
-            <li style="flex-shrink:0"><a href="/profil/dokumen/" class="bk-subnav-item" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:12px;font-size:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:500;color:#4B5563;background:transparent;text-decoration:none;">Dokumen Mutu</a></li>
-        </ul>
-    </div>
-</div>
-
-<section style="padding:0 var(--bk-edge-pad, 1rem) 45px;font-family:\'Plus Jakarta Sans\',sans-serif">
-    <div style="max-width:var(--max-w, 1160px);width:100%;margin:0 auto">
-        <div id="bk-dosen-grid" class="bk-dosen-grid-container">
-' . $cards_html . '
-        </div>
-
-        <div style="background:#E8F0EA;border:1px solid #D4E3D8;border-radius:24px;padding:clamp(20px, 4vw, 32px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px;margin-top:40px;font-family:\'Plus Jakarta Sans\',sans-serif">
-            <div style="max-width:640px">
-                <h3 style="font-family:Fraunces,Georgia,serif;font-size:clamp(18px, 2.2vw, 24px);color:#0D3B22;margin:0 0 6px 0;font-weight:600">Ingin Mengetahui Arah Riset &amp; Pengabdian Dosen?</h3>
-                <p style="font-size:13px;color:#4D6354;margin:0;line-height:1.6">Pelajari Roadmap Penelitian 3 Pilar Keilmuan, Lembar Pengesahan Senat, dan Research Groups Program Studi.</p>
+    <div class="bk-backdrop" id="bk-dsn-backdrop"></div>
+    <aside class="bk-drawer" id="bk-dsn-drawer" aria-label="Dossier Akademik Dosen" aria-hidden="true">
+        <div class="bk-drawer-head">
+            <div>
+                <div class="bk-kicker" id="bk-dsn-drw-kicker">DOSSIER DOSEN PPB</div>
+                <h2 class="bk-fd" style="font-size:20px;margin:4px 0 0;line-height:1.25;" id="bk-dsn-drw-title">Profil Dosen</h2>
             </div>
-            <a href="/profil/roadmap/" style="height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 24px;border-radius:9999px;background:#F5B82E;color:#0D3B22;font-size:13px;font-weight:700;text-decoration:none;box-sizing:border-box;line-height:1;transition:all 0.2s;" onmouseover="this.style.background=\'#e5a93b\'" onmouseout="this.style.background=\'#F5B82E\'">
-                <span>Buka Roadmap Riset &amp; PKM &rarr;</span>
-            </a>
+            <button type="button" class="bk-icon-close" id="bk-dsn-drw-close" aria-label="Tutup Dossier">&#10005;</button>
         </div>
-    </div>
-</section>
+        <div class="bk-drawer-body" id="bk-dsn-drw-body"></div>
+    </aside>
 </div>
+<script type="application/json" id="bk-dosen-dossier-data">' . $dossier_json . '</script>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    var searchInput = document.getElementById("bk-dosen-search-input");
-    var cards = document.querySelectorAll(".bk-dosen-card-item");
-    var countInfo = document.getElementById("bk-dosen-count-info");
-    if (!searchInput || !cards.length) return;
-
-    searchInput.addEventListener("input", function() {
-        var query = this.value.toLowerCase().trim();
-        var visibleCount = 0;
-        cards.forEach(function(card) {
-            var text = (card.getAttribute("data-text") || "").toLowerCase();
-            if (!query || text.indexOf(query) !== -1) {
-                card.style.display = "flex";
-                visibleCount++;
-            } else {
-                card.style.display = "none";
-            }
-        });
-        if (countInfo) {
-            if (query) {
-                countInfo.innerHTML = "Menampilkan <strong style=\'color:#F5B82E;\'>" + visibleCount + "</strong> dari ' . $count_dosen . ' dosen untuk pencarian &ldquo;" + query + "&rdquo;";
-            } else {
-                countInfo.innerHTML = "Menampilkan seluruh <strong style=\'color:#F5B82E;\'>' . $count_dosen . '</strong> dosen &amp; tenaga pengajar Jurusan PPB";
-            }
-        }
+(function(){
+var rawEl = document.getElementById("bk-dosen-dossier-data");
+var DATA = {};
+try { DATA = JSON.parse(rawEl ? rawEl.textContent : "{}") || {}; } catch (e) { DATA = {}; }
+var searchIn = document.getElementById("bk-dosen-search");
+var pillsWrap = document.getElementById("bk-dosen-tier-pills");
+var gridEl = document.getElementById("bk-dosen-grid");
+var countEl = document.getElementById("bk-dosen-count");
+var emptyEl = document.getElementById("bk-dosen-empty");
+var resetBtn = document.getElementById("bk-dosen-reset");
+var bdp = document.getElementById("bk-dsn-backdrop");
+var drw = document.getElementById("bk-dsn-drawer");
+var drwK = document.getElementById("bk-dsn-drw-kicker");
+var drwT = document.getElementById("bk-dsn-drw-title");
+var drwB = document.getElementById("bk-dsn-drw-body");
+var drwX = document.getElementById("bk-dsn-drw-close");
+var activeTier = "all";
+var totalAll = ' . $count_total . ';
+var bp = window.location.pathname.indexOf("/yamato/") === 0 ? "/yamato" : "";
+function routeUrl(p) { return (bp && p.indexOf("/") === 0 && p.indexOf(bp + "/") !== 0) ? (bp + p) : p; }
+function assetUrl(u) { return (bp && u && u.indexOf("/wp-content/") === 0 && u.indexOf(bp + "/") !== 0) ? (bp + u) : u; }
+if (bp && gridEl) {
+    gridEl.querySelectorAll("img").forEach(function(im) {
+        var s = im.getAttribute("src") || "";
+        if (s.indexOf("/wp-content/") === 0) im.src = assetUrl(s);
     });
+}
+function esc(s) {
+    return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+function applyFilters() {
+    var q = searchIn ? searchIn.value.toLowerCase().trim() : "";
+    var cards = gridEl ? gridEl.querySelectorAll(".bk-dosen-card-item") : [];
+    var vis = 0;
+    for (var i = 0; i < cards.length; i++) {
+        var c = cards[i];
+        var t = c.getAttribute("data-tier") || "";
+        var txt = (c.getAttribute("data-text") || "").toLowerCase();
+        var okTier = (activeTier === "all" || t === activeTier);
+        var okQ = (!q || txt.indexOf(q) !== -1);
+        if (okTier && okQ) {
+            c.style.display = "flex";
+            vis++;
+        } else {
+            c.style.display = "none";
+        }
+    }
+    if (emptyEl) emptyEl.style.display = vis === 0 ? "block" : "none";
+    if (gridEl) gridEl.style.display = vis === 0 ? "none" : "grid";
+    if (countEl) {
+        if (q || activeTier !== "all") {
+            countEl.innerHTML = "Menampilkan <strong style=\"color:var(--forest);\">" + vis + "</strong> dari " + totalAll + " dosen" + (q ? " untuk pencarian &ldquo;" + esc(q) + "&rdquo;" : "");
+        } else {
+            countEl.innerHTML = "Menampilkan seluruh <strong style=\"color:var(--forest);\">" + totalAll + "</strong> dosen &amp; tenaga pengajar Jurusan PPB";
+        }
+    }
+}
+function sealHtml(d) {
+    return "<div class=\"bk-academic-seal\"><div class=\"bk-seal-emblem\">" + esc(d.i || "BK") + "</div><div class=\"bk-seal-label\">PROFIL AKADEMISI<strong>PPB · FIP UNM</strong></div></div>";
+}
+function closeDrawer() {
+    if (!drw || !bdp) return;
+    bdp.classList.remove("is-open");
+    drw.classList.remove("is-open");
+    drw.setAttribute("aria-hidden", "true");
+}
+function openDossier(slug) {
+    var d = DATA[slug];
+    if (!d || !drw || !bdp) return;
+    var activeTab = "info";
+    var fullUrl = routeUrl("/profil/dosen/" + d.s + "/");
+    var hasPhoto = Boolean(d.f);
+    var heroMedia = hasPhoto
+        ? "<div class=\"bk-drawer-portrait\"><img src=\"" + esc(assetUrl(d.f)) + "\" alt=\"" + esc(d.n) + "\"></div>"
+        : sealHtml(d);
+    var idsParts = [];
+    if (d.nip) idsParts.push("NIP. " + esc(d.nip));
+    if (d.nidn) idsParts.push("NIDN. " + esc(d.nidn));
+    if (d.r) idsParts.push(esc(d.r));
+    var heroIds = idsParts.length ? idsParts.join(" · ") : "Dosen Tetap Prodi BK FIP UNM";
+    var badges = "<span class=\"bk-badge-hero " + (d.t === "prof" ? "is-gold" : "") + "\">" + esc(d.b) + "</span>" +
+        (d.js ? "<span class=\"bk-badge-hero is-struct\">" + esc(d.js) + "</span>" : "") +
+        "<span class=\"bk-badge-hero\">" + esc(d.u || "Prodi BK FIP UNM") + "</span>";
+    var heroActions = "<div style=\"display:flex;gap:8px;flex-wrap:wrap;\">" +
+        (d.si ? "<a href=\"" + esc(d.si) + "\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"bk-btn bk-btn-gold bk-btn-sm\">Profil SINTA &#8599;</a>" : "") +
+        "<a href=\"" + esc(fullUrl) + "\" class=\"bk-btn bk-btn-glass bk-btn-sm\">Halaman Lengkap &rarr;</a>" +
+        "</div>";
+    var heroHtml = "<div class=\"bk-drawer-dosen-hero\">" + heroMedia + "<div class=\"bk-drawer-hero-meta\"><div class=\"bk-drawer-badges\">" + badges + "</div><h3 class=\"bk-drawer-hero-name\">" + esc(d.n) + "</h3><p class=\"bk-drawer-hero-ids\">" + heroIds + "</p>" + heroActions + "</div></div>";
+    var st = d.st || [0, 0, 0, 0];
+    var kpiHtml = "<div class=\"bk-drawer-kpi-grid\">" +
+        "<div class=\"bk-drawer-kpi-box\"><strong>" + Number(st[0] || 0) + "</strong><span>Publikasi</span></div>" +
+        "<div class=\"bk-drawer-kpi-box\"><strong>" + Number(st[1] || 0) + "</strong><span>Buku / HKI</span></div>" +
+        "<div class=\"bk-drawer-kpi-box\"><strong>" + Number(st[2] || 0) + "</strong><span>Penelitian</span></div>" +
+        "</div>";
+    function renderBody() {
+        var pubArr = d.pub || [];
+        var bkArr = d.bk || [];
+        var risArr = d.ris || [];
+        var tabsHtml = "<div class=\"bk-drawer-tabs\" role=\"tablist\">" +
+            "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "info" ? "is-active" : "") + "\" data-dsn-tab=\"info\">Ringkasan &amp; Matkul</button>" +
+            "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "pub" ? "is-active" : "") + "\" data-dsn-tab=\"pub\">Publikasi (" + Number(st[0] || pubArr.length) + ")</button>" +
+            "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "bk" ? "is-active" : "") + "\" data-dsn-tab=\"bk\">Buku (" + Number(st[1] || bkArr.length) + ")</button>" +
+            "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "ris" ? "is-active" : "") + "\" data-dsn-tab=\"ris\">Penelitian (" + Number(st[2] || risArr.length) + ")</button>" +
+            "</div>";
+        var panelHtml = "";
+        if (activeTab === "info") {
+            var mkArr = d.mk || [];
+            panelHtml = "<ul class=\"bk-spec-list\" style=\"margin-bottom:16px;\">" +
+                "<li><span style=\"color:var(--ink-muted);\">Jabatan</span><strong style=\"text-align:right;\">" + esc(d.js ? d.js + " · " + d.jf : d.jf) + "</strong></li>" +
+                (d.nip ? "<li><span style=\"color:var(--ink-muted);\">NIP</span><span class=\"bk-fm\" style=\"font-size:12px;\">" + esc(d.nip) + "</span></li>" : "") +
+                "<li><span style=\"color:var(--ink-muted);\">Kepakaran</span><span style=\"text-align:right;\">" + esc((d.kp || []).join(", ")) + "</span></li>" +
+                "</ul>" +
+                (d.bio ? "<p style=\"font-size:13.5px;color:var(--ink-2);line-height:1.65;margin:0 0 16px;\">" + esc(d.bio) + "</p>" : "") +
+                "<div class=\"bk-kicker\" style=\"margin-bottom:8px;\">Mata Kuliah Diampu (" + mkArr.length + ")</div>" +
+                (mkArr.length
+                    ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;margin-bottom:16px;\">" + mkArr.map(function(m) { return "<div class=\"bk-drawer-item\"><strong>" + esc((m[0] ? m[0] + " — " : "") + m[1]) + "</strong>" + (m[2] ? "<div class=\"bk-fm\" style=\"font-size:11.5px;color:var(--ink-muted);margin-top:2px;\">" + esc(m[2]) + "</div>" : "") + "</div>"; }).join("") + "</div>"
+                    : "<div class=\"bk-empty\" style=\"padding:18px;margin-bottom:16px;\">Daftar lengkap pengampuan kelas tersedia pada halaman profil dosen.</div>") +
+                "<div style=\"display:flex;gap:8px;flex-wrap:wrap;\">" +
+                "<a href=\"" + esc(fullUrl) + "\" class=\"bk-btn bk-btn-primary bk-btn-sm\">Buka Halaman Profil Lengkap &rarr;</a>" +
+                (d.sc ? "<a href=\"" + esc(d.sc) + "\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"bk-btn bk-btn-secondary bk-btn-sm\">Google Scholar &#8599;</a>" : "") +
+                "</div>";
+        } else if (activeTab === "pub") {
+            panelHtml = pubArr.length
+                ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;\">" + pubArr.map(function(p) {
+                    var titleEl = p[4] ? "<a href=\"" + esc(p[4]) + "\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:var(--ink);font-weight:600;text-decoration:none;\">" + esc(p[0]) + " &#8599;</a>" : "<strong>" + esc(p[0]) + "</strong>";
+                    return "<div class=\"bk-drawer-item\"><div style=\"font-size:13.5px;line-height:1.5;\">" + titleEl + "</div><div style=\"display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;\">" +
+                        (p[1] ? "<span class=\"bk-tag\">" + esc(p[1]) + "</span>" : "") +
+                        (p[3] ? "<span class=\"bk-tag bk-tag-sage\">" + esc(p[3]) + "</span>" : "") +
+                        (p[2] ? "<span style=\"font-size:12px;color:var(--ink-muted);\">" + esc(p[2]) + "</span>" : "") +
+                        "</div></div>";
+                }).join("") + "</div>" +
+                (Number(st[0] || 0) > pubArr.length ? "<p style=\"font-size:12.5px;color:var(--ink-muted);margin:12px 0 0;\">Menampilkan " + pubArr.length + " dari " + Number(st[0]) + " publikasi terbaru. <a href=\"" + esc(fullUrl) + "\" style=\"color:var(--forest);font-weight:600;\">Lihat semua &rarr;</a></p>" : "")
+                : "<div class=\"bk-empty\" style=\"padding:24px;\">Rekam jejak publikasi selengkapnya tersinkronisasi melalui tautan SINTA dosen.</div>";
+        } else if (activeTab === "bk") {
+            panelHtml = bkArr.length
+                ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;\">" + bkArr.map(function(b) {
+                    return "<div class=\"bk-drawer-item\"><strong style=\"font-size:13.5px;line-height:1.5;display:block;\">" + esc(b[0]) + "</strong><div style=\"font-size:12px;color:var(--ink-muted);margin-top:4px;\">" + esc([b[2], b[1], b[3] ? "ISBN " + b[3] : ""].filter(Boolean).join(" · ")) + "</div></div>";
+                }).join("") + "</div>" +
+                (Number(st[1] || 0) > bkArr.length ? "<p style=\"font-size:12.5px;color:var(--ink-muted);margin:12px 0 0;\">Menampilkan " + bkArr.length + " dari " + Number(st[1]) + " buku/HKI. <a href=\"" + esc(fullUrl) + "\" style=\"color:var(--forest);font-weight:600;\">Lihat semua &rarr;</a></p>" : "")
+                : "<div class=\"bk-empty\" style=\"padding:24px;\">Belum ada entri buku/monograf terdata di katalog ringkas ini.</div>";
+        } else {
+            panelHtml = risArr.length
+                ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;\">" + risArr.map(function(r) {
+                    return "<div class=\"bk-drawer-item\"><strong style=\"font-size:13.5px;line-height:1.5;display:block;\">" + esc(r[0]) + "</strong><div style=\"display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;\">" +
+                        (r[1] ? "<span class=\"bk-tag\">" + esc(r[1]) + "</span>" : "") +
+                        (r[2] ? "<span class=\"bk-tag bk-tag-sage\">" + esc(r[2]) + "</span>" : "") +
+                        (r[3] ? "<span style=\"font-size:12px;color:var(--ink-muted);\">" + esc(r[3]) + "</span>" : "") +
+                        "</div></div>";
+                }).join("") + "</div>" +
+                (Number(st[2] || 0) > risArr.length ? "<p style=\"font-size:12.5px;color:var(--ink-muted);margin:12px 0 0;\">Menampilkan " + risArr.length + " dari " + Number(st[2]) + " hibah riset. <a href=\"" + esc(fullUrl) + "\" style=\"color:var(--forest);font-weight:600;\">Lihat semua &rarr;</a></p>" : "")
+                : "<div class=\"bk-empty\" style=\"padding:24px;\">Data hibah penelitian tersinkronisasi melalui portal MIS PNBP UNM.</div>";
+        }
+        drwB.innerHTML = heroHtml + kpiHtml + tabsHtml + panelHtml;
+        var portImg = drwB.querySelector(".bk-drawer-portrait img");
+        if (portImg) {
+            portImg.addEventListener("error", function() {
+                var box = this.closest(".bk-drawer-portrait");
+                if (box) box.outerHTML = sealHtml(d);
+            });
+        }
+        drwB.querySelectorAll("[data-dsn-tab]").forEach(function(tb) {
+            tb.addEventListener("click", function() {
+                activeTab = this.getAttribute("data-dsn-tab") || "info";
+                drwB.scrollTop = 0;
+                renderBody();
+            });
+        });
+    }
+    drwK.textContent = String(d.b || "DOSEN PPB").toUpperCase();
+    drwT.textContent = d.n || "Profil Dosen";
+    drwB.scrollTop = 0;
+    renderBody();
+    bdp.classList.add("is-open");
+    drw.classList.add("is-open");
+    drw.setAttribute("aria-hidden", "false");
+}
+if (searchIn) searchIn.addEventListener("input", applyFilters);
+if (pillsWrap) {
+    pillsWrap.addEventListener("click", function(e) {
+        var pill = e.target.closest("[data-dtier]");
+        if (!pill) return;
+        activeTier = pill.getAttribute("data-dtier") || "all";
+        pillsWrap.querySelectorAll("[data-dtier]").forEach(function(b) {
+            var act = (b === pill);
+            b.classList.toggle("is-active", act);
+            b.setAttribute("aria-selected", act ? "true" : "false");
+        });
+        applyFilters();
+    });
+}
+if (resetBtn) {
+    resetBtn.addEventListener("click", function() {
+        activeTier = "all";
+        if (searchIn) searchIn.value = "";
+        if (pillsWrap) {
+            pillsWrap.querySelectorAll("[data-dtier]").forEach(function(b) {
+                var act = b.getAttribute("data-dtier") === "all";
+                b.classList.toggle("is-active", act);
+                b.setAttribute("aria-selected", act ? "true" : "false");
+            });
+        }
+        applyFilters();
+    });
+}
+if (gridEl) {
+    gridEl.addEventListener("click", function(e) {
+        var trig = e.target.closest("[data-open-dossier]");
+        if (!trig || e.metaKey || e.ctrlKey || e.shiftKey) return;
+        e.preventDefault();
+        openDossier(trig.getAttribute("data-open-dossier"));
+    });
+}
+if (drwX) drwX.addEventListener("click", closeDrawer);
+if (bdp) bdp.addEventListener("click", closeDrawer);
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && drw && drw.classList.contains("is-open")) closeDrawer();
 });
+})();
 </script>';
+
+    return $full_html;
+}
+
+/**
+ * Rebuild the public /profil/dosen/ page and pages-data.json from ordered lecturer list
+ */
+function bk_fip_rebuild_dosen_roster_html($dosen_list) {
+    global $wpdb;
+    $full_html = bk_fip_build_dosen_roster_html($dosen_list);
+    if ($full_html === '') return false;
 
     // 1. Update pages-data.json
     $pages_file = get_template_directory() . '/pages-data.json';
