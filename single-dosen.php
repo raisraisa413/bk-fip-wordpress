@@ -312,7 +312,7 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
     <!-- =================================================================== -->
     <!-- 2. REKAM JEJAK AKADEMIK (INTERACTIVE TABS)                          -->
     <!-- =================================================================== -->
-    <main class="bk-container bk-subpage-main" style="padding-top:36px !important;padding-bottom:80px !important;">
+    <main class="bk-container bk-subpage-main ppb-admin-managed-zone" data-wfie-page-locked="true" data-ppb-admin-label="Direktori Dosen &amp; SINTA" data-ppb-admin-url="<?php echo esc_url(admin_url('admin.php?page=bk-direktori-dosen')); ?>" style="padding-top:36px !important;padding-bottom:80px !important;">
         
         <!-- Tab Navigation Buttons (Enhanced Spacing, Default: Pendidikan & Mata Kuliah) -->
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:6px 0 20px;margin-bottom:32px;border-bottom:2px solid #E5E7EB;" id="dosen-tab-nav">

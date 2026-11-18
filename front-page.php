@@ -70,12 +70,12 @@ $admisi_btn1_url   = $cfg['admisi_btn1_url'] ?? home_url('/profil/visi-misi/');
 $admisi_btn2_label = $cfg['admisi_btn2_label'] ?? 'Masuk BK-Connect ↗';
 $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.vercel.app/auth';
 ?>
-<main id="bk-front-page" class="bk-sans" style="background-color: var(--bg-canvas, #FAF8F5); margin-top: 0; padding-top: 0;">
+<main id="bk-front-page" class="bk-sans" data-wfie-page-locked="true" data-ppb-admin-label="Teks &amp; Seksi Beranda" data-ppb-admin-url="<?php echo esc_url(admin_url('admin.php?page=bk-pengaturan-beranda')); ?>" style="background-color: var(--bg-canvas, #FAF8F5); margin-top: 0; padding-top: 0;">
 
     <!-- =====================================================================
          SECTION 1: FULL-SCREEN 100VH SPOTLIGHT HERO & MEDIA SHOWCASE
          ===================================================================== -->
-    <section class="bk-spotlight-hero" id="hero_spotlight" aria-label="Sorotan Utama Jurusan PPB BK FIP UNM" data-autoplay="<?php echo esc_attr($spotlight_settings['autoplay'] ?? '1'); ?>" data-speed="<?php echo esc_attr($spotlight_settings['speed'] ?? 8); ?>" data-fit-mode="<?php echo esc_attr($spotlight_settings['fit_mode'] ?? 'cover'); ?>">
+    <section class="bk-spotlight-hero ppb-admin-managed-zone" id="hero_spotlight" data-ppb-admin-label="Spotlight Video &amp; Slide Beranda" data-ppb-admin-url="<?php echo esc_url(admin_url('admin.php?page=ppb-spotlight-beranda')); ?>" aria-label="Sorotan Utama Jurusan PPB BK FIP UNM" data-autoplay="<?php echo esc_attr($spotlight_settings['autoplay'] ?? '1'); ?>" data-speed="<?php echo esc_attr($spotlight_settings['speed'] ?? 8); ?>" data-fit-mode="<?php echo esc_attr($spotlight_settings['fit_mode'] ?? 'cover'); ?>">
         <div class="bk-spotlight-grid-overlay" aria-hidden="true"></div>
 
         <div class="bk-spotlight-track" id="bk-sp-track" role="region" aria-roledescription="carousel" aria-label="Sorotan Utama BK FIP UNM">
@@ -515,7 +515,7 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
     <!-- =====================================================================
          SECTION 4: BERITA & AGENDA TERKINI (UGM FEATURED LEAD + 3-COL GRID)
          ===================================================================== -->
-    <section class="bk-band" id="news_unified_section" aria-label="Warta Jurusan dan Pengumuman">
+    <section class="bk-band ppb-admin-managed-zone" id="news_unified_section" data-ppb-admin-label="Warta &amp; Berita Jurusan" data-ppb-admin-url="<?php echo esc_url(admin_url('edit.php')); ?>" aria-label="Warta Jurusan dan Pengumuman">
         <div class="bk-wrap">
             <?php echo do_shortcode('[ppb_home_news count="4"]'); ?>
         </div>
@@ -545,7 +545,7 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
         'video_url' => '',
     );
     ?>
-    <section class="bk-video-band" id="bk-video-band" aria-label="Video Profil dan Dokumentasi Kampus">
+    <section class="bk-video-band ppb-admin-managed-zone" id="bk-video-band" data-ppb-admin-label="Teks &amp; Seksi Beranda (Video Profil)" data-ppb-admin-url="<?php echo esc_url(admin_url('admin.php?page=bk-pengaturan-beranda')); ?>" aria-label="Video Profil dan Dokumentasi Kampus">
         <div class="bk-wrap">
             <div class="bk-ugm-head">
                 <div class="bk-ugm-title-block">
@@ -606,7 +606,7 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
     <!-- =====================================================================
          SECTION 6: 3x2 DARK FOREST PORTAL GRID + ADMISI STRIP
          ===================================================================== -->
-    <section class="bk-band bk-band-surface" id="portal_ecosystem_section" aria-label="Akses Cepat Layanan, Mutu dan Infrastruktur">
+    <section class="bk-band bk-band-surface ppb-admin-managed-zone" id="portal_ecosystem_section" data-ppb-admin-label="Teks &amp; Seksi Beranda (Ekosistem Layanan)" data-ppb-admin-url="<?php echo esc_url(admin_url('admin.php?page=bk-pengaturan-beranda')); ?>" aria-label="Akses Cepat Layanan, Mutu dan Infrastruktur">
         <div class="bk-wrap">
             <div class="bk-ugm-head">
                 <div class="bk-ugm-title-block">

@@ -65,7 +65,7 @@ $all_posts_count = wp_count_posts('post')->publish ?? 6;
     <!-- =================================================================== -->
     <!-- NEWS GRID CONTENT (100% Full-Width Aligned with Navbar Logo)         -->
     <!-- =================================================================== -->
-    <main style="padding:32px 0 60px;width:100%;box-sizing:border-box;margin:0;">
+    <main class="ppb-admin-managed-zone" data-wfie-page-locked="true" data-ppb-admin-label="Warta &amp; Berita Jurusan" data-ppb-admin-url="<?php echo esc_url(admin_url('edit.php')); ?>" style="padding:32px 0 60px;width:100%;box-sizing:border-box;margin:0;">
         <?php
         if (!function_exists('ppb_render_berita_grid_swiss')) {
             $berita_inc = get_template_directory() . '/inc/ppb-admin-berita.php';
