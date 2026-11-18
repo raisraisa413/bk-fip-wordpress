@@ -613,15 +613,12 @@ if (!function_exists('bk_fip_get_search_index')) {
         }
 
         // 2. Lecturers
-        $dosen_file = get_template_directory() . '/dosen-data.json';
-        if (file_exists($dosen_file)) {
-            $dosen = json_decode((string) file_get_contents($dosen_file), true);
-            if (is_array($dosen)) {
-                foreach ($dosen as $ds) {
-                    if (empty($ds['nama']) || empty($ds['slug'])) continue;
-                    $kp = !empty($ds['kepakaran']) && is_array($ds['kepakaran']) ? implode(', ', array_slice($ds['kepakaran'], 0, 2)) : ($ds['unit'] ?? '');
-                    $add('Dosen', $ds['nama'], $kp, home_url('/profil/dosen/' . $ds['slug'] . '/'));
-                }
+        $dosen = function_exists('bk_fip_load_dosen_data') ? bk_fip_load_dosen_data() : array();
+        if (is_array($dosen)) {
+            foreach ($dosen as $ds) {
+                if (empty($ds['nama']) || empty($ds['slug'])) continue;
+                $kp = !empty($ds['kepakaran']) && is_array($ds['kepakaran']) ? implode(', ', array_slice($ds['kepakaran'], 0, 2)) : ($ds['unit'] ?? '');
+                $add('Dosen', $ds['nama'], $kp, home_url('/profil/dosen/' . $ds['slug'] . '/'));
             }
         }
 
@@ -1874,9 +1871,8 @@ function ppb_auto_sync_pages_content() {
 
     
     // AUTO-POPULATE CPT DOSEN POSTS (Ensure WP database has all 25 dosen posts)
-    $dosen_json_file = get_template_directory() . '/dosen-data.json';
-    if (file_exists($dosen_json_file)) {
-        $all_dosen_data = json_decode(file_get_contents($dosen_json_file), true);
+    $all_dosen_data = function_exists('bk_fip_load_dosen_data') ? bk_fip_load_dosen_data() : array();
+    if (!empty($all_dosen_data)) {
         if (is_array($all_dosen_data)) {
             $now_time = current_time('mysql');
             $now_gmt  = current_time('mysql', 1);
@@ -2400,10 +2396,10 @@ function bk_fip_extract_sinta_id($dosen) {
 }
 
 function bk_fip_load_dosen_data() {
-    $json_file = get_template_directory() . '/dosen-data.json';
-    $list = file_exists($json_file) ? json_decode(file_get_contents($json_file), true) : array();
+    $list = get_option('bk_dosen_data_cache', array());
     if (!is_array($list) || empty($list)) {
-        $list = get_option('bk_dosen_data_cache', array());
+        $json_file = get_template_directory() . '/dosen-data.json';
+        $list = file_exists($json_file) ? json_decode(file_get_contents($json_file), true) : array();
     }
     return is_array($list) ? $list : array();
 }
@@ -3785,10 +3781,7 @@ function bk_fip_render_sync_dosen_page() {
     if (isset($_POST['bk_save_single_dosen']) && check_admin_referer('bk_edit_dosen_action', 'bk_edit_dosen_nonce')) {
         $edit_slug = sanitize_title($_POST['dosen_slug'] ?? '');
         $json_file = get_template_directory() . '/dosen-data.json';
-        $current_dosen = file_exists($json_file) ? json_decode(file_get_contents($json_file), true) : array();
-        if (empty($current_dosen)) {
-            $current_dosen = get_option('bk_dosen_data_cache', array());
-        }
+        $current_dosen = bk_fip_load_dosen_data();
 
         $found = false;
         foreach ($current_dosen as &$cd) {
@@ -3906,10 +3899,7 @@ function bk_fip_render_sync_dosen_page() {
         $raw_orders = isset($_POST['dosen_order']) && is_array($_POST['dosen_order']) ? $_POST['dosen_order'] : array();
 
         $json_file = get_template_directory() . '/dosen-data.json';
-        $current_dosen = file_exists($json_file) ? json_decode(file_get_contents($json_file), true) : array();
-        if (empty($current_dosen)) {
-            $current_dosen = get_option('bk_dosen_data_cache', array());
-        }
+        $current_dosen = bk_fip_load_dosen_data();
 
         if (!empty($current_dosen) && !empty($raw_orders)) {
             $order_map = array();
@@ -3947,11 +3937,7 @@ function bk_fip_render_sync_dosen_page() {
         }
     }
 
-    $json_file = get_template_directory() . '/dosen-data.json';
-    $all_dosen = file_exists($json_file) ? json_decode(file_get_contents($json_file), true) : array();
-    if (empty($all_dosen)) {
-        $all_dosen = get_option('bk_dosen_data_cache', array());
-    }
+    $all_dosen = bk_fip_load_dosen_data();
     $last_synced = get_option('bk_dosen_last_synced', 'Belum pernah disinkronkan');
 
     $tot_pub = 0;
