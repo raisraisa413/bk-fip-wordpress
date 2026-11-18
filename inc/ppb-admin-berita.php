@@ -653,7 +653,7 @@ function ppb_render_berita_grid_swiss() {
                 <p style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#64748B;margin:0;">Gunakan kata kunci pencarian lain atau pilih tab "Semua Kategori".</p>
             </div>
 
-            <!-- Numbered Pagination Bar (9 artikel per halaman) -->
+            <!-- Numbered Pagination Bar (6 artikel per halaman default, dapat diuji ?per_page=N) -->
             <div id="bk-berita-pagination" style="display:none;margin-top:32px;padding-top:24px;border-top:1px solid #E2E8F0;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;">
                 <div id="bk-berita-page-status" style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:#64748B;letter-spacing:0.04em;"></div>
                 <nav id="bk-berita-page-nav" aria-label="Navigasi Halaman Berita" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;"></nav>
@@ -700,9 +700,10 @@ function ppb_render_berita_grid_swiss() {
             var pagWrap = document.getElementById("bk-berita-pagination");
             var pagStatus = document.getElementById("bk-berita-page-status");
             var pagNav = document.getElementById("bk-berita-page-nav");
+            var urlPerPage = parseInt(new URLSearchParams(window.location.search).get("per_page"), 10);
             var activeCat = "semua";
             var currentPage = 1;
-            var perPage = 9;
+            var perPage = (!isNaN(urlPerPage) && urlPerPage >= 1 && urlPerPage <= 24) ? urlPerPage : 6;
 
             function makeBtn(label, page, isActive, isDisabled, ariaLabel) {
                 var btn = document.createElement("button");
@@ -775,7 +776,7 @@ function ppb_render_berita_grid_swiss() {
                 }
 
                 if (pagWrap && pagNav && pagStatus) {
-                    if (totalMatched > perPage) {
+                    if (totalMatched > 0) {
                         pagWrap.style.display = "flex";
                         var showFrom = startIdx + 1;
                         var showTo = Math.min(endIdx, totalMatched);

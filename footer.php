@@ -125,13 +125,57 @@ $portal_auth_url   = $bk_cfg['portal_auth_url']   ?? get_option('bk_portal_auth_
 <script>
 (function() {
     var btn = document.getElementById('bk-back-to-top');
-    if (!btn) return;
-    function toggleBackToTop() {
-        var y = window.pageYOffset || document.documentElement.scrollTop || 0;
-        btn.classList.toggle('is-visible', y > 300);
+    if (btn) {
+        function toggleBackToTop() {
+            var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+            btn.classList.toggle('is-visible', y > 300);
+        }
+        window.addEventListener('scroll', toggleBackToTop, { passive: true });
+        toggleBackToTop();
     }
-    window.addEventListener('scroll', toggleBackToTop, { passive: true });
-    toggleBackToTop();
+
+    document.addEventListener('click', function(e) {
+        var toggleAll = e.target.closest('[data-acc-toggle-all]');
+        if (toggleAll) {
+            var targetId = toggleAll.getAttribute('data-acc-toggle-all');
+            var acc = targetId ? document.getElementById(targetId) : toggleAll.closest('.bk-page-wrapper')?.querySelector('.bk-accordion');
+            if (!acc) return;
+            var items = acc.querySelectorAll('.bk-acc-item');
+            var openCount = acc.querySelectorAll('.bk-acc-item.is-open').length;
+            var expandAll = openCount < items.length;
+            items.forEach(function(el, idx) {
+                var shouldOpen = expandAll ? true : (idx === 0);
+                el.classList.toggle('is-open', shouldOpen);
+                var tr = el.querySelector('.bk-acc-trigger');
+                if (tr) tr.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+            });
+            toggleAll.textContent = expandAll ? 'Ringkas (1 Kriteria)' : 'Buka Semua (9 Kriteria)';
+            return;
+        }
+
+        var trigger = e.target.closest('.bk-acc-trigger');
+        if (!trigger) return;
+        var acc = trigger.closest('.bk-accordion');
+        var item = trigger.closest('.bk-acc-item');
+        if (!acc || !item) return;
+        var wasOpen = item.classList.contains('is-open');
+        acc.querySelectorAll('.bk-acc-item').forEach(function(el) {
+            el.classList.remove('is-open');
+            var t = el.querySelector('.bk-acc-trigger');
+            if (t) t.setAttribute('aria-expanded', 'false');
+        });
+        if (!wasOpen) {
+            item.classList.add('is-open');
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+    });
+
+    document.querySelectorAll('.bk-tabs').forEach(function(tabs) {
+        var active = tabs.querySelector('.bk-tab-btn.is-active, .bk-tab.is-active');
+        if (active && tabs.scrollWidth > tabs.clientWidth) {
+            tabs.scrollLeft = Math.max(0, active.offsetLeft - Math.max(0, (tabs.clientWidth - active.offsetWidth) / 2));
+        }
+    });
 })();
 </script>
 

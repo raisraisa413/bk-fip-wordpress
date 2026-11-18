@@ -1523,7 +1523,7 @@ function ppb_auto_sync_pages_content() {
 
 
 
-    if ($synced_version === '21.0' && !$force) {
+    if ($synced_version === '21.4' && !$force) {
         return;
     }
 
@@ -1932,7 +1932,7 @@ function ppb_auto_sync_pages_content() {
         }
     }
 
-    update_option('ppb_content_synced_version', '21.0');
+    update_option('ppb_content_synced_version', '21.4');
 
 
 
@@ -2214,7 +2214,9 @@ add_filter('template_include', function($template) {
                             $db_content = $wpdb->get_var($wpdb->prepare("SELECT post_content FROM $wpdb->posts WHERE ID = %d", $post_id));
                             $expected_len = strlen($clean_matched_content);
                             $actual_len = strlen($db_content);
+                            $has_legacy_subnav = (strpos($clean_matched_content, 'bk-page-head') !== false && (strpos($db_content, 'bk-page-head') === false || strpos($db_content, 'bk-subnav-sticky-wrap') !== false));
                             $needs_db_repair = ($actual_len < ($expected_len - 150))
+                                             || $has_legacy_subnav
                                              || ($matched_page['slug'] === 'struktur' && strpos($db_content, 'Bagan Kepemimpinan') === false)
                                              || ($matched_page['slug'] === 'roadmap' && strpos($db_content, '3 Pilar Kepakaran') === false)
                                              || (strpos($db_content, 'bk-page-wrapper') === false)
@@ -2235,7 +2237,13 @@ add_filter('template_include', function($template) {
                         if ($post_id) {
                             $post = get_post($post_id);
                             // Immediate in-memory failsafe: guarantee current render is 100% pristine
-                            if ($post && (strlen($post->post_content) < (strlen($clean_matched_content) - 150) || strpos($post->post_content, 'bk-page-wrapper') === false || ($matched_page['slug'] === 'struktur' && strpos($post->post_content, 'Bagan Kepemimpinan') === false))) {
+                            $post_needs_failsafe = $post && (
+                                strlen($post->post_content) < (strlen($clean_matched_content) - 150)
+                                || strpos($post->post_content, 'bk-page-wrapper') === false
+                                || (strpos($clean_matched_content, 'bk-page-head') !== false && (strpos($post->post_content, 'bk-page-head') === false || strpos($post->post_content, 'bk-subnav-sticky-wrap') !== false))
+                                || ($matched_page['slug'] === 'struktur' && strpos($post->post_content, 'Bagan Kepemimpinan') === false)
+                            );
+                            if ($post_needs_failsafe) {
                                 $post->post_content = $clean_matched_content;
                             }
                             setup_postdata($post);

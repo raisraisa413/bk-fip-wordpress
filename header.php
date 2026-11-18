@@ -19,6 +19,11 @@
         --bk-admin-bar-offset: 0px;
         --bk-top-clearance: 24px;
     }
+    @media (max-width: 640px) {
+        :root {
+            --bk-edge-pad: 16px;
+        }
+    }
     body.admin-bar {
         --bk-admin-bar-offset: 32px;
     }
@@ -88,6 +93,8 @@
     .bk-wrap .bk-wrap,
     .bk-wrap .bk-container,
     .bk-container .bk-wrap,
+    .bk-content-wrap .bk-container,
+    .bk-container .bk-content-wrap,
     .bk-page-wrapper > main .bk-container,
     .bk-page-wrapper > main .bk-wrap,
     main.bk-subpage-main .bk-container,
@@ -96,7 +103,30 @@
         padding-right: 0 !important;
     }
 
-    /* Subpage Sticky Sub-Navigation Bar Alignment (1160px inner) */
+    /* Full-bleed page headers & bands MUST NEVER double horizontal padding */
+    .bk-page-wrapper > header.bk-page-head,
+    .bk-page-wrapper > section.bk-band,
+    .bk-page-wrapper > section:first-of-type,
+    .bk-page-wrapper > section:not(:first-of-type) {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Direct inner container fallback for legacy sections without explicit .bk-container */
+    .bk-page-wrapper > section > div:not([style*="position:absolute"]):not([style*="position: absolute"]):not(.orb-1):not(.orb-2):not(.dot-grid) {
+        width: 100% !important;
+        max-width: var(--max-w, 1160px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-left: var(--bk-edge-pad, clamp(20px, 4vw, 40px)) !important;
+        padding-right: var(--bk-edge-pad, clamp(20px, 4vw, 40px)) !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Subpage Sticky Sub-Navigation Bar Alignment (1160px inner, if present on legacy pages) */
     .bk-subnav-sticky-wrap {
         width: 100% !important;
         max-width: 100% !important;
@@ -112,7 +142,7 @@
         box-sizing: border-box !important;
     }
 
-    /* Subpage Section & Main Body Alignment (Full-bleed outer, 1160px inner) */
+    /* Subpage Main Body Alignment (Full-bleed outer, 1160px inner) */
     .bk-page-wrapper > main,
     main.bk-subpage-main {
         width: 100% !important;
@@ -124,33 +154,17 @@
         padding-bottom: 80px !important;
         box-sizing: border-box !important;
     }
-    .bk-page-wrapper > section:first-of-type {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-    .bk-page-wrapper > section:first-of-type > div:not([style*="position:absolute"]):not([style*="position: absolute"]):not(.orb-1):not(.orb-2):not(.dot-grid) {
-        width: 100% !important;
-        max-width: var(--max-w, 1160px) !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        padding-left: var(--bk-edge-pad, clamp(20px, 4vw, 40px)) !important;
-        padding-right: var(--bk-edge-pad, clamp(20px, 4vw, 40px)) !important;
-        box-sizing: border-box !important;
-    }
-    .bk-page-wrapper > section:not(:first-of-type) {
-        width: 100% !important;
-        max-width: 100% !important;
-        padding-left: var(--bk-edge-pad, clamp(20px, 4vw, 40px)) !important;
-        padding-right: var(--bk-edge-pad, clamp(20px, 4vw, 40px)) !important;
-        box-sizing: border-box !important;
-    }
-    .bk-page-wrapper > section:not(:first-of-type) > div {
-        width: 100% !important;
-        max-width: var(--max-w, 1160px) !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        box-sizing: border-box !important;
-    }
+
+    /* Plugin shortcodes sit flush inside .bk-container / .bk-content-wrap */
+    .bk-container .ppb-jadwal-wrapper,
+    .bk-container .ppb-prestasi-wrapper,
+    .bk-container .ppb-karya-wrapper,
+    .bk-container .ppb-tracer-wrapper,
+    .bk-container .ppb-mis-pnbp-wrapper,
+    .bk-container .ppb-jurnal-wrapper,
+    .bk-container .ppb-maba-wrapper,
+    .bk-container .ppb-mbkm-wrapper,
+    .bk-container .ppb-persuratan-wrapper,
     .bk-content-wrap .ppb-jadwal-wrapper,
     .bk-content-wrap .ppb-prestasi-wrapper,
     .bk-content-wrap .ppb-karya-wrapper,
