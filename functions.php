@@ -2863,10 +2863,15 @@ function bk_fip_build_dosen_dossier_entry($d) {
  */
 function bk_fip_get_dosen_dossier_map($dosen_list = null) {
     if (!is_array($dosen_list)) {
+        $cached_list = get_option('bk_dosen_data_cache', array());
         $json_file = get_template_directory() . '/dosen-data.json';
-        $dosen_list = file_exists($json_file) ? json_decode((string)file_get_contents($json_file), true) : array();
-        if (empty($dosen_list) || !is_array($dosen_list)) {
-            $dosen_list = get_option('bk_dosen_data_cache', array());
+        $json_list = file_exists($json_file) ? json_decode((string)file_get_contents($json_file), true) : array();
+        if (!empty($cached_list) && is_array($cached_list) && (empty($json_list) || count($cached_list) >= count($json_list))) {
+            $dosen_list = $cached_list;
+        } elseif (!empty($json_list) && is_array($json_list)) {
+            $dosen_list = $json_list;
+        } else {
+            $dosen_list = is_array($cached_list) ? $cached_list : array();
         }
     }
     $dossier_map = array();
