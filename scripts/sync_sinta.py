@@ -105,7 +105,33 @@ def extract_year(text: str) -> int:
     return int(m.group(1)) if m else 0
 
 
-def parse_publications(html: str, source_type: str) -> List[Dict[str, Any]]:
+def clean_author_tokens(author_name: str) -> List[str]:
+    base = (author_name or "").split(",")[0]
+    base = re.sub(r"\b(prof|dr|dra|drs|ir|h|hj)\b\.?", " ", base, flags=re.I)
+    return [t.lower() for t in re.findall(r"[a-zA-Z]{2,}", base)]
+
+
+def is_first_author_by_name(authors_str: str, author_name: str) -> bool:
+    if not authors_str or not author_name:
+        return False
+    tokens = clean_author_tokens(author_name)
+    if not tokens:
+        return False
+    if ";" in authors_str:
+        first_author = authors_str.split(";", 1)[0].strip().lower()
+    elif "," in authors_str:
+        first_author = authors_str.split(",", 1)[0].strip().lower()
+    else:
+        return True  # Single author
+    last_name = tokens[-1]
+    if re.search(rf"\b{re.escape(last_name)}\b", first_author):
+        return True
+    if len(tokens) > 1 and len(tokens[0]) >= 4 and re.search(rf"\b{re.escape(tokens[0])}\b", first_author):
+        return True
+    return False
+
+
+def parse_publications(html: str, source_type: str, author_name: str = "") -> List[Dict[str, Any]]:
     soup = make_soup(html)
     items: List[Dict[str, Any]] = []
 
@@ -130,18 +156,39 @@ def parse_publications(html: str, source_type: str) -> List[Dict[str, Any]]:
         quart_txt = quart_el.get_text(" ", strip=True) if quart_el else ""
 
         akreditasi = ""
-        peran = "Anggota"
+        author_order = None
         penulis = ""
 
-        meta_links = [a.get_text(" ", strip=True) for a in card.select(".ar-meta a")]
-        for mt in meta_links:
-            if mt.lower().startswith("author order"):
-                if re.search(r":\s*1\b", mt):
-                    peran = "Penulis Utama"
-            elif mt.lower().startswith("creator :"):
+        meta_links = [a for a in card.select(".ar-meta a")]
+        for ma in meta_links:
+            mt = ma.get_text(" ", strip=True)
+            lower = mt.lower()
+            if lower.startswith("author order"):
+                m_ord = re.search(r":\s*(\d+)\b", mt)
+                if m_ord:
+                    author_order = int(m_ord.group(1))
+            elif lower.startswith("creator :"):
                 penulis = mt.split(":", 1)[1].strip()
-            elif mt.lower().startswith("authors :"):
+            elif lower.startswith("authors :"):
                 penulis = mt.split(":", 1)[1].strip()
+            elif (
+                source_type == "GARUDA"
+                and not penulis
+                and "ar-pub" not in (ma.get("class") or [])
+                and "ar-year" not in (ma.get("class") or [])
+                and "ar-quartile" not in (ma.get("class") or [])
+                and not lower.startswith("doi:")
+                and not lower.startswith("accred")
+                and (";" in mt or "," in mt)
+            ):
+                penulis = mt
+
+        if author_order is not None and author_order > 0:
+            peran = "Penulis Utama" if author_order == 1 else "Anggota"
+        elif is_first_author_by_name(penulis, author_name):
+            peran = "Penulis Utama"
+        else:
+            peran = "Anggota"
 
         if source_type == "Scopus":
             m_q = re.search(r"\b(Q[1-4]|no-Q)\b", quart_txt, re.I)
@@ -284,7 +331,7 @@ def scrape_author(
     ]:
         vh = fetch_html(session, f"{base}/?view={view}")
         if vh:
-            for item in parse_publications(vh, label):
+            for item in parse_publications(vh, label, author_name):
                 norm = normalize_title(item["judul"])
                 if norm and norm not in seen_titles:
                     seen_titles.add(norm)

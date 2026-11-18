@@ -2498,7 +2498,33 @@ function bk_fip_parse_sinta_profile_metrics($html) {
     return $metrics;
 }
 
-function bk_fip_parse_sinta_publications($html, $source_type) {
+function bk_fip_is_first_author_by_name($authors_str, $author_name) {
+    if (empty($authors_str) || empty($author_name)) return false;
+    $base = explode(',', (string)$author_name)[0];
+    $base = preg_replace('/\b(prof|dr|dra|drs|ir|h|hj)\b\.?/i', ' ', $base);
+    preg_match_all('/[a-zA-Z]{2,}/', $base, $m);
+    $tokens = array_map('strtolower', $m[0] ?? array());
+    if (empty($tokens)) return false;
+
+    if (strpos($authors_str, ';') !== false) {
+        $first_author = strtolower(trim(explode(';', $authors_str, 2)[0]));
+    } elseif (strpos($authors_str, ',') !== false) {
+        $first_author = strtolower(trim(explode(',', $authors_str, 2)[0]));
+    } else {
+        return true; // Single author
+    }
+
+    $last_name = end($tokens);
+    if ($last_name && preg_match('/\b' . preg_quote($last_name, '/') . '\b/', $first_author)) {
+        return true;
+    }
+    if (count($tokens) > 1 && strlen($tokens[0]) >= 4 && preg_match('/\b' . preg_quote($tokens[0], '/') . '\b/', $first_author)) {
+        return true;
+    }
+    return false;
+}
+
+function bk_fip_parse_sinta_publications($html, $source_type, $author_name = '') {
     $items = array();
     $xpath = bk_fip_sinta_dom($html);
     if (!$xpath) return $items;
@@ -2525,20 +2551,40 @@ function bk_fip_parse_sinta_publications($html, $source_type) {
         $quart_el = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-quartile ')]", $card)->item(0);
         $quart_txt = $quart_el ? trim(preg_replace('/\s+/', ' ', $quart_el->textContent)) : '';
 
-        $peran = 'Anggota';
+        $author_order = null;
         $penulis = '';
         $meta_links = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-meta ')]//a", $card);
         foreach ($meta_links as $ma) {
             $mt = trim(preg_replace('/\s+/', ' ', $ma->textContent));
             $lower = strtolower($mt);
+            $cls = ' ' . $ma->getAttribute('class') . ' ';
             if (strpos($lower, 'author order') === 0) {
-                if (preg_match('/:\s*1\b/', $mt)) {
-                    $peran = 'Penulis Utama';
+                if (preg_match('/:\s*(\d+)\b/', $mt, $om)) {
+                    $author_order = (int)$om[1];
                 }
             } elseif (strpos($lower, 'creator :') === 0 || strpos($lower, 'authors :') === 0) {
                 $parts = explode(':', $mt, 2);
                 $penulis = isset($parts[1]) ? trim($parts[1]) : '';
+            } elseif (
+                $source_type === 'GARUDA'
+                && $penulis === ''
+                && strpos($cls, ' ar-pub ') === false
+                && strpos($cls, ' ar-year ') === false
+                && strpos($cls, ' ar-quartile ') === false
+                && strpos($lower, 'doi:') !== 0
+                && strpos($lower, 'accred') !== 0
+                && (strpos($mt, ';') !== false || strpos($mt, ',') !== false)
+            ) {
+                $penulis = $mt;
             }
+        }
+
+        if ($author_order !== null && $author_order > 0) {
+            $peran = ($author_order === 1) ? 'Penulis Utama' : 'Anggota';
+        } elseif (bk_fip_is_first_author_by_name($penulis, $author_name)) {
+            $peran = 'Penulis Utama';
+        } else {
+            $peran = 'Anggota';
         }
 
         if ($source_type === 'Scopus') {
@@ -2674,7 +2720,7 @@ function bk_fip_fetch_sinta_author($sinta_id, $author_name = '') {
     foreach (array('scopus' => 'Scopus', 'garuda' => 'GARUDA', 'googlescholar' => 'Google Scholar') as $view => $label) {
         $vh = bk_fip_sinta_http_get($base . '/?view=' . $view);
         if ($vh !== false) {
-            foreach (bk_fip_parse_sinta_publications($vh, $label) as $pub) {
+            foreach (bk_fip_parse_sinta_publications($vh, $label, $author_name) as $pub) {
                 $norm = preg_replace('/[^a-z0-9]+/', '', strtolower($pub['judul']));
                 if ($norm !== '' && !isset($seen_titles[$norm])) {
                     $seen_titles[$norm] = true;
