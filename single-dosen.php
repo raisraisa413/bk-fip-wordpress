@@ -20,15 +20,16 @@ if (empty($current_dosen)) {
         $slug = sanitize_text_field($_GET['dosen']);
     }
 
+    $all_dosen = get_option('bk_dosen_data_cache', array());
     $json_file = get_template_directory() . '/dosen-data.json';
-    if (file_exists($json_file)) {
+    if ((empty($all_dosen) || !is_array($all_dosen)) && file_exists($json_file)) {
         $all_dosen = json_decode(file_get_contents($json_file), true);
-        if (is_array($all_dosen)) {
-            foreach ($all_dosen as $d) {
-                if ($d['slug'] === $slug || (string)$d['id'] === $slug) {
-                    $current_dosen = $d;
-                    break;
-                }
+    }
+    if (is_array($all_dosen)) {
+        foreach ($all_dosen as $d) {
+            if ($d['slug'] === $slug || (string)$d['id'] === $slug) {
+                $current_dosen = $d;
+                break;
             }
         }
     }
@@ -42,15 +43,20 @@ if (empty($current_dosen)) {
 
 $d = $current_dosen;
 
-// Prefer portrait set from WP-Admin (Dosen CPT metabox / Featured Image) over JSON data.
-$bk_cpt = get_page_by_path($d['slug'] ?? '', OBJECT, 'dosen');
-if ($bk_cpt) {
-    $bk_cpt_foto = get_post_meta($bk_cpt->ID, '_dosen_foto_link', true);
-    if (!$bk_cpt_foto && has_post_thumbnail($bk_cpt)) {
-        $bk_cpt_foto = get_the_post_thumbnail_url($bk_cpt, 'large');
-    }
-    if ($bk_cpt_foto) {
-        $d['foto_link'] = $bk_cpt_foto;
+// Fallback to CPT portrait ONLY if primary dosen-data / cache has no foto_link
+if (empty($d['foto_link'])) {
+    foreach (array('dosen', 'ppb_dosen') as $cpt_type) {
+        $bk_cpt = get_page_by_path($d['slug'] ?? '', OBJECT, $cpt_type);
+        if ($bk_cpt) {
+            $bk_cpt_foto = get_post_meta($bk_cpt->ID, '_ppb_dosen_foto_link', true) ?: get_post_meta($bk_cpt->ID, '_dosen_foto_link', true);
+            if (!$bk_cpt_foto && has_post_thumbnail($bk_cpt)) {
+                $bk_cpt_foto = get_the_post_thumbnail_url($bk_cpt, 'large');
+            }
+            if ($bk_cpt_foto) {
+                $d['foto_link'] = $bk_cpt_foto;
+                break;
+            }
+        }
     }
 }
 $bk_foto_url = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($d['foto_link'] ?? '') : ($d['foto_link'] ?? '');
@@ -94,13 +100,13 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
     <!-- =================================================================== -->
     <!-- 1. HERO HEADER (SCHOLARO DEEP FOREST GREEN)                         -->
     <!-- =================================================================== -->
-    <section style="position:relative;overflow:hidden;background:#0D3B22;border-bottom:1.5px solid rgba(255,255,255,0.12);color:#ffffff;padding:0;padding-top:var(--bk-top-clearance, 125px);">
+    <section class="bk-dossier-hero-section" style="position:relative;overflow:hidden;background:#0D3B22;border-bottom:1.5px solid rgba(255,255,255,0.12);color:#ffffff;padding:0;padding-top:var(--bk-top-clearance, 125px);">
         <!-- Ambient Glow Orbs -->
         <div style="position:absolute;top:-100px;right:-10%;width:500px;height:500px;border-radius:50%;background:rgba(245,184,46,0.14);filter:blur(90px);pointer-events:none;"></div>
         <div style="position:absolute;bottom:-120px;left:-10%;width:420px;height:420px;border-radius:50%;background:rgba(24,83,51,0.45);filter:blur(80px);pointer-events:none;"></div>
         <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);background-size:24px 24px;pointer-events:none;"></div>
 
-        <div class="bk-container" style="position:relative;">
+        <div class="bk-container" style="position:relative;padding-bottom:0;">
             
             <!-- Breadcrumb Navigation & Admin Shortcut -->
             <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
@@ -117,19 +123,19 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
             </div>
 
             <!-- Profile Info Main Layout: Left Tall Cutout Photo + Right Identity Details -->
-            <div style="display:flex;align-items:flex-end;gap:clamp(24px, 4vw, 56px);flex-wrap:wrap;position:relative;">
+            <div class="bk-dossier-hero-grid" style="display:flex;align-items:flex-end;gap:clamp(24px, 4vw, 52px);flex-wrap:wrap;position:relative;">
                 
-                <!-- Left: Tall Cutout Photo / Executive Academic Seal -->
-                <div class="bk-dosen-hero-photo-wrap" style="flex:0 0 clamp(240px, 30vw, 360px);align-self:flex-end;position:relative;display:flex;align-items:flex-end;justify-content:flex-start;margin-bottom:0;line-height:0;">
+                <!-- Left: Tall Borderless Flush-Bottom Photo / Executive Academic Seal -->
+                <div class="bk-dosen-hero-photo-wrap" style="flex:0 0 clamp(270px, 34vw, 400px);align-self:flex-end;position:relative;display:flex;align-items:flex-end;justify-content:center;margin:0;padding:0;line-height:0;">
                     <?php if (!empty($bk_foto_url)) : ?>
-                        <div class="bk-dossier-photo" style="width:100%;max-width:300px;margin-bottom:38px;line-height:normal;">
-                            <div class="bk-dossier-portrait" style="width:100%;aspect-ratio:4/5;border-radius:20px;overflow:hidden;border:2px solid rgba(245,184,46,0.55);box-shadow:0 20px 45px rgba(0,0,0,0.45);background:#072314;">
-                                <img src="<?php echo esc_url($bk_foto_url); ?>" alt="<?php echo esc_attr($d['nama_lengkap'] ?? $d['nama']); ?>" onerror="this.closest('.bk-dossier-photo').style.display='none';document.getElementById('bk-academic-seal').style.display='flex';" style="width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:block;">
+                        <div class="bk-dossier-photo" style="width:100%;max-width:400px;margin:0;padding:0;line-height:0;">
+                            <div class="bk-dossier-portrait" style="width:100%;border:none;border-radius:0;box-shadow:none;background:transparent;overflow:visible;margin:0;padding:0;line-height:0;">
+                                <img src="<?php echo esc_url($bk_foto_url); ?>" alt="<?php echo esc_attr($d['nama_lengkap'] ?? $d['nama']); ?>" onerror="this.closest('.bk-dossier-photo').style.display='none';document.getElementById('bk-academic-seal').style.display='flex';" style="width:100%;height:clamp(320px, 34vw, 430px);object-fit:contain;object-position:bottom center;display:block;margin:0;border:none;border-radius:0;">
                             </div>
                         </div>
                     <?php endif; ?>
                         <!-- Executive Academic Seal Card (fallback when no photo / photo fails to load) -->
-                        <div id="bk-academic-seal" class="bk-dossier-seal" style="<?php echo !empty($bk_foto_url) ? 'display:none;' : 'display:flex;'; ?>width:100%;max-width:280px;height:350px;border-radius:24px;background:linear-gradient(145deg, #134e2c 0%, #082616 100%);border:2px solid rgba(245,184,46,0.45);flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;box-sizing:border-box;position:relative;overflow:hidden;box-shadow:0 20px 45px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15);">
+                        <div id="bk-academic-seal" class="bk-dossier-seal" style="<?php echo !empty($bk_foto_url) ? 'display:none;' : 'display:flex;'; ?>width:100%;max-width:280px;height:350px;margin-bottom:38px;border-radius:24px;background:linear-gradient(145deg, #134e2c 0%, #082616 100%);border:2px solid rgba(245,184,46,0.45);flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;box-sizing:border-box;position:relative;overflow:hidden;box-shadow:0 20px 45px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15);">
                             <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0.08;pointer-events:none;">
                                 <svg width="220" height="220" viewBox="0 0 24 24" fill="currentColor" color="#F5B82E">
                                     <path d="M12 2L1 7l11 5 9-4.09V17h2V7L12 2zm0 13.5L4.2 12 2 13.09l10 5.41 10-5.41L19.8 12 12 15.5z"/>
@@ -146,7 +152,7 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
                 </div>
 
                 <!-- Right: Identity Details & Quick Stats -->
-                <div style="flex:1;min-width:300px;padding-bottom:38px;">
+                <div class="bk-dossier-hero-meta" style="flex:1;min-width:300px;padding-bottom:38px;">
                     
                     <!-- Badges Row -->
                     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;">
