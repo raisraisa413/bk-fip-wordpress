@@ -67,7 +67,7 @@ if (have_posts()) : while (have_posts()) : the_post();
     $is_truncated = ($target_page && strlen($content) < (strlen($clean_target_content) - 100));
     $is_corrupted = ($target_page && $target_page['slug'] === 'struktur' && strpos($content, 'Bagan Kepemimpinan') === false);
     $is_roadmap_corrupted = ($target_page && $target_page['slug'] === 'roadmap' && strpos($content, '3 Pilar Kepakaran') === false);
-    $force_refresh = !empty($_GET['refresh_pages']) || !empty($_GET['sync_ppb_content']) || (get_option('ppb_content_synced_version', '') !== '21.1');
+    $force_refresh = !empty($_GET['refresh_pages']) || !empty($_GET['sync_ppb_content']) || (get_option('ppb_content_synced_version', '') !== '21.2');
 
     if (!$has_modern_markup || $is_empty || $needs_dosen_refresh || $is_truncated || $is_corrupted || $is_roadmap_corrupted || $force_refresh) {
         if ($target_page) {
