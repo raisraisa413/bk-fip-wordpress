@@ -1523,7 +1523,7 @@ function ppb_auto_sync_pages_content() {
 
 
 
-    if ($synced_version === '21.5' && !$force) {
+    if ($synced_version === '21.6' && !$force) {
         return;
     }
 
@@ -1715,28 +1715,23 @@ function ppb_auto_sync_pages_content() {
 
             if ($is_dosen) {
 
-                // Highly specific search for dosen page across all possibilities
-
+                // Prioritize exact 'dosen' slug so buku-dosen / kepakaran-dosen are never matched accidentally
                 if ($parent_id) {
-
                     $existing_id = $wpdb->get_var($wpdb->prepare(
-
-                        "SELECT ID FROM $wpdb->posts WHERE (post_name = 'dosen' OR post_name LIKE 'dosen%' OR post_title LIKE '%%Dosen%%') AND post_parent = %d AND post_type = 'page' AND post_status != 'trash' LIMIT 1",
-
+                        "SELECT ID FROM $wpdb->posts WHERE post_name = 'dosen' AND post_parent = %d AND post_type = 'page' AND post_status != 'trash' LIMIT 1",
                         $parent_id
-
                     ));
-
                 }
-
                 if (!$existing_id) {
-
                     $existing_id = $wpdb->get_var(
-
-                        "SELECT ID FROM $wpdb->posts WHERE (post_name = 'dosen' OR post_name LIKE 'dosen%' OR post_title LIKE '%%Dosen%%') AND post_type = 'page' AND post_status != 'trash' LIMIT 1"
-
+                        "SELECT ID FROM $wpdb->posts WHERE post_name = 'dosen' AND post_type = 'page' AND post_status != 'trash' LIMIT 1"
                     );
-
+                }
+                if (!$existing_id && $parent_id) {
+                    $existing_id = $wpdb->get_var($wpdb->prepare(
+                        "SELECT ID FROM $wpdb->posts WHERE post_name LIKE 'dosen-%%' AND post_parent = %d AND post_type = 'page' AND post_status != 'trash' LIMIT 1",
+                        $parent_id
+                    ));
                 }
 
             } else {
@@ -1932,7 +1927,7 @@ function ppb_auto_sync_pages_content() {
         }
     }
 
-    update_option('ppb_content_synced_version', '21.5');
+    update_option('ppb_content_synced_version', '21.6');
 
 
 
@@ -2062,49 +2057,96 @@ add_filter('template_include', function($template) {
         if ($path === 'profil/dosen' || $path === 'dosen') {
             global $wpdb, $post, $wp_query;
 
-            $dosen_id = $wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_name = 'dosen' AND post_type = 'page' AND post_status = 'publish' LIMIT 1");
+            $GLOBALS['bk_has_dosen_roster'] = true;
+
+            $profil_parent_id = (int)$wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_name = 'profil' AND post_parent = 0 AND post_type = 'page' AND post_status != 'trash' LIMIT 1");
+            $dosen_id = 0;
+            if ($profil_parent_id > 0) {
+                $dosen_id = (int)$wpdb->get_var($wpdb->prepare(
+                    "SELECT ID FROM $wpdb->posts WHERE post_name = 'dosen' AND post_parent = %d AND post_type = 'page' AND post_status != 'trash' LIMIT 1",
+                    $profil_parent_id
+                ));
+            }
             if (!$dosen_id) {
-                $dosen_id = $wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE (post_name LIKE 'dosen%' OR post_title LIKE '%Dosen%') AND post_type = 'page' AND post_status != 'trash' LIMIT 1");
+                $dosen_id = (int)$wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_name = 'dosen' AND post_type = 'page' AND post_status = 'publish' LIMIT 1");
+            }
+            if (!$dosen_id) {
+                $dosen_id = (int)$wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_name LIKE 'dosen-%' AND post_type = 'page' AND post_status != 'trash' LIMIT 1");
             }
 
-            // If not found in DB at all, auto-create it immediately from pages-data.json
-            if (!$dosen_id) {
-                $json_file = get_template_directory() . '/pages-data.json';
-                if (file_exists($json_file)) {
-                    $pages_data = json_decode(file_get_contents($json_file), true);
-                    if (is_array($pages_data)) {
-                        foreach ($pages_data as $p) {
-                            if ($p['slug'] === 'dosen') {
-                                $parent_id = (int)$wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_name = 'profil' AND post_type = 'page' LIMIT 1");
-                                $now = current_time('mysql');
-                                $wpdb->insert(
-                                    $wpdb->posts,
-                                    array(
-                                        'post_title'     => $p['title'],
-                                        'post_name'      => 'dosen',
-                                        'post_content'   => str_replace(array('http://bk-fip.local/', 'https://bk-fip.local/'), '/', $p['content']),
-                                        'post_status'    => 'publish',
-                                        'post_type'      => 'page',
-                                        'post_parent'    => $parent_id,
-                                        'comment_status' => 'closed',
-                                        'ping_status'    => 'closed',
-                                        'post_date'      => $now,
-                                        'post_date_gmt'  => current_time('mysql', 1),
-                                        'post_modified'  => $now,
-                                        'post_modified_gmt' => current_time('mysql', 1),
-                                    )
-                                );
-                                $dosen_id = $wpdb->insert_id;
-                                clean_post_cache($dosen_id);
-                                break;
-                            }
+            $dosen_page_entry = null;
+            $json_file = get_template_directory() . '/pages-data.json';
+            if (file_exists($json_file)) {
+                $pages_data = json_decode(file_get_contents($json_file), true);
+                if (is_array($pages_data)) {
+                    foreach ($pages_data as $p) {
+                        if (($p['slug'] ?? '') === 'dosen') {
+                            $dosen_page_entry = $p;
+                            break;
                         }
                     }
+                }
+            }
+            $clean_dosen_content = $dosen_page_entry
+                ? str_replace(array('http://bk-fip.local/', 'https://bk-fip.local/'), '/', (string)$dosen_page_entry['content'])
+                : '';
+
+            // If not found in DB at all, auto-create it immediately from pages-data.json
+            if (!$dosen_id && $dosen_page_entry) {
+                $now = current_time('mysql');
+                $wpdb->insert(
+                    $wpdb->posts,
+                    array(
+                        'post_title'     => $dosen_page_entry['title'],
+                        'post_name'      => 'dosen',
+                        'post_content'   => $clean_dosen_content,
+                        'post_status'    => 'publish',
+                        'post_type'      => 'page',
+                        'post_parent'    => $profil_parent_id,
+                        'comment_status' => 'closed',
+                        'ping_status'    => 'closed',
+                        'post_date'      => $now,
+                        'post_date_gmt'  => current_time('mysql', 1),
+                        'post_modified'  => $now,
+                        'post_modified_gmt' => current_time('mysql', 1),
+                    )
+                );
+                $dosen_id = (int)$wpdb->insert_id;
+                if ($dosen_id) {
+                    clean_post_cache($dosen_id);
+                }
+            } elseif ($dosen_id && $clean_dosen_content !== '') {
+                $db_content = (string)$wpdb->get_var($wpdb->prepare("SELECT post_content FROM $wpdb->posts WHERE ID = %d", $dosen_id));
+                $needs_repair = (strpos($db_content, 'bk-dosen-card-name') === false)
+                    || (strpos($db_content, 'bk-dosen-dossier-data') !== false)
+                    || (strlen($db_content) < (strlen($clean_dosen_content) - 150))
+                    || !empty($_GET['refresh_pages'])
+                    || !empty($_GET['refresh_dosen'])
+                    || !empty($_GET['sync_ppb_content']);
+                if ($needs_repair) {
+                    $wpdb->update(
+                        $wpdb->posts,
+                        array(
+                            'post_content'      => $clean_dosen_content,
+                            'post_status'       => 'publish',
+                            'post_modified'     => current_time('mysql'),
+                            'post_modified_gmt' => current_time('mysql', 1),
+                        ),
+                        array('ID' => $dosen_id)
+                    );
+                    clean_post_cache($dosen_id);
                 }
             }
 
             if ($dosen_id) {
                 $post = get_post($dosen_id);
+                if ($post && $clean_dosen_content !== '' && (
+                    strpos((string)$post->post_content, 'bk-dosen-card-name') === false
+                    || strpos((string)$post->post_content, 'bk-dosen-dossier-data') !== false
+                    || strlen((string)$post->post_content) < (strlen($clean_dosen_content) - 150)
+                )) {
+                    $post->post_content = $clean_dosen_content;
+                }
                 setup_postdata($post);
                 $wp_query->posts = array($post);
                 $wp_query->post_count = 1;
@@ -2625,53 +2667,233 @@ function bk_fip_get_dosen_hierarchy_rank($slug, $nama, $jabatan) {
 }
 
 /**
+ * Helper: determine academic tier metadata for a lecturer
+ */
+function bk_fip_get_dosen_tier_meta($nama, $jabatan) {
+    $n = strtolower((string)$nama);
+    $j = strtolower((string)$jabatan);
+    if (strpos($n, 'prof.') !== false || strpos($j, 'guru besar') !== false) {
+        return array('prof', 'Guru Besar', 'bk-tag-gold');
+    } elseif (strpos($n, 'dr.') !== false || strpos($j, 'doktor') !== false) {
+        return array('dr', 'Doktor', 'bk-tag-sage');
+    }
+    return array('dosen', 'Dosen PPB', '');
+}
+
+/**
+ * Helper: compute 2-letter academic initials without titles
+ */
+function bk_fip_get_dosen_initials($name) {
+    $parts = explode(',', (string)$name);
+    $clean = $parts[0];
+    $prefixes = array('prof', 'dr', 'dra', 'drs', 'ir', 'h', 'hj');
+    $words = preg_split('/[\s\.]+/', $clean);
+    $filtered = array();
+    if (is_array($words)) {
+        foreach ($words as $w) {
+            $w = trim($w);
+            if ($w !== '' && !in_array(strtolower($w), $prefixes, true)) {
+                $filtered[] = $w;
+            }
+        }
+    }
+    if (count($filtered) >= 2) {
+        return strtoupper(substr($filtered[0], 0, 1) . substr($filtered[1], 0, 1));
+    } elseif (count($filtered) === 1) {
+        return strtoupper(substr($filtered[0], 0, 2));
+    }
+    return 'BK';
+}
+
+/**
+ * Helper: resolve lecturer photo URL cleanly
+ */
+function bk_fip_resolve_dosen_foto_url($raw_foto) {
+    $raw_foto = trim((string)$raw_foto);
+    if ($raw_foto === '') {
+        return '';
+    }
+    if (function_exists('bk_resolve_theme_asset_url')) {
+        $resolved = bk_resolve_theme_asset_url($raw_foto);
+        return (strpos($resolved, '/') === 0 || preg_match('#^https?://#i', $resolved))
+            ? $resolved
+            : ('/wp-content/themes/bk-fip-wordpress/' . ltrim($resolved, '/'));
+    }
+    return (strpos($raw_foto, 'assets/') === 0)
+        ? ('/wp-content/themes/bk-fip-wordpress/' . $raw_foto)
+        : $raw_foto;
+}
+
+/**
+ * Helper: build compact dossier map entry for a lecturer
+ */
+function bk_fip_build_dosen_dossier_entry($d) {
+    $nama = trim((string)($d['nama_lengkap'] ?? ($d['nama'] ?? '')));
+    $slug = trim((string)($d['slug'] ?? ''));
+    if ($slug === '' || $nama === '') {
+        return null;
+    }
+
+    $nip = trim((string)($d['nip'] ?? ''));
+    $nidn = trim((string)($d['nidn'] ?? ''));
+    $jabatan = trim((string)($d['jabatan_fungsional'] ?? 'Dosen Bimbingan dan Konseling'));
+
+    $struktural = trim((string)($d['jabatan_struktural'] ?? ''));
+    if ($slug === 'abdul-saman' && $struktural === '') $struktural = 'Dekan FIP UNM';
+    if ($slug === 'suciani-latif' && $struktural === '') $struktural = 'Ketua Jurusan PPB';
+    if ($slug === 'sahril-buchori' && $struktural === '') $struktural = 'Sekretaris Jurusan PPB';
+
+    $unit = trim((string)($d['unit'] ?? 'S1 Bimbingan & Konseling'));
+    $sinta_url = trim((string)($d['sinta_url'] ?? ''));
+    $scholar_url = trim((string)($d['scholar_url'] ?? ''));
+    $scopus_url = trim((string)($d['scopus_url'] ?? ''));
+
+    $stat = is_array($d['stat'] ?? null) ? $d['stat'] : array();
+    $pubs_raw = is_array($d['publikasi'] ?? null) ? $d['publikasi'] : array();
+    $buku_raw = is_array($d['buku'] ?? null) ? $d['buku'] : array();
+    $pen_raw  = is_array($d['penelitian'] ?? null) ? $d['penelitian'] : array();
+    $pkm_raw  = is_array($d['pengabdian'] ?? null) ? $d['pengabdian'] : array();
+    $mk_raw   = is_array($d['mata_kuliah'] ?? null) ? $d['mata_kuliah'] : array();
+
+    $pub_cnt  = (int)($stat['publikasi'] ?? count($pubs_raw));
+    $buku_cnt = (int)($stat['buku'] ?? count($buku_raw));
+    $pen_cnt  = (int)($stat['penelitian'] ?? count($pen_raw));
+    $pkm_cnt  = (int)($stat['pengabdian'] ?? count($pkm_raw));
+
+    $kepakaran = is_array($d['kepakaran'] ?? null) ? $d['kepakaran'] : array();
+    if (empty($kepakaran) && !empty($d['bidang_keahlian'])) {
+        $splits = preg_split('/[,;\n]+/', (string)$d['bidang_keahlian']);
+        if (is_array($splits)) {
+            foreach ($splits as $sp) {
+                $sp = trim($sp);
+                if ($sp !== '') $kepakaran[] = $sp;
+            }
+        }
+    }
+    if (empty($kepakaran)) {
+        $kepakaran = array('Bimbingan & Konseling', 'Psikologi Pendidikan');
+    }
+
+    list($tier_key, $badge_label) = bk_fip_get_dosen_tier_meta($nama, $jabatan);
+    $init = bk_fip_get_dosen_initials($nama);
+    $foto_url = bk_fip_resolve_dosen_foto_url($d['foto_link'] ?? '');
+
+    $mk_compact = array();
+    foreach (array_slice($mk_raw, 0, 12) as $mk) {
+        if (!is_array($mk)) continue;
+        $mk_compact[] = array(
+            trim((string)($mk['kode'] ?? '')),
+            trim((string)($mk['nama'] ?? '')),
+            trim((string)(isset($mk['sks']) ? $mk['sks'] . ' SKS' : '')) . (!empty($mk['jenjang']) ? ' · ' . trim((string)$mk['jenjang']) : ''),
+        );
+    }
+
+    $pub_compact = array();
+    foreach (array_slice($pubs_raw, 0, 10) as $pub) {
+        if (!is_array($pub)) continue;
+        $pub_compact[] = array(
+            trim((string)($pub['judul'] ?? '')),
+            trim((string)($pub['tahun'] ?? '')),
+            trim((string)($pub['media'] ?? ($pub['sumber'] ?? ''))),
+            trim((string)($pub['akreditasi'] ?? ($pub['peran'] ?? ''))),
+            trim((string)($pub['url'] ?? '')),
+        );
+    }
+
+    $buku_compact = array();
+    foreach (array_slice($buku_raw, 0, 10) as $bk) {
+        if (!is_array($bk)) continue;
+        $isbn_val = trim((string)($bk['isbn'] ?? ''));
+        $buku_compact[] = array(
+            trim((string)($bk['judul'] ?? '')),
+            trim((string)($bk['tahun'] ?? '')),
+            trim((string)($bk['penerbit'] ?? '')),
+            ($isbn_val !== '' && $isbn_val !== '-') ? $isbn_val : '',
+        );
+    }
+
+    $ris_compact = array();
+    foreach (array_slice($pen_raw, 0, 10) as $ris) {
+        if (!is_array($ris)) continue;
+        $ris_compact[] = array(
+            trim((string)($ris['judul'] ?? '')),
+            trim((string)($ris['tahun'] ?? '')),
+            trim((string)($ris['peran'] ?? '')),
+            trim((string)($ris['sumber_dana'] ?? '')),
+        );
+    }
+
+    $bio_plain = trim(wp_strip_all_tags((string)($d['bio'] ?? '')));
+    if (strlen($bio_plain) > 280) {
+        $bio_plain = substr($bio_plain, 0, 277) . '...';
+    }
+
+    return array(
+        's'    => $slug,
+        'n'    => $nama,
+        'i'    => $init,
+        't'    => $tier_key,
+        'b'    => $badge_label,
+        'jf'   => $jabatan,
+        'js'   => $struktural,
+        'u'    => $unit,
+        'nip'  => $nip,
+        'nidn' => $nidn,
+        'r'    => trim((string)($d['ruang_kerja'] ?? '')),
+        'bio'  => $bio_plain,
+        'f'    => $foto_url,
+        'kp'   => array_values(array_slice($kepakaran, 0, 6)),
+        'si'   => $sinta_url,
+        'sc'   => $scholar_url,
+        'cp'   => $scopus_url,
+        'st'   => array($pub_cnt, $buku_cnt, $pen_cnt, $pkm_cnt),
+        'mk'   => $mk_compact,
+        'pub'  => $pub_compact,
+        'bk'   => $buku_compact,
+        'ris'  => $ris_compact,
+    );
+}
+
+/**
+ * Helper: load compact dossier map indexed by lecturer slug
+ */
+function bk_fip_get_dosen_dossier_map($dosen_list = null) {
+    if (!is_array($dosen_list)) {
+        $json_file = get_template_directory() . '/dosen-data.json';
+        $dosen_list = file_exists($json_file) ? json_decode((string)file_get_contents($json_file), true) : array();
+        if (empty($dosen_list) || !is_array($dosen_list)) {
+            $dosen_list = get_option('bk_dosen_data_cache', array());
+        }
+    }
+    $dossier_map = array();
+    if (!is_array($dosen_list)) {
+        return $dossier_map;
+    }
+    foreach ($dosen_list as $d) {
+        if (!is_array($d)) continue;
+        $entry = bk_fip_build_dosen_dossier_entry($d);
+        if (is_array($entry) && !empty($entry['s'])) {
+            $dossier_map[$entry['s']] = $entry;
+        }
+    }
+    return $dossier_map;
+}
+
+/**
  * Build pure HTML for the public /profil/dosen/ page from ordered lecturer list
+ * Interactive dossier drawer and JS controller are rendered in wp_footer
+ * so WordPress KSES/wptexturize never strips or corrupts them.
  */
 function bk_fip_build_dosen_roster_html($dosen_list) {
     if (empty($dosen_list) || !is_array($dosen_list)) return '';
 
-    $get_tier_meta = function($nama, $jabatan) {
-        $n = strtolower((string)$nama);
-        $j = strtolower((string)$jabatan);
-        if (strpos($n, 'prof.') !== false || strpos($j, 'guru besar') !== false) {
-            return array('prof', 'Guru Besar', 'bk-tag-gold');
-        } elseif (strpos($n, 'dr.') !== false || strpos($j, 'doktor') !== false) {
-            return array('dr', 'Doktor', 'bk-tag-sage');
-        }
-        return array('dosen', 'Dosen PPB', '');
-    };
-
-    $get_initials = function($name) {
-        $parts = explode(',', (string)$name);
-        $clean = $parts[0];
-        $prefixes = array('prof', 'dr', 'dra', 'drs', 'ir', 'h', 'hj');
-        $words = preg_split('/[\s\.]+/', $clean);
-        $filtered = array();
-        if (is_array($words)) {
-            foreach ($words as $w) {
-                $w = trim($w);
-                if ($w !== '' && !in_array(strtolower($w), $prefixes, true)) {
-                    $filtered[] = $w;
-                }
-            }
-        }
-        if (count($filtered) >= 2) {
-            return strtoupper(substr($filtered[0], 0, 1) . substr($filtered[1], 0, 1));
-        } elseif (count($filtered) === 1) {
-            return strtoupper(substr($filtered[0], 0, 2));
-        }
-        return 'BK';
-    };
-
     $count_total = count($dosen_list);
     $tier_counts = array('prof' => 0, 'dr' => 0, 'dosen' => 0);
     $cards_html = '';
-    $dossier_map = array();
 
     foreach ($dosen_list as $d) {
         $nama = trim((string)($d['nama_lengkap'] ?? ($d['nama'] ?? '')));
         $nip = trim((string)($d['nip'] ?? ''));
-        $nidn = trim((string)($d['nidn'] ?? ''));
         $jabatan = trim((string)($d['jabatan_fungsional'] ?? 'Dosen Bimbingan dan Konseling'));
         $slug = trim((string)($d['slug'] ?? ''));
         if ($slug === '') continue;
@@ -2681,23 +2903,17 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
         if ($slug === 'suciani-latif' && $struktural === '') $struktural = 'Ketua Jurusan PPB';
         if ($slug === 'sahril-buchori' && $struktural === '') $struktural = 'Sekretaris Jurusan PPB';
 
-        $unit = trim((string)($d['unit'] ?? 'S1 Bimbingan & Konseling'));
         $profile_url = '/profil/dosen/' . $slug . '/';
         $sinta_url = trim((string)($d['sinta_url'] ?? ''));
-        $scholar_url = trim((string)($d['scholar_url'] ?? ''));
-        $scopus_url = trim((string)($d['scopus_url'] ?? ''));
 
         $stat = is_array($d['stat'] ?? null) ? $d['stat'] : array();
         $pubs_raw = is_array($d['publikasi'] ?? null) ? $d['publikasi'] : array();
         $buku_raw = is_array($d['buku'] ?? null) ? $d['buku'] : array();
         $pen_raw  = is_array($d['penelitian'] ?? null) ? $d['penelitian'] : array();
-        $pkm_raw  = is_array($d['pengabdian'] ?? null) ? $d['pengabdian'] : array();
-        $mk_raw   = is_array($d['mata_kuliah'] ?? null) ? $d['mata_kuliah'] : array();
 
         $pub_cnt  = (int)($stat['publikasi'] ?? count($pubs_raw));
         $buku_cnt = (int)($stat['buku'] ?? count($buku_raw));
         $pen_cnt  = (int)($stat['penelitian'] ?? count($pen_raw));
-        $pkm_cnt  = (int)($stat['pengabdian'] ?? count($pkm_raw));
 
         $kepakaran = is_array($d['kepakaran'] ?? null) ? $d['kepakaran'] : array();
         if (empty($kepakaran) && !empty($d['bidang_keahlian'])) {
@@ -2713,28 +2929,13 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
             $kepakaran = array('Bimbingan & Konseling', 'Psikologi Pendidikan');
         }
 
-        list($tier_key, $badge_label, $badge_cls) = $get_tier_meta($nama, $jabatan);
+        list($tier_key, $badge_label, $badge_cls) = bk_fip_get_dosen_tier_meta($nama, $jabatan);
         if (isset($tier_counts[$tier_key])) {
             $tier_counts[$tier_key]++;
         }
         $is_prof = ($tier_key === 'prof');
-        $init = $get_initials($nama);
-
-        $raw_foto = trim((string)($d['foto_link'] ?? ''));
-        if ($raw_foto !== '') {
-            if (function_exists('bk_resolve_theme_asset_url')) {
-                $resolved = bk_resolve_theme_asset_url($raw_foto);
-                $foto_url = (strpos($resolved, '/') === 0 || preg_match('#^https?://#i', $resolved))
-                    ? $resolved
-                    : ('/wp-content/themes/bk-fip-wordpress/' . ltrim($resolved, '/'));
-            } else {
-                $foto_url = (strpos($raw_foto, 'assets/') === 0)
-                    ? ('/wp-content/themes/bk-fip-wordpress/' . $raw_foto)
-                    : $raw_foto;
-            }
-        } else {
-            $foto_url = '';
-        }
+        $init = bk_fip_get_dosen_initials($nama);
+        $foto_url = bk_fip_resolve_dosen_foto_url($d['foto_link'] ?? '');
 
         $role_line = $struktural !== '' ? ($struktural . ' · ' . $jabatan) : $jabatan;
         $tags_html = '';
@@ -2746,7 +2947,7 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
 
         if ($foto_url !== '') {
             $av_cls = 'bk-avatar' . ($is_prof ? ' is-prof' : '') . ' has-photo';
-            $avatar_html = '<div class="' . $av_cls . '" data-fb-init="' . esc_attr($init) . '"><img src="' . esc_url($foto_url) . '" alt="' . esc_attr($nama) . '" loading="lazy" onerror="var p=this.parentElement;if(p){p.classList.remove(\'has-photo\');p.textContent=p.getAttribute(\'data-fb-init\')||\'BK\';}"></div>';
+            $avatar_html = '<div class="' . $av_cls . '" data-fb-init="' . esc_attr($init) . '"><img src="' . esc_url($foto_url) . '" alt="' . esc_attr($nama) . '" loading="lazy"></div>';
         } else {
             $av_cls = 'bk-avatar' . ($is_prof ? ' is-prof' : '');
             $avatar_html = '<div class="' . $av_cls . '">' . esc_html($init) . '</div>';
@@ -2782,89 +2983,12 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
                     ' . $sinta_quick . '
                 </div>
                 <div class="bk-dosen-actions">
-                    <button type="button" class="bk-btn bk-btn-primary bk-btn-sm" style="flex:1;" data-open-dossier="' . esc_attr($slug) . '">Lihat Dossier &rarr;</button>
+                    <button type="button" class="bk-btn bk-btn-primary bk-btn-sm" style="flex:1;" data-open-dossier="' . esc_attr($slug) . '" data-dosen-url="' . esc_url($profile_url) . '">Lihat Dossier &rarr;</button>
                     <a href="' . esc_url($profile_url) . '" class="bk-btn bk-btn-secondary bk-btn-sm" title="Buka halaman profil ' . esc_attr($nama) . '">Profil Lengkap</a>
                 </div>
             </div>
         </article>' . "\n";
-
-        $mk_compact = array();
-        foreach (array_slice($mk_raw, 0, 12) as $mk) {
-            if (!is_array($mk)) continue;
-            $mk_compact[] = array(
-                trim((string)($mk['kode'] ?? '')),
-                trim((string)($mk['nama'] ?? '')),
-                trim((string)(isset($mk['sks']) ? $mk['sks'] . ' SKS' : '')) . (!empty($mk['jenjang']) ? ' · ' . trim((string)$mk['jenjang']) : ''),
-            );
-        }
-
-        $pub_compact = array();
-        foreach (array_slice($pubs_raw, 0, 10) as $pub) {
-            if (!is_array($pub)) continue;
-            $pub_compact[] = array(
-                trim((string)($pub['judul'] ?? '')),
-                trim((string)($pub['tahun'] ?? '')),
-                trim((string)($pub['media'] ?? ($pub['sumber'] ?? ''))),
-                trim((string)($pub['akreditasi'] ?? ($pub['peran'] ?? ''))),
-                trim((string)($pub['url'] ?? '')),
-            );
-        }
-
-        $buku_compact = array();
-        foreach (array_slice($buku_raw, 0, 10) as $bk) {
-            if (!is_array($bk)) continue;
-            $isbn_val = trim((string)($bk['isbn'] ?? ''));
-            $buku_compact[] = array(
-                trim((string)($bk['judul'] ?? '')),
-                trim((string)($bk['tahun'] ?? '')),
-                trim((string)($bk['penerbit'] ?? '')),
-                ($isbn_val !== '' && $isbn_val !== '-') ? $isbn_val : '',
-            );
-        }
-
-        $ris_compact = array();
-        foreach (array_slice($pen_raw, 0, 10) as $ris) {
-            if (!is_array($ris)) continue;
-            $ris_compact[] = array(
-                trim((string)($ris['judul'] ?? '')),
-                trim((string)($ris['tahun'] ?? '')),
-                trim((string)($ris['peran'] ?? '')),
-                trim((string)($ris['sumber_dana'] ?? '')),
-            );
-        }
-
-        $bio_plain = trim(wp_strip_all_tags((string)($d['bio'] ?? '')));
-        if (strlen($bio_plain) > 280) {
-            $bio_plain = substr($bio_plain, 0, 277) . '...';
-        }
-
-        $dossier_map[$slug] = array(
-            's'    => $slug,
-            'n'    => $nama,
-            'i'    => $init,
-            't'    => $tier_key,
-            'b'    => $badge_label,
-            'jf'   => $jabatan,
-            'js'   => $struktural,
-            'u'    => $unit,
-            'nip'  => $nip,
-            'nidn' => $nidn,
-            'r'    => trim((string)($d['ruang_kerja'] ?? '')),
-            'bio'  => $bio_plain,
-            'f'    => $foto_url,
-            'kp'   => array_values(array_slice($kepakaran, 0, 6)),
-            'si'   => $sinta_url,
-            'sc'   => $scholar_url,
-            'cp'   => $scopus_url,
-            'st'   => array($pub_cnt, $buku_cnt, $pen_cnt, $pkm_cnt),
-            'mk'   => $mk_compact,
-            'pub'  => $pub_compact,
-            'bk'   => $buku_compact,
-            'ris'  => $ris_compact,
-        );
     }
-
-    $dossier_json = str_replace('</', '<\/', wp_json_encode($dossier_map));
 
     $full_html = '<div class="bk-page-wrapper" style="width:100%;min-height:100vh;background:#FAF8F5;color:#1F2937;font-family:\'Plus Jakarta Sans\',sans-serif;line-height:1.6;">
     <header class="bk-page-head">
@@ -2940,247 +3064,354 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
             </div>
         </div>
     </section>
-
-    <div class="bk-backdrop" id="bk-dsn-backdrop"></div>
-    <aside class="bk-drawer" id="bk-dsn-drawer" aria-label="Dossier Akademik Dosen" aria-hidden="true">
-        <div class="bk-drawer-head">
-            <div>
-                <div class="bk-kicker" id="bk-dsn-drw-kicker">DOSSIER DOSEN PPB</div>
-                <h2 class="bk-fd" style="font-size:20px;margin:4px 0 0;line-height:1.25;" id="bk-dsn-drw-title">Profil Dosen</h2>
-            </div>
-            <button type="button" class="bk-icon-close" id="bk-dsn-drw-close" aria-label="Tutup Dossier">&#10005;</button>
-        </div>
-        <div class="bk-drawer-body" id="bk-dsn-drw-body"></div>
-    </aside>
-</div>
-<script type="application/json" id="bk-dosen-dossier-data">' . $dossier_json . '</script>
-<script>
-(function(){
-var rawEl = document.getElementById("bk-dosen-dossier-data");
-var DATA = {};
-try { DATA = JSON.parse(rawEl ? rawEl.textContent : "{}") || {}; } catch (e) { DATA = {}; }
-var searchIn = document.getElementById("bk-dosen-search");
-var pillsWrap = document.getElementById("bk-dosen-tier-pills");
-var gridEl = document.getElementById("bk-dosen-grid");
-var countEl = document.getElementById("bk-dosen-count");
-var emptyEl = document.getElementById("bk-dosen-empty");
-var resetBtn = document.getElementById("bk-dosen-reset");
-var bdp = document.getElementById("bk-dsn-backdrop");
-var drw = document.getElementById("bk-dsn-drawer");
-var drwK = document.getElementById("bk-dsn-drw-kicker");
-var drwT = document.getElementById("bk-dsn-drw-title");
-var drwB = document.getElementById("bk-dsn-drw-body");
-var drwX = document.getElementById("bk-dsn-drw-close");
-var activeTier = "all";
-var totalAll = ' . $count_total . ';
-var bp = window.location.pathname.indexOf("/yamato/") === 0 ? "/yamato" : "";
-function routeUrl(p) { return (bp && p.indexOf("/") === 0 && p.indexOf(bp + "/") !== 0) ? (bp + p) : p; }
-function assetUrl(u) { return (bp && u && u.indexOf("/wp-content/") === 0 && u.indexOf(bp + "/") !== 0) ? (bp + u) : u; }
-if (bp && gridEl) {
-    gridEl.querySelectorAll("img").forEach(function(im) {
-        var s = im.getAttribute("src") || "";
-        if (s.indexOf("/wp-content/") === 0) im.src = assetUrl(s);
-    });
-}
-function esc(s) {
-    return String(s == null ? "" : s)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-}
-function applyFilters() {
-    var q = searchIn ? searchIn.value.toLowerCase().trim() : "";
-    var cards = gridEl ? gridEl.querySelectorAll(".bk-dosen-card-item") : [];
-    var vis = 0;
-    for (var i = 0; i < cards.length; i++) {
-        var c = cards[i];
-        var t = c.getAttribute("data-tier") || "";
-        var txt = (c.getAttribute("data-text") || "").toLowerCase();
-        var okTier = (activeTier === "all" || t === activeTier);
-        var okQ = (!q || txt.indexOf(q) !== -1);
-        if (okTier && okQ) {
-            c.style.display = "flex";
-            vis++;
-        } else {
-            c.style.display = "none";
-        }
-    }
-    if (emptyEl) emptyEl.style.display = vis === 0 ? "block" : "none";
-    if (gridEl) gridEl.style.display = vis === 0 ? "none" : "grid";
-    if (countEl) {
-        if (q || activeTier !== "all") {
-            countEl.innerHTML = "Menampilkan <strong style=\"color:var(--forest);\">" + vis + "</strong> dari " + totalAll + " dosen" + (q ? " untuk pencarian &ldquo;" + esc(q) + "&rdquo;" : "");
-        } else {
-            countEl.innerHTML = "Menampilkan seluruh <strong style=\"color:var(--forest);\">" + totalAll + "</strong> dosen &amp; tenaga pengajar Jurusan PPB";
-        }
-    }
-}
-function sealHtml(d) {
-    return "<div class=\"bk-academic-seal\"><div class=\"bk-seal-emblem\">" + esc(d.i || "BK") + "</div><div class=\"bk-seal-label\">PROFIL AKADEMISI<strong>PPB · FIP UNM</strong></div></div>";
-}
-function closeDrawer() {
-    if (!drw || !bdp) return;
-    bdp.classList.remove("is-open");
-    drw.classList.remove("is-open");
-    drw.setAttribute("aria-hidden", "true");
-}
-function openDossier(slug) {
-    var d = DATA[slug];
-    if (!d || !drw || !bdp) return;
-    var activeTab = "info";
-    var fullUrl = routeUrl("/profil/dosen/" + d.s + "/");
-    var hasPhoto = Boolean(d.f);
-    var heroMedia = hasPhoto
-        ? "<div class=\"bk-drawer-portrait\"><img src=\"" + esc(assetUrl(d.f)) + "\" alt=\"" + esc(d.n) + "\"></div>"
-        : sealHtml(d);
-    var idsParts = [];
-    if (d.nip) idsParts.push("NIP. " + esc(d.nip));
-    if (d.nidn) idsParts.push("NIDN. " + esc(d.nidn));
-    if (d.r) idsParts.push(esc(d.r));
-    var heroIds = idsParts.length ? idsParts.join(" · ") : "Dosen Tetap Prodi BK FIP UNM";
-    var badges = "<span class=\"bk-badge-hero " + (d.t === "prof" ? "is-gold" : "") + "\">" + esc(d.b) + "</span>" +
-        (d.js ? "<span class=\"bk-badge-hero is-struct\">" + esc(d.js) + "</span>" : "") +
-        "<span class=\"bk-badge-hero\">" + esc(d.u || "Prodi BK FIP UNM") + "</span>";
-    var heroActions = "<div style=\"display:flex;gap:8px;flex-wrap:wrap;\">" +
-        (d.si ? "<a href=\"" + esc(d.si) + "\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"bk-btn bk-btn-gold bk-btn-sm\">Profil SINTA &#8599;</a>" : "") +
-        "<a href=\"" + esc(fullUrl) + "\" class=\"bk-btn bk-btn-glass bk-btn-sm\">Halaman Lengkap &rarr;</a>" +
-        "</div>";
-    var heroHtml = "<div class=\"bk-drawer-dosen-hero\">" + heroMedia + "<div class=\"bk-drawer-hero-meta\"><div class=\"bk-drawer-badges\">" + badges + "</div><h3 class=\"bk-drawer-hero-name\">" + esc(d.n) + "</h3><p class=\"bk-drawer-hero-ids\">" + heroIds + "</p>" + heroActions + "</div></div>";
-    var st = d.st || [0, 0, 0, 0];
-    var kpiHtml = "<div class=\"bk-drawer-kpi-grid\">" +
-        "<div class=\"bk-drawer-kpi-box\"><strong>" + Number(st[0] || 0) + "</strong><span>Publikasi</span></div>" +
-        "<div class=\"bk-drawer-kpi-box\"><strong>" + Number(st[1] || 0) + "</strong><span>Buku / HKI</span></div>" +
-        "<div class=\"bk-drawer-kpi-box\"><strong>" + Number(st[2] || 0) + "</strong><span>Penelitian</span></div>" +
-        "</div>";
-    function renderBody() {
-        var pubArr = d.pub || [];
-        var bkArr = d.bk || [];
-        var risArr = d.ris || [];
-        var tabsHtml = "<div class=\"bk-drawer-tabs\" role=\"tablist\">" +
-            "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "info" ? "is-active" : "") + "\" data-dsn-tab=\"info\">Ringkasan &amp; Matkul</button>" +
-            "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "pub" ? "is-active" : "") + "\" data-dsn-tab=\"pub\">Publikasi (" + Number(st[0] || pubArr.length) + ")</button>" +
-            "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "bk" ? "is-active" : "") + "\" data-dsn-tab=\"bk\">Buku (" + Number(st[1] || bkArr.length) + ")</button>" +
-            "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "ris" ? "is-active" : "") + "\" data-dsn-tab=\"ris\">Penelitian (" + Number(st[2] || risArr.length) + ")</button>" +
-            "</div>";
-        var panelHtml = "";
-        if (activeTab === "info") {
-            var mkArr = d.mk || [];
-            panelHtml = "<ul class=\"bk-spec-list\" style=\"margin-bottom:16px;\">" +
-                "<li><span style=\"color:var(--ink-muted);\">Jabatan</span><strong style=\"text-align:right;\">" + esc(d.js ? d.js + " · " + d.jf : d.jf) + "</strong></li>" +
-                (d.nip ? "<li><span style=\"color:var(--ink-muted);\">NIP</span><span class=\"bk-fm\" style=\"font-size:12px;\">" + esc(d.nip) + "</span></li>" : "") +
-                "<li><span style=\"color:var(--ink-muted);\">Kepakaran</span><span style=\"text-align:right;\">" + esc((d.kp || []).join(", ")) + "</span></li>" +
-                "</ul>" +
-                (d.bio ? "<p style=\"font-size:13.5px;color:var(--ink-2);line-height:1.65;margin:0 0 16px;\">" + esc(d.bio) + "</p>" : "") +
-                "<div class=\"bk-kicker\" style=\"margin-bottom:8px;\">Mata Kuliah Diampu (" + mkArr.length + ")</div>" +
-                (mkArr.length
-                    ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;margin-bottom:16px;\">" + mkArr.map(function(m) { return "<div class=\"bk-drawer-item\"><strong>" + esc((m[0] ? m[0] + " — " : "") + m[1]) + "</strong>" + (m[2] ? "<div class=\"bk-fm\" style=\"font-size:11.5px;color:var(--ink-muted);margin-top:2px;\">" + esc(m[2]) + "</div>" : "") + "</div>"; }).join("") + "</div>"
-                    : "<div class=\"bk-empty\" style=\"padding:18px;margin-bottom:16px;\">Daftar lengkap pengampuan kelas tersedia pada halaman profil dosen.</div>") +
-                "<div style=\"display:flex;gap:8px;flex-wrap:wrap;\">" +
-                "<a href=\"" + esc(fullUrl) + "\" class=\"bk-btn bk-btn-primary bk-btn-sm\">Buka Halaman Profil Lengkap &rarr;</a>" +
-                (d.sc ? "<a href=\"" + esc(d.sc) + "\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"bk-btn bk-btn-secondary bk-btn-sm\">Google Scholar &#8599;</a>" : "") +
-                "</div>";
-        } else if (activeTab === "pub") {
-            panelHtml = pubArr.length
-                ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;\">" + pubArr.map(function(p) {
-                    var titleEl = p[4] ? "<a href=\"" + esc(p[4]) + "\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:var(--ink);font-weight:600;text-decoration:none;\">" + esc(p[0]) + " &#8599;</a>" : "<strong>" + esc(p[0]) + "</strong>";
-                    return "<div class=\"bk-drawer-item\"><div style=\"font-size:13.5px;line-height:1.5;\">" + titleEl + "</div><div style=\"display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;\">" +
-                        (p[1] ? "<span class=\"bk-tag\">" + esc(p[1]) + "</span>" : "") +
-                        (p[3] ? "<span class=\"bk-tag bk-tag-sage\">" + esc(p[3]) + "</span>" : "") +
-                        (p[2] ? "<span style=\"font-size:12px;color:var(--ink-muted);\">" + esc(p[2]) + "</span>" : "") +
-                        "</div></div>";
-                }).join("") + "</div>" +
-                (Number(st[0] || 0) > pubArr.length ? "<p style=\"font-size:12.5px;color:var(--ink-muted);margin:12px 0 0;\">Menampilkan " + pubArr.length + " dari " + Number(st[0]) + " publikasi terbaru. <a href=\"" + esc(fullUrl) + "\" style=\"color:var(--forest);font-weight:600;\">Lihat semua &rarr;</a></p>" : "")
-                : "<div class=\"bk-empty\" style=\"padding:24px;\">Rekam jejak publikasi selengkapnya tersinkronisasi melalui tautan SINTA dosen.</div>";
-        } else if (activeTab === "bk") {
-            panelHtml = bkArr.length
-                ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;\">" + bkArr.map(function(b) {
-                    return "<div class=\"bk-drawer-item\"><strong style=\"font-size:13.5px;line-height:1.5;display:block;\">" + esc(b[0]) + "</strong><div style=\"font-size:12px;color:var(--ink-muted);margin-top:4px;\">" + esc([b[2], b[1], b[3] ? "ISBN " + b[3] : ""].filter(Boolean).join(" · ")) + "</div></div>";
-                }).join("") + "</div>" +
-                (Number(st[1] || 0) > bkArr.length ? "<p style=\"font-size:12.5px;color:var(--ink-muted);margin:12px 0 0;\">Menampilkan " + bkArr.length + " dari " + Number(st[1]) + " buku/HKI. <a href=\"" + esc(fullUrl) + "\" style=\"color:var(--forest);font-weight:600;\">Lihat semua &rarr;</a></p>" : "")
-                : "<div class=\"bk-empty\" style=\"padding:24px;\">Belum ada entri buku/monograf terdata di katalog ringkas ini.</div>";
-        } else {
-            panelHtml = risArr.length
-                ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;\">" + risArr.map(function(r) {
-                    return "<div class=\"bk-drawer-item\"><strong style=\"font-size:13.5px;line-height:1.5;display:block;\">" + esc(r[0]) + "</strong><div style=\"display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;\">" +
-                        (r[1] ? "<span class=\"bk-tag\">" + esc(r[1]) + "</span>" : "") +
-                        (r[2] ? "<span class=\"bk-tag bk-tag-sage\">" + esc(r[2]) + "</span>" : "") +
-                        (r[3] ? "<span style=\"font-size:12px;color:var(--ink-muted);\">" + esc(r[3]) + "</span>" : "") +
-                        "</div></div>";
-                }).join("") + "</div>" +
-                (Number(st[2] || 0) > risArr.length ? "<p style=\"font-size:12.5px;color:var(--ink-muted);margin:12px 0 0;\">Menampilkan " + risArr.length + " dari " + Number(st[2]) + " hibah riset. <a href=\"" + esc(fullUrl) + "\" style=\"color:var(--forest);font-weight:600;\">Lihat semua &rarr;</a></p>" : "")
-                : "<div class=\"bk-empty\" style=\"padding:24px;\">Data hibah penelitian tersinkronisasi melalui portal MIS PNBP UNM.</div>";
-        }
-        drwB.innerHTML = heroHtml + kpiHtml + tabsHtml + panelHtml;
-        var portImg = drwB.querySelector(".bk-drawer-portrait img");
-        if (portImg) {
-            portImg.addEventListener("error", function() {
-                var box = this.closest(".bk-drawer-portrait");
-                if (box) box.outerHTML = sealHtml(d);
-            });
-        }
-        drwB.querySelectorAll("[data-dsn-tab]").forEach(function(tb) {
-            tb.addEventListener("click", function() {
-                activeTab = this.getAttribute("data-dsn-tab") || "info";
-                drwB.scrollTop = 0;
-                renderBody();
-            });
-        });
-    }
-    drwK.textContent = String(d.b || "DOSEN PPB").toUpperCase();
-    drwT.textContent = d.n || "Profil Dosen";
-    drwB.scrollTop = 0;
-    renderBody();
-    bdp.classList.add("is-open");
-    drw.classList.add("is-open");
-    drw.setAttribute("aria-hidden", "false");
-}
-if (searchIn) searchIn.addEventListener("input", applyFilters);
-if (pillsWrap) {
-    pillsWrap.addEventListener("click", function(e) {
-        var pill = e.target.closest("[data-dtier]");
-        if (!pill) return;
-        activeTier = pill.getAttribute("data-dtier") || "all";
-        pillsWrap.querySelectorAll("[data-dtier]").forEach(function(b) {
-            var act = (b === pill);
-            b.classList.toggle("is-active", act);
-            b.setAttribute("aria-selected", act ? "true" : "false");
-        });
-        applyFilters();
-    });
-}
-if (resetBtn) {
-    resetBtn.addEventListener("click", function() {
-        activeTier = "all";
-        if (searchIn) searchIn.value = "";
-        if (pillsWrap) {
-            pillsWrap.querySelectorAll("[data-dtier]").forEach(function(b) {
-                var act = b.getAttribute("data-dtier") === "all";
-                b.classList.toggle("is-active", act);
-                b.setAttribute("aria-selected", act ? "true" : "false");
-            });
-        }
-        applyFilters();
-    });
-}
-if (gridEl) {
-    gridEl.addEventListener("click", function(e) {
-        var trig = e.target.closest("[data-open-dossier]");
-        if (!trig || e.metaKey || e.ctrlKey || e.shiftKey) return;
-        e.preventDefault();
-        openDossier(trig.getAttribute("data-open-dossier"));
-    });
-}
-if (drwX) drwX.addEventListener("click", closeDrawer);
-if (bdp) bdp.addEventListener("click", closeDrawer);
-document.addEventListener("keydown", function(e) {
-    if (e.key === "Escape" && drw && drw.classList.contains("is-open")) closeDrawer();
-});
-})();
-</script>';
+</div>';
 
     return $full_html;
 }
+
+/**
+ * Determine whether current public request is the Dosen Roster Directory page
+ */
+function bk_fip_is_dosen_roster_page() {
+    if (is_admin()) {
+        return false;
+    }
+    if (!empty($GLOBALS['current_dosen']) || !empty($_GET['dosen'])) {
+        return false;
+    }
+    if (!empty($GLOBALS['bk_has_dosen_roster'])) {
+        return true;
+    }
+    $req_uri = isset($_SERVER['REQUEST_URI']) ? (string)$_SERVER['REQUEST_URI'] : '';
+    $path = parse_url($req_uri, PHP_URL_PATH) ?: '';
+    $home_path = parse_url(home_url(), PHP_URL_PATH) ?: '';
+    if (!empty($home_path) && $home_path !== '/' && strpos($path, $home_path) === 0) {
+        $path = substr($path, strlen($home_path));
+    }
+    $path = trim($path, '/');
+    if (strpos($path, 'yamato/') === 0) {
+        $path = substr($path, 7);
+    } elseif ($path === 'yamato') {
+        $path = '';
+    }
+    $path = trim($path, '/');
+    if ($path === 'profil/dosen' || $path === 'dosen') {
+        return true;
+    }
+    if (function_exists('is_page') && is_page('dosen') && $path !== 'profil/buku-dosen' && $path !== 'profil/kepakaran-dosen') {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Render slide-over Dossier Drawer and interactive JS directly in wp_footer
+ * to guarantee full functionality on live WordPress without KSES/wptexturize interference.
+ */
+function bk_fip_render_dosen_dossier_footer() {
+    if (!bk_fip_is_dosen_roster_page()) {
+        return;
+    }
+
+    $dossier_map = bk_fip_get_dosen_dossier_map();
+    $dossier_json = str_replace('</', '<\/', wp_json_encode($dossier_map, JSON_HEX_TAG | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    if (!$dossier_json) {
+        $dossier_json = '{}';
+    }
+    $total_all = count($dossier_map);
+    ?>
+<div class="bk-backdrop" id="bk-dsn-backdrop" data-bk-footer-overlay="1"></div>
+<aside class="bk-drawer" id="bk-dsn-drawer" data-bk-footer-overlay="1" aria-label="Dossier Akademik Dosen" aria-hidden="true">
+    <div class="bk-drawer-head">
+        <div>
+            <div class="bk-kicker" id="bk-dsn-drw-kicker">DOSSIER DOSEN PPB</div>
+            <h2 class="bk-fd" style="font-size:20px;margin:4px 0 0;line-height:1.25;" id="bk-dsn-drw-title">Profil Dosen</h2>
+        </div>
+        <button type="button" class="bk-icon-close" id="bk-dsn-drw-close" aria-label="Tutup Dossier">&#10005;</button>
+    </div>
+    <div class="bk-drawer-body" id="bk-dsn-drw-body"></div>
+</aside>
+<script id="bk-dosen-dossier-controller">
+window.BK_DOSEN_DOSSIER = <?php echo $dossier_json; ?>;
+(function(){
+    var DATA = (window.BK_DOSEN_DOSSIER && typeof window.BK_DOSEN_DOSSIER === "object") ? window.BK_DOSEN_DOSSIER : {};
+    var legacyJsonEl = document.getElementById("bk-dosen-dossier-data");
+    if (legacyJsonEl) {
+        if (!Object.keys(DATA).length) {
+            try { DATA = JSON.parse(legacyJsonEl.textContent || "{}") || {}; } catch (e) {}
+        }
+        if (legacyJsonEl.parentNode) legacyJsonEl.parentNode.removeChild(legacyJsonEl);
+    }
+    document.querySelectorAll("#bk-dsn-backdrop:not([data-bk-footer-overlay]), #bk-dsn-drawer:not([data-bk-footer-overlay])").forEach(function(staleEl) {
+        if (staleEl && staleEl.parentNode) staleEl.parentNode.removeChild(staleEl);
+    });
+
+    var bdp = document.querySelector('#bk-dsn-backdrop[data-bk-footer-overlay="1"]') || document.getElementById("bk-dsn-backdrop");
+    var drw = document.querySelector('#bk-dsn-drawer[data-bk-footer-overlay="1"]') || document.getElementById("bk-dsn-drawer");
+    var drwK = document.getElementById("bk-dsn-drw-kicker");
+    var drwT = document.getElementById("bk-dsn-drw-title");
+    var drwB = document.getElementById("bk-dsn-drw-body");
+    var drwX = document.getElementById("bk-dsn-drw-close");
+
+    var searchIn = document.getElementById("bk-dosen-search");
+    var pillsWrap = document.getElementById("bk-dosen-tier-pills");
+    var gridEl = document.getElementById("bk-dosen-grid");
+    var countEl = document.getElementById("bk-dosen-count");
+    var emptyEl = document.getElementById("bk-dosen-empty");
+    var resetBtn = document.getElementById("bk-dosen-reset");
+    var activeTier = "all";
+    var totalAll = gridEl ? gridEl.querySelectorAll(".bk-dosen-card-item").length : <?php echo (int)$total_all; ?>;
+
+    var bp = window.location.pathname.indexOf("/yamato/") === 0 ? "/yamato" : "";
+    function routeUrl(p) { return (bp && p && p.indexOf("/") === 0 && p.indexOf(bp + "/") !== 0) ? (bp + p) : p; }
+    function assetUrl(u) { return (bp && u && u.indexOf("/wp-content/") === 0 && u.indexOf(bp + "/") !== 0) ? (bp + u) : u; }
+
+    function initAvatars() {
+        var grid = document.getElementById("bk-dosen-grid");
+        if (!grid) return;
+        grid.querySelectorAll(".bk-avatar img").forEach(function(im) {
+            var s = im.getAttribute("src") || "";
+            if (bp && s.indexOf("/wp-content/") === 0) im.src = assetUrl(s);
+            if (!im.dataset.bkErrBound) {
+                im.dataset.bkErrBound = "1";
+                im.addEventListener("error", function() {
+                    var p = this.parentElement;
+                    if (p) {
+                        p.classList.remove("has-photo");
+                        p.textContent = p.getAttribute("data-fb-init") || "BK";
+                    }
+                });
+            }
+            if (im.complete && im.naturalWidth === 0) {
+                var p = im.parentElement;
+                if (p) {
+                    p.classList.remove("has-photo");
+                    p.textContent = p.getAttribute("data-fb-init") || "BK";
+                }
+            }
+        });
+    }
+
+    function esc(s) {
+        return String(s == null ? "" : s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    function applyFilters() {
+        var q = searchIn ? searchIn.value.toLowerCase().trim() : "";
+        var grid = document.getElementById("bk-dosen-grid");
+        var cards = grid ? grid.querySelectorAll(".bk-dosen-card-item") : [];
+        var vis = 0;
+        for (var i = 0; i < cards.length; i++) {
+            var c = cards[i];
+            var t = c.getAttribute("data-tier") || "";
+            var txt = (c.getAttribute("data-text") || "").toLowerCase();
+            var okTier = (activeTier === "all" || t === activeTier);
+            var okQ = (!q || txt.indexOf(q) !== -1);
+            if (okTier && okQ) {
+                c.style.display = "flex";
+                vis++;
+            } else {
+                c.style.display = "none";
+            }
+        }
+        if (emptyEl) emptyEl.style.display = vis === 0 ? "block" : "none";
+        if (grid) grid.style.display = vis === 0 ? "none" : "grid";
+        if (countEl) {
+            if (q || activeTier !== "all") {
+                countEl.innerHTML = "Menampilkan <strong style=\"color:var(--forest);\">" + vis + "</strong> dari " + totalAll + " dosen" + (q ? " untuk pencarian &ldquo;" + esc(q) + "&rdquo;" : "");
+            } else {
+                countEl.innerHTML = "Menampilkan seluruh <strong style=\"color:var(--forest);\">" + totalAll + "</strong> dosen &amp; tenaga pengajar Jurusan PPB";
+            }
+        }
+    }
+
+    function sealHtml(d) {
+        return "<div class=\"bk-academic-seal\"><div class=\"bk-seal-emblem\">" + esc(d.i || "BK") + "</div><div class=\"bk-seal-label\">PROFIL AKADEMISI<strong>PPB · FIP UNM</strong></div></div>";
+    }
+
+    function closeDrawer() {
+        if (!drw || !bdp) return;
+        bdp.classList.remove("is-open");
+        drw.classList.remove("is-open");
+        drw.setAttribute("aria-hidden", "true");
+    }
+
+    function openDossier(slug, triggerEl) {
+        var d = slug ? DATA[slug] : null;
+        if (!d || !drw || !bdp || !drwB) {
+            var fallbackUrl = triggerEl ? (triggerEl.getAttribute("href") || triggerEl.getAttribute("data-dosen-url") || (slug ? ("/profil/dosen/" + slug + "/") : "")) : (slug ? ("/profil/dosen/" + slug + "/") : "");
+            if (fallbackUrl) {
+                window.location.href = routeUrl(fallbackUrl);
+            }
+            return;
+        }
+        var activeTab = "info";
+        var fullUrl = routeUrl("/profil/dosen/" + d.s + "/");
+        var hasPhoto = Boolean(d.f);
+        var heroMedia = hasPhoto
+            ? "<div class=\"bk-drawer-portrait\"><img src=\"" + esc(assetUrl(d.f)) + "\" alt=\"" + esc(d.n) + "\"></div>"
+            : sealHtml(d);
+        var idsParts = [];
+        if (d.nip) idsParts.push("NIP. " + esc(d.nip));
+        if (d.nidn) idsParts.push("NIDN. " + esc(d.nidn));
+        if (d.r) idsParts.push(esc(d.r));
+        var heroIds = idsParts.length ? idsParts.join(" · ") : "Dosen Tetap Prodi BK FIP UNM";
+        var badges = "<span class=\"bk-badge-hero " + (d.t === "prof" ? "is-gold" : "") + "\">" + esc(d.b) + "</span>" +
+            (d.js ? "<span class=\"bk-badge-hero is-struct\">" + esc(d.js) + "</span>" : "") +
+            "<span class=\"bk-badge-hero\">" + esc(d.u || "Prodi BK FIP UNM") + "</span>";
+        var heroActions = "<div style=\"display:flex;gap:8px;flex-wrap:wrap;\">" +
+            (d.si ? "<a href=\"" + esc(d.si) + "\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"bk-btn bk-btn-gold bk-btn-sm\">Profil SINTA &#8599;</a>" : "") +
+            "<a href=\"" + esc(fullUrl) + "\" class=\"bk-btn bk-btn-glass bk-btn-sm\">Halaman Lengkap &rarr;</a>" +
+            "</div>";
+        var heroHtml = "<div class=\"bk-drawer-dosen-hero\">" + heroMedia + "<div class=\"bk-drawer-hero-meta\"><div class=\"bk-drawer-badges\">" + badges + "</div><h3 class=\"bk-drawer-hero-name\">" + esc(d.n) + "</h3><p class=\"bk-drawer-hero-ids\">" + heroIds + "</p>" + heroActions + "</div></div>";
+        var st = d.st || [0, 0, 0, 0];
+        var kpiHtml = "<div class=\"bk-drawer-kpi-grid\">" +
+            "<div class=\"bk-drawer-kpi-box\"><strong>" + Number(st[0] || 0) + "</strong><span>Publikasi</span></div>" +
+            "<div class=\"bk-drawer-kpi-box\"><strong>" + Number(st[1] || 0) + "</strong><span>Buku / HKI</span></div>" +
+            "<div class=\"bk-drawer-kpi-box\"><strong>" + Number(st[2] || 0) + "</strong><span>Penelitian</span></div>" +
+            "</div>";
+
+        function renderBody() {
+            var pubArr = d.pub || [];
+            var bkArr = d.bk || [];
+            var risArr = d.ris || [];
+            var tabsHtml = "<div class=\"bk-drawer-tabs\" role=\"tablist\">" +
+                "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "info" ? "is-active" : "") + "\" data-dsn-tab=\"info\">Ringkasan &amp; Matkul</button>" +
+                "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "pub" ? "is-active" : "") + "\" data-dsn-tab=\"pub\">Publikasi (" + Number(st[0] || pubArr.length) + ")</button>" +
+                "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "bk" ? "is-active" : "") + "\" data-dsn-tab=\"bk\">Buku (" + Number(st[1] || bkArr.length) + ")</button>" +
+                "<button type=\"button\" class=\"bk-drawer-tab " + (activeTab === "ris" ? "is-active" : "") + "\" data-dsn-tab=\"ris\">Penelitian (" + Number(st[2] || risArr.length) + ")</button>" +
+                "</div>";
+            var panelHtml = "";
+            if (activeTab === "info") {
+                var mkArr = d.mk || [];
+                panelHtml = "<ul class=\"bk-spec-list\" style=\"margin-bottom:16px;\">" +
+                    "<li><span style=\"color:var(--ink-muted);\">Jabatan</span><strong style=\"text-align:right;\">" + esc(d.js ? d.js + " · " + d.jf : d.jf) + "</strong></li>" +
+                    (d.nip ? "<li><span style=\"color:var(--ink-muted);\">NIP</span><span class=\"bk-fm\" style=\"font-size:12px;\">" + esc(d.nip) + "</span></li>" : "") +
+                    "<li><span style=\"color:var(--ink-muted);\">Kepakaran</span><span style=\"text-align:right;\">" + esc((d.kp || []).join(", ")) + "</span></li>" +
+                    "</ul>" +
+                    (d.bio ? "<p style=\"font-size:13.5px;color:var(--ink-2);line-height:1.65;margin:0 0 16px;\">" + esc(d.bio) + "</p>" : "") +
+                    "<div class=\"bk-kicker\" style=\"margin-bottom:8px;\">Mata Kuliah Diampu (" + mkArr.length + ")</div>" +
+                    (mkArr.length
+                        ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;margin-bottom:16px;\">" + mkArr.map(function(m) { return "<div class=\"bk-drawer-item\"><strong>" + esc((m[0] ? m[0] + " — " : "") + m[1]) + "</strong>" + (m[2] ? "<div class=\"bk-fm\" style=\"font-size:11.5px;color:var(--ink-muted);margin-top:2px;\">" + esc(m[2]) + "</div>" : "") + "</div>"; }).join("") + "</div>"
+                        : "<div class=\"bk-empty\" style=\"padding:18px;margin-bottom:16px;\">Daftar lengkap pengampuan kelas tersedia pada halaman profil dosen.</div>") +
+                    "<div style=\"display:flex;gap:8px;flex-wrap:wrap;\">" +
+                    "<a href=\"" + esc(fullUrl) + "\" class=\"bk-btn bk-btn-primary bk-btn-sm\">Buka Halaman Profil Lengkap &rarr;</a>" +
+                    (d.sc ? "<a href=\"" + esc(d.sc) + "\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"bk-btn bk-btn-secondary bk-btn-sm\">Google Scholar &#8599;</a>" : "") +
+                    "</div>";
+            } else if (activeTab === "pub") {
+                panelHtml = pubArr.length
+                    ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;\">" + pubArr.map(function(p) {
+                        var titleEl = p[4] ? "<a href=\"" + esc(p[4]) + "\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:var(--ink);font-weight:600;text-decoration:none;\">" + esc(p[0]) + " &#8599;</a>" : "<strong>" + esc(p[0]) + "</strong>";
+                        return "<div class=\"bk-drawer-item\"><div style=\"font-size:13.5px;line-height:1.5;\">" + titleEl + "</div><div style=\"display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;\">" +
+                            (p[1] ? "<span class=\"bk-tag\">" + esc(p[1]) + "</span>" : "") +
+                            (p[3] ? "<span class=\"bk-tag bk-tag-sage\">" + esc(p[3]) + "</span>" : "") +
+                            (p[2] ? "<span style=\"font-size:12px;color:var(--ink-muted);\">" + esc(p[2]) + "</span>" : "") +
+                            "</div></div>";
+                    }).join("") + "</div>" +
+                    (Number(st[0] || 0) > pubArr.length ? "<p style=\"font-size:12.5px;color:var(--ink-muted);margin:12px 0 0;\">Menampilkan " + pubArr.length + " dari " + Number(st[0]) + " publikasi terbaru. <a href=\"" + esc(fullUrl) + "\" style=\"color:var(--forest);font-weight:600;\">Lihat semua &rarr;</a></p>" : "")
+                    : "<div class=\"bk-empty\" style=\"padding:24px;\">Rekam jejak publikasi selengkapnya tersinkronisasi melalui tautan SINTA dosen.</div>";
+            } else if (activeTab === "bk") {
+                panelHtml = bkArr.length
+                    ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;\">" + bkArr.map(function(b) {
+                        return "<div class=\"bk-drawer-item\"><strong style=\"font-size:13.5px;line-height:1.5;display:block;\">" + esc(b[0]) + "</strong><div style=\"font-size:12px;color:var(--ink-muted);margin-top:4px;\">" + esc([b[2], b[1], b[3] ? "ISBN " + b[3] : ""].filter(Boolean).join(" · ")) + "</div></div>";
+                    }).join("") + "</div>" +
+                    (Number(st[1] || 0) > bkArr.length ? "<p style=\"font-size:12.5px;color:var(--ink-muted);margin:12px 0 0;\">Menampilkan " + bkArr.length + " dari " + Number(st[1]) + " buku/HKI. <a href=\"" + esc(fullUrl) + "\" style=\"color:var(--forest);font-weight:600;\">Lihat semua &rarr;</a></p>" : "")
+                    : "<div class=\"bk-empty\" style=\"padding:24px;\">Belum ada entri buku/monograf terdata di katalog ringkas ini.</div>";
+            } else {
+                panelHtml = risArr.length
+                    ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;\">" + risArr.map(function(r) {
+                        return "<div class=\"bk-drawer-item\"><strong style=\"font-size:13.5px;line-height:1.5;display:block;\">" + esc(r[0]) + "</strong><div style=\"display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;\">" +
+                            (r[1] ? "<span class=\"bk-tag\">" + esc(r[1]) + "</span>" : "") +
+                            (r[2] ? "<span class=\"bk-tag bk-tag-sage\">" + esc(r[2]) + "</span>" : "") +
+                            (r[3] ? "<span style=\"font-size:12px;color:var(--ink-muted);\">" + esc(r[3]) + "</span>" : "") +
+                            "</div></div>";
+                    }).join("") + "</div>" +
+                    (Number(st[2] || 0) > risArr.length ? "<p style=\"font-size:12.5px;color:var(--ink-muted);margin:12px 0 0;\">Menampilkan " + risArr.length + " dari " + Number(st[2]) + " hibah riset. <a href=\"" + esc(fullUrl) + "\" style=\"color:var(--forest);font-weight:600;\">Lihat semua &rarr;</a></p>" : "")
+                    : "<div class=\"bk-empty\" style=\"padding:24px;\">Data hibah penelitian tersinkronisasi melalui portal MIS PNBP UNM.</div>";
+            }
+            drwB.innerHTML = heroHtml + kpiHtml + tabsHtml + panelHtml;
+            var portImg = drwB.querySelector(".bk-drawer-portrait img");
+            if (portImg) {
+                portImg.addEventListener("error", function() {
+                    var box = this.closest(".bk-drawer-portrait");
+                    if (box) box.outerHTML = sealHtml(d);
+                });
+            }
+            drwB.querySelectorAll("[data-dsn-tab]").forEach(function(tb) {
+                tb.addEventListener("click", function() {
+                    activeTab = this.getAttribute("data-dsn-tab") || "info";
+                    drwB.scrollTop = 0;
+                    renderBody();
+                });
+            });
+        }
+        if (drwK) drwK.textContent = String(d.b || "DOSEN PPB").toUpperCase();
+        if (drwT) drwT.textContent = d.n || "Profil Dosen";
+        drwB.scrollTop = 0;
+        renderBody();
+        bdp.classList.add("is-open");
+        drw.classList.add("is-open");
+        drw.setAttribute("aria-hidden", "false");
+    }
+
+    initAvatars();
+
+    if (searchIn) searchIn.addEventListener("input", applyFilters);
+    if (pillsWrap) {
+        pillsWrap.addEventListener("click", function(e) {
+            var pill = e.target.closest("[data-dtier]");
+            if (!pill) return;
+            activeTier = pill.getAttribute("data-dtier") || "all";
+            pillsWrap.querySelectorAll("[data-dtier]").forEach(function(b) {
+                var act = (b === pill);
+                b.classList.toggle("is-active", act);
+                b.setAttribute("aria-selected", act ? "true" : "false");
+            });
+            applyFilters();
+        });
+    }
+    if (resetBtn) {
+        resetBtn.addEventListener("click", function() {
+            activeTier = "all";
+            if (searchIn) searchIn.value = "";
+            if (pillsWrap) {
+                pillsWrap.querySelectorAll("[data-dtier]").forEach(function(b) {
+                    var act = b.getAttribute("data-dtier") === "all";
+                    b.classList.toggle("is-active", act);
+                    b.setAttribute("aria-selected", act ? "true" : "false");
+                });
+            }
+            applyFilters();
+        });
+    }
+
+    document.addEventListener("click", function(e) {
+        var trig = e.target.closest("[data-open-dossier]");
+        if (!trig) return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || (typeof e.button === "number" && e.button !== 0)) {
+            return;
+        }
+        e.preventDefault();
+        openDossier(trig.getAttribute("data-open-dossier"), trig);
+    });
+
+    if (drwX) drwX.addEventListener("click", closeDrawer);
+    if (bdp) bdp.addEventListener("click", closeDrawer);
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape" && drw && drw.classList.contains("is-open")) {
+            closeDrawer();
+        }
+    });
+    window.bkOpenDosenDossier = openDossier;
+})();
+</script>
+    <?php
+}
+add_action('wp_footer', 'bk_fip_render_dosen_dossier_footer', 95);
 
 /**
  * Rebuild the public /profil/dosen/ page and pages-data.json from ordered lecturer list
@@ -4378,6 +4609,7 @@ function bk_fip_run_site_health_db_optimization() {
         'ppb_elibrary_portal_links',
         'ppb_elibrary_submissions',
         'ppb_mega_menu_autoseeded_v3',
+        'ppb_mega_menu_autoseeded_v4',
         'ppb_spotlight_defaults_v2',
     );
 

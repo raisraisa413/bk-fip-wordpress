@@ -492,7 +492,7 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                 'mega_cols'   => 3,
                 'icon'        => 'graduation-cap',
                 'badge'       => 'OBE 2025',
-                'subtitle'    => 'Kurikulum OBE 2025, jadwal seminar/ujian, riset PNBP & E-Library',
+                'subtitle'    => 'Kurikulum OBE 2025, RPS/SAP, jadwal seminar/ujian, riset PNBP & jurnal BK',
                 'align'       => 'left',
                 'spotlight'   => $spotlights['akademik'],
                 'sections'    => [
@@ -505,19 +505,19 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                         ],
                     ],
                     [
-                        'heading' => 'Perkuliahan & Sidang',
+                        'heading' => 'Perkuliahan & Penilaian',
                         'icon'    => 'calendar',
                         'items'   => [
                             ['title' => 'Jadwal Seminar & Ujian', 'url' => home_url('/akademik/jadwal-ujian/'), 'subtitle' => 'Proposal, seminar hasil & ujian skripsi', 'icon' => 'calendar', 'badge' => ''],
-                            ['title' => 'Formulir Skripsi (F-01..F-04)', 'url' => home_url('/layanan/akademik/'), 'subtitle' => 'Pengajuan judul, kartu bimbingan & syarat', 'icon' => 'file', 'badge' => ''],
+                            ['title' => 'Pedoman Penilaian & Rubrik', 'url' => home_url('/akademik/panduan/'), 'subtitle' => 'Skala nilai OBE, rubrik analitik & prosedur', 'icon' => 'file', 'badge' => ''],
                         ],
                     ],
                     [
-                        'heading' => 'Riset & Sumber Belajar',
+                        'heading' => 'Riset & Publikasi Ilmiah',
                         'icon'    => 'book',
                         'items'   => [
-                            ['title' => 'Riset PNBP & Jurnal JKBK', 'url' => home_url('/mis-pnbp/'), 'subtitle' => '32 hibah riset, PkM, SINTA 2 & SINTA 4', 'icon' => 'book', 'badge' => ''],
-                            ['title' => 'E-Library & Modul Praktikum', 'url' => home_url('/e-library/'), 'subtitle' => 'Pedoman PPL, modul CBT & buku ajar PDF', 'icon' => 'folder', 'badge' => 'Digital'],
+                            ['title' => 'Riset PNBP & Pengabdian', 'url' => home_url('/mis-pnbp/'), 'subtitle' => '32 hibah riset, PkM, SINTA 2 & SINTA 4', 'icon' => 'microchip', 'badge' => ''],
+                            ['title' => 'Jurnal Ilmiah Prodi BK', 'url' => home_url('/jurnal-bk/'), 'subtitle' => 'JKBK, Terindeks SINTA 2 & SINTA 4', 'icon' => 'book', 'badge' => 'Jurnal'],
                         ],
                     ],
                 ],
@@ -542,7 +542,7 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                         'items'   => [
                             ['title' => 'Persuratan F-01..F-06 & SOP', 'url' => home_url('/layanan/persuratan/'), 'subtitle' => 'Template DOCX resmi & alur layanan terukur', 'icon' => 'mail', 'badge' => ''],
                             ['title' => 'Laboratorium BK & Alat Tes', 'url' => home_url('/laboratorium/'), 'subtitle' => '4 bilik one-way mirror, IST/CFIT & studio', 'icon' => 'lab', 'badge' => ''],
-                            ['title' => 'E-Library & Modul PDF', 'url' => home_url('/e-library/'), 'subtitle' => 'Arsip modul kuliah & pedoman tugas akhir', 'icon' => 'folder', 'badge' => ''],
+                            ['title' => 'E-Library & Modul PDF', 'url' => home_url('/e-library/'), 'subtitle' => 'Arsip modul kuliah & pedoman tugas akhir', 'icon' => 'folder', 'badge' => 'Digital'],
                         ],
                     ],
                     [
@@ -579,8 +579,8 @@ if (!function_exists('ppb_get_nav_tree')) {
         $tree = [];
         $has_custom_menu = false;
 
-        // 1. Cek apakah ada menu yang dipasang di lokasi 'primary-menu' (dan sudah disinkronkan ke v3 Editorial Calm)
-        if (has_nav_menu('primary-menu') && get_option('ppb_mega_menu_autoseeded_v3', '') === 'yes') {
+        // 1. Cek apakah ada menu yang dipasang di lokasi 'primary-menu' (dan sudah disinkronkan ke v4 Editorial Calm)
+        if (has_nav_menu('primary-menu') && get_option('ppb_mega_menu_autoseeded_v4', '') === 'yes') {
             $locations = get_nav_menu_locations();
             if (!empty($locations['primary-menu'])) {
                 $menu_items = wp_get_nav_menu_items($locations['primary-menu']);
@@ -1008,6 +1008,7 @@ add_action('admin_post_ppb_sync_mega_menu', function() {
 
     $menu_id = ppb_sync_default_mega_menu_to_wp();
     if ($menu_id) {
+        update_option('ppb_mega_menu_autoseeded_v4', 'yes', false);
         wp_safe_redirect(admin_url('nav-menus.php?action=edit&menu=' . $menu_id . '&ppb_synced=1'));
     } else {
         wp_safe_redirect(admin_url('nav-menus.php?ppb_sync_failed=1'));
@@ -1418,8 +1419,8 @@ add_action('admin_init', function() {
     if (!current_user_can('manage_options')) {
         return;
     }
-    if (get_option('ppb_mega_menu_autoseeded_v3') !== 'yes') {
+    if (get_option('ppb_mega_menu_autoseeded_v4') !== 'yes') {
         ppb_sync_default_mega_menu_to_wp();
-        update_option('ppb_mega_menu_autoseeded_v3', 'yes', false);
+        update_option('ppb_mega_menu_autoseeded_v4', 'yes', false);
     }
 });

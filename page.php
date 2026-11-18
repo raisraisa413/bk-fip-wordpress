@@ -20,14 +20,14 @@ if (have_posts()) : while (have_posts()) : the_post();
     // or is empty/truncated, automatically restore the full rich content from pages-data.json!
     $has_modern_markup = (strpos($content, 'bk-page-wrapper') !== false || strpos($content, 'elementor') !== false);
     $is_empty = empty(trim(strip_tags($content))) || strlen(trim($content)) < 100;
-    $is_dosen = (strpos($current_slug, 'dosen') !== false);
-    $needs_dosen_refresh = ($is_dosen && (strpos($content, 'bk-dosen-card-name') === false || strlen($content) < 1000 || isset($_GET['refresh_dosen'])));
 
     $req_path = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
     if (strpos($req_path, 'yamato/') === 0) {
         $req_path = substr($req_path, 7);
     }
     $req_slug = basename($req_path);
+    $is_dosen = ($current_slug === 'dosen' || strpos($current_slug, 'dosen-') === 0 || $req_path === 'profil/dosen' || $req_path === 'dosen');
+    $needs_dosen_refresh = ($is_dosen && (strpos($content, 'bk-dosen-card-name') === false || strpos($content, 'bk-dosen-dossier-data') !== false || strlen($content) < 1000 || isset($_GET['refresh_dosen'])));
 
     // Load pages-data.json for precise matching
     $json_file = get_template_directory() . '/pages-data.json';
@@ -68,7 +68,7 @@ if (have_posts()) : while (have_posts()) : the_post();
     $is_corrupted = ($target_page && $target_page['slug'] === 'struktur' && strpos($content, 'Bagan Kepemimpinan') === false);
     $is_roadmap_corrupted = ($target_page && $target_page['slug'] === 'roadmap' && strpos($content, '3 Pilar Kepakaran') === false);
     $is_legacy_layout = ($target_page && strpos($clean_target_content, 'bk-page-head') !== false && (strpos($content, 'bk-page-head') === false || strpos($content, 'bk-subnav-sticky-wrap') !== false));
-    $force_refresh = !empty($_GET['refresh_pages']) || !empty($_GET['sync_ppb_content']) || (get_option('ppb_content_synced_version', '') !== '21.5');
+    $force_refresh = !empty($_GET['refresh_pages']) || !empty($_GET['sync_ppb_content']) || (get_option('ppb_content_synced_version', '') !== '21.6');
 
     if (!$has_modern_markup || $is_empty || $needs_dosen_refresh || $is_truncated || $is_corrupted || $is_roadmap_corrupted || $is_legacy_layout || $force_refresh) {
         if ($target_page) {
@@ -86,6 +86,9 @@ if (have_posts()) : while (have_posts()) : the_post();
             );
             clean_post_cache($post->ID);
         }
+    }
+    if ($is_dosen || strpos($content, 'bk-dosen-grid') !== false) {
+        $GLOBALS['bk_has_dosen_roster'] = true;
     }
     ?>
 

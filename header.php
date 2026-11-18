@@ -315,19 +315,50 @@ $search_index = function_exists('bk_fip_get_search_index') ? bk_fip_get_search_i
                 $is_act   = !empty($pillar['is_active']);
                 $p_url    = $pillar['url'] ?? home_url('/');
                 $spot     = $pillar['spotlight'] ?? null;
+                $p_norm   = parse_url($p_url, PHP_URL_PATH) ?: '';
+                if (!empty($home_path) && strpos($p_norm, $home_path) === 0) {
+                    $p_norm = substr($p_norm, strlen($home_path));
+                }
+                if (strpos($p_norm, '/yamato/') === 0) {
+                    $p_norm = substr($p_norm, 7);
+                } elseif ($p_norm === '/yamato') {
+                    $p_norm = '/';
+                }
+                $p_norm = trim($p_norm, '/');
+                $is_hub_current = (!$is_home && $p_norm !== '' && $p_norm === $current_path);
+                $p_subtitle = !empty($pillar['subtitle']) ? $pillar['subtitle'] : ('Ikhtisar lengkap ekosistem ' . ($pillar['title'] ?? ''));
             ?>
                 <div class="bk-nav-item <?php echo $has_mega ? 'bk-nav-item-wrap' : ''; ?>">
                     <?php if ($has_mega) : ?>
-                        <button type="button"
-                                class="bk-nav-link dropdown-trigger <?php echo $is_act ? 'is-active' : ''; ?>"
-                                aria-expanded="false"
-                                aria-haspopup="true">
-                            <span><?php echo esc_html($pillar['title']); ?></span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </button>
+                        <div class="bk-nav-pill <?php echo $is_act ? 'is-active' : ''; ?>">
+                            <a href="<?php echo esc_url($p_url); ?>"
+                               class="bk-nav-main-link"
+                               title="Buka halaman ringkasan <?php echo esc_attr($pillar['title']); ?>">
+                                <span><?php echo esc_html($pillar['title']); ?></span>
+                            </a>
+                            <button type="button"
+                                    class="bk-nav-chev dropdown-trigger"
+                                    aria-expanded="false"
+                                    aria-haspopup="true"
+                                    aria-label="Buka submenu <?php echo esc_attr($pillar['title']); ?>">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+                        </div>
 
                         <!-- Full-Width Editorial Mega Menu Panel -->
                         <div class="bk-mega-panel bk-mega-dropdown" role="region" aria-label="<?php echo esc_attr($pillar['title']); ?>">
+                            <div class="bk-wrap bk-mega-hub-bar">
+                                <div class="bk-mega-hub-info">
+                                    <span class="bk-mega-hub-kicker"><?php echo esc_html($pillar['title']); ?></span>
+                                    <span class="bk-mega-hub-sub"><?php echo esc_html($p_subtitle); ?></span>
+                                </div>
+                                <a href="<?php echo esc_url($p_url); ?>"
+                                   class="bk-mega-hub-btn <?php echo $is_hub_current ? 'is-active' : ''; ?>">
+                                    <span>Ringkasan <?php echo esc_html($pillar['title']); ?></span>
+                                    <span aria-hidden="true">&rarr;</span>
+                                </a>
+                            </div>
+
                             <div class="bk-wrap bk-mega-grid">
                                 <div class="bk-mega-cols">
                                     <?php foreach ($pillar['sections'] as $col) : ?>
@@ -417,30 +448,59 @@ $search_index = function_exists('bk_fip_get_search_index') ? bk_fip_get_search_i
 
     <?php foreach ($nav_tree as $pillar) :
         $has_mega = !empty($pillar['is_mega']) && !empty($pillar['sections']);
+        $is_act   = !empty($pillar['is_active']);
+        $p_url    = $pillar['url'] ?? home_url('/');
         $spot     = $pillar['spotlight'] ?? null;
+        $p_norm   = parse_url($p_url, PHP_URL_PATH) ?: '';
+        if (!empty($home_path) && strpos($p_norm, $home_path) === 0) {
+            $p_norm = substr($p_norm, strlen($home_path));
+        }
+        if (strpos($p_norm, '/yamato/') === 0) {
+            $p_norm = substr($p_norm, 7);
+        } elseif ($p_norm === '/yamato') {
+            $p_norm = '/';
+        }
+        $p_norm = trim($p_norm, '/');
+        $is_hub_current = (!$is_home && $p_norm !== '' && $p_norm === $current_path);
     ?>
         <?php if (!$has_mega) : ?>
             <div class="bk-mobile-acc" style="border-bottom:1px solid rgba(255,255,255,0.12);">
-                <a href="<?php echo esc_url($pillar['url'] ?? home_url('/')); ?>" class="bk-mobile-link" style="padding:14px 4px;font-size:15px;font-weight:600;">
+                <a href="<?php echo esc_url($p_url); ?>" class="bk-mobile-link <?php echo $is_act ? 'is-active' : ''; ?>" style="padding:14px 4px;font-size:15px;font-weight:600;">
                     <span><?php echo esc_html($pillar['title']); ?></span>
                     <span aria-hidden="true" style="color:#F5B82E;">&rarr;</span>
                 </a>
             </div>
         <?php else : ?>
-            <div class="bk-mobile-acc">
-                <button type="button" class="bk-mobile-acc-btn" onclick="this.parentElement.classList.toggle('is-open');">
-                    <span><?php echo esc_html($pillar['title']); ?></span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
+            <div class="bk-mobile-acc <?php echo $is_act ? 'has-active' : ''; ?>">
+                <div class="bk-mobile-acc-head">
+                    <a href="<?php echo esc_url($p_url); ?>"
+                       class="bk-mobile-acc-link <?php echo $is_act ? 'is-active' : ''; ?>">
+                        <span><?php echo esc_html($pillar['title']); ?></span>
+                    </a>
+                    <button type="button"
+                            class="bk-mobile-acc-btn"
+                            aria-expanded="false"
+                            aria-label="Buka submenu <?php echo esc_attr($pillar['title']); ?>"
+                            onclick="var acc=this.closest('.bk-mobile-acc');var open=acc.classList.toggle('is-open');this.setAttribute('aria-expanded',open?'true':'false');">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                </div>
                 <div class="bk-mobile-acc-panel">
+                    <a href="<?php echo esc_url($p_url); ?>"
+                       class="bk-mobile-hub-btn <?php echo $is_hub_current ? 'is-active' : ''; ?>">
+                        <span>Ringkasan <?php echo esc_html($pillar['title']); ?></span>
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
                     <?php foreach ($pillar['sections'] as $col) : ?>
                         <div class="bk-mobile-col-label"><?php echo esc_html($col['heading'] ?? ''); ?></div>
                         <?php foreach (($col['items'] ?? array()) as $item) :
                             $it_target = !empty($item['target']) ? $item['target'] : '_self';
+                            $it_act    = !empty($item['is_active']);
                         ?>
                             <a href="<?php echo esc_url($item['url'] ?? '#'); ?>"
                                target="<?php echo esc_attr($it_target); ?>"
-                               class="bk-mobile-link">
+                               <?php echo $it_target === '_blank' ? 'rel="noopener"' : ''; ?>
+                               class="bk-mobile-link <?php echo $it_act ? 'is-active' : ''; ?>">
                                 <span><?php echo esc_html($item['title'] ?? ''); ?></span>
                                 <span aria-hidden="true" style="opacity:0.55;">&rsaquo;</span>
                             </a>
@@ -525,7 +585,7 @@ window.BK_SEARCH_INDEX = <?php echo wp_json_encode($search_index); ?>;
         });
     }
     window.addEventListener('resize', function() {
-        if (window.innerWidth >= 1024) window.bkToggleMobileNav(false);
+        if (window.innerWidth > 960) window.bkToggleMobileNav(false);
     });
 
     // 3. Desktop Mega Menu (hover + click + Esc + outside click)
@@ -575,13 +635,13 @@ window.BK_SEARCH_INDEX = <?php echo wp_json_encode($search_index); ?>;
                 else openWrap(w);
             });
             w.addEventListener('mouseenter', function() {
-                if (window.innerWidth < 1024) return;
+                if (window.innerWidth <= 960) return;
                 if (hoverTimer) clearTimeout(hoverTimer);
                 if (w.dataset.closedByClick === 'true') return;
                 hoverTimer = setTimeout(function() { openWrap(w); }, 70);
             });
             w.addEventListener('mouseleave', function(e) {
-                if (window.innerWidth < 1024) return;
+                if (window.innerWidth <= 960) return;
                 delete w.dataset.closedByClick;
                 if (hoverTimer) clearTimeout(hoverTimer);
                 hoverTimer = setTimeout(function() {
