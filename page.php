@@ -64,11 +64,12 @@ if (have_posts()) : while (have_posts()) : the_post();
     }
 
     $clean_target_content = $target_page ? str_replace(array('http://bk-fip.local/', 'https://bk-fip.local/'), '/', $target_page['content']) : '';
-    $is_truncated = ($target_page && strlen($content) < (strlen($clean_target_content) - 100));
-    $is_corrupted = ($target_page && $target_page['slug'] === 'struktur' && strpos($content, 'Bagan Kepemimpinan') === false);
-    $is_roadmap_corrupted = ($target_page && $target_page['slug'] === 'roadmap' && strpos($content, '3 Pilar Kepakaran') === false);
-    $is_legacy_layout = ($target_page && strpos($clean_target_content, 'bk-page-head') !== false && (strpos($content, 'bk-page-head') === false || strpos($content, 'bk-subnav-sticky-wrap') !== false));
-    $force_refresh = !empty($_GET['refresh_pages']) || !empty($_GET['sync_ppb_content']) || (get_option('ppb_content_synced_version', '') !== '21.6');
+    $is_wfie_edited = !empty(get_post_meta($post->ID, '_wfie_custom_edited', true));
+    $is_truncated = (!$is_wfie_edited && $target_page && strlen($content) < (strlen($clean_target_content) - 100));
+    $is_corrupted = (!$is_wfie_edited && $target_page && $target_page['slug'] === 'struktur' && strpos($content, 'Bagan Kepemimpinan') === false);
+    $is_roadmap_corrupted = (!$is_wfie_edited && $target_page && $target_page['slug'] === 'roadmap' && strpos($content, '3 Pilar Kepakaran') === false);
+    $is_legacy_layout = (!$is_wfie_edited && $target_page && strpos($clean_target_content, 'bk-page-head') !== false && (strpos($content, 'bk-page-head') === false || strpos($content, 'bk-subnav-sticky-wrap') !== false));
+    $force_refresh = !empty($_GET['refresh_pages']) || !empty($_GET['sync_ppb_content']) || (!$is_wfie_edited && get_option('ppb_content_synced_version', '') !== '21.6');
 
     if (!$has_modern_markup || $is_empty || $needs_dosen_refresh || $is_truncated || $is_corrupted || $is_roadmap_corrupted || $is_legacy_layout || $force_refresh) {
         if ($target_page) {
