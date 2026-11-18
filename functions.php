@@ -1607,35 +1607,38 @@ function ppb_auto_sync_pages_content() {
 
             if ($existing_id) {
 
-                $wpdb->update(
+                $is_wfie_edited = !empty(get_post_meta($existing_id, '_wfie_custom_edited', true));
+                if (!$is_wfie_edited || !empty($_GET['force_reset_wfie'])) {
+                    $wpdb->update(
 
-                    $wpdb->posts,
+                        $wpdb->posts,
 
-                    array(
+                        array(
 
-                        'post_title'     => $p['title'],
+                            'post_title'     => $p['title'],
 
-                        'post_name'      => $p['slug'],
+                            'post_name'      => $p['slug'],
 
-                        'post_content'   => str_replace(array('http://bk-fip.local/', 'https://bk-fip.local/'), '/', $p['content']),
+                            'post_content'   => str_replace(array('http://bk-fip.local/', 'https://bk-fip.local/'), '/', $p['content']),
 
-                        'post_status'    => 'publish',
+                            'post_status'    => 'publish',
 
-                        'post_parent'    => 0,
+                            'post_parent'    => 0,
 
-                        'menu_order'     => (int)$p['menu_order'],
+                            'menu_order'     => (int)$p['menu_order'],
 
-                        'post_modified'  => $now,
+                            'post_modified'  => $now,
 
-                        'post_modified_gmt' => $now_gmt,
+                            'post_modified_gmt' => $now_gmt,
 
-                    ),
+                        ),
 
-                    array('ID' => $existing_id)
+                        array('ID' => $existing_id)
 
-                );
+                    );
 
-                clean_post_cache($existing_id);
+                    clean_post_cache($existing_id);
+                }
 
                 $slug_to_id[$p['slug']] = $existing_id;
 
@@ -1784,35 +1787,38 @@ function ppb_auto_sync_pages_content() {
 
             if ($existing_id) {
 
-                $wpdb->update(
+                $is_wfie_edited = !empty(get_post_meta($existing_id, '_wfie_custom_edited', true));
+                if (!$is_wfie_edited || !empty($_GET['force_reset_wfie'])) {
+                    $wpdb->update(
 
-                    $wpdb->posts,
+                        $wpdb->posts,
 
-                    array(
+                        array(
 
-                        'post_title'     => $p['title'],
+                            'post_title'     => $p['title'],
 
-                        'post_name'      => $p['slug'],
+                            'post_name'      => $p['slug'],
 
-                        'post_content'   => str_replace(array('http://bk-fip.local/', 'https://bk-fip.local/'), '/', $p['content']),
+                            'post_content'   => str_replace(array('http://bk-fip.local/', 'https://bk-fip.local/'), '/', $p['content']),
 
-                        'post_status'    => 'publish',
+                            'post_status'    => 'publish',
 
-                        'post_parent'    => (int)$parent_id,
+                            'post_parent'    => (int)$parent_id,
 
-                        'menu_order'     => (int)$p['menu_order'],
+                            'menu_order'     => (int)$p['menu_order'],
 
-                        'post_modified'  => $now,
+                            'post_modified'  => $now,
 
-                        'post_modified_gmt' => $now_gmt,
+                            'post_modified_gmt' => $now_gmt,
 
-                    ),
+                        ),
 
-                    array('ID' => $existing_id)
+                        array('ID' => $existing_id)
 
-                );
+                    );
 
-                clean_post_cache($existing_id);
+                    clean_post_cache($existing_id);
+                }
 
             } else {
 
@@ -2286,9 +2292,10 @@ add_filter('template_include', function($template) {
                                                  || ($matched_page['slug'] === 'struktur' && strpos($db_content, 'Bagan Kepemimpinan') === false)
                                                  || ($matched_page['slug'] === 'roadmap' && strpos($db_content, '3 Pilar Kepakaran') === false)
                                                  || (strpos($db_content, 'bk-page-wrapper') === false)
+                                                 || !empty($_GET['refresh_pages'])
+                                                 || !empty($_GET['sync_ppb_content'])
                                              ))
-                                             || !empty($_GET['refresh_pages'])
-                                             || !empty($_GET['sync_ppb_content']);
+                                             || !empty($_GET['force_reset_wfie']);
 
                             if ($needs_db_repair) {
                                 $wpdb->update($wpdb->posts, array(
