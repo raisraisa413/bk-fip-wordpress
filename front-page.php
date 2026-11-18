@@ -440,7 +440,15 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                     $komp_list = array();
                 }
                 $cta_url = !empty($dg['cta_url']) ? $dg['cta_url'] : (!empty($dg['url']) ? $dg['url'] : home_url('/akademik/kurikulum/'));
-                $cert_url = !empty($dg['cert_url']) ? $dg['cert_url'] : home_url('/akreditasi/');
+                $lamdik_cert_fallback = '';
+                if (function_exists('ppb_get_lamdik_settings')) {
+                    $lamdik_cfg = ppb_get_lamdik_settings();
+                    $lamdik_cert_fallback = $lamdik_cfg['sertifikat'][$deg_key]['cert_url']
+                        ?? ($lamdik_cfg['sertifikat'][$deg_key]['sk_url'] ?? ($lamdik_cfg['folder_utama_url'] ?? ''));
+                }
+                $cert_url = !empty($dg['cert_url'])
+                    ? $dg['cert_url']
+                    : ($lamdik_cert_fallback !== '' ? $lamdik_cert_fallback : home_url('/akreditasi/sertifikat/'));
                 $fokus_val = !empty($dg['fokus']) ? $dg['fokus'] : ($dg['kurikulum'] ?? '');
             ?>
             <div class="bk-prodi-panel" data-deg-panel="<?php echo esc_attr($deg_key); ?>" style="<?php echo $d_idx === 0 ? '' : 'display:none;'; ?>">

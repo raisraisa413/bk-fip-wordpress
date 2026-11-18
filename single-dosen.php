@@ -433,15 +433,19 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
 
                     <?php if (!empty($courses_list) && is_array($courses_list)) : ?>
                         <div style="display:grid;gap:14px;">
-                            <?php foreach ($courses_list as $c) : ?>
+                            <?php foreach ($courses_list as $c) :
+                                $c_sem = isset($c['semester']) ? (int) $c['semester'] : (isset($c['sem']) ? (int) $c['sem'] : 0);
+                                $c_rps = function_exists('ppb_clean_document_url') ? ppb_clean_document_url($c['rps_url'] ?? '') : trim((string) ($c['rps_url'] ?? ''));
+                                $c_sap = function_exists('ppb_clean_document_url') ? ppb_clean_document_url($c['sap_url'] ?? '') : trim((string) ($c['sap_url'] ?? ''));
+                            ?>
                                 <div style="display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:#FAF8F5;border-radius:14px;border:1px solid #ECE7E1;">
                                     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-                                        <div style="display:flex;align-items:center;gap:8px;">
+                                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                                             <span style="background:#0D3B22;color:#F5B82E;font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;font-family:monospace;letter-spacing:0.04em;">
                                                 <?php echo esc_html($c['kode'] ?? 'BK'); ?>
                                             </span>
                                             <span style="background:#E8F0EA;color:#0D3B22;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;">
-                                                <?php echo esc_html($c['jenjang'] ?? 'S1'); ?> &middot; <?php echo esc_html($c['sks'] ?? '3'); ?> SKS
+                                                <?php echo esc_html($c['jenjang'] ?? 'S1'); ?> &middot; <?php echo esc_html($c['sks'] ?? '3'); ?> SKS<?php echo $c_sem > 0 ? ' &middot; Sem ' . $c_sem : ''; ?>
                                             </span>
                                         </div>
                                         <span style="font-size:11px;color:#6B7280;font-weight:600;">
@@ -451,6 +455,20 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
                                     <strong style="font-size:14px;color:#111827;line-height:1.4;">
                                         <?php echo esc_html($c['nama'] ?? 'Mata Kuliah Bimbingan Konseling'); ?>
                                     </strong>
+                                    <?php if ($c_rps !== '' || $c_sap !== '') : ?>
+                                        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;">
+                                            <?php if ($c_rps !== '') : ?>
+                                                <a href="<?php echo esc_url($c_rps); ?>" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#0D3B22;background:#E8F0EA;border:1px solid #C5DACB;padding:3px 9px;border-radius:999px;text-decoration:none;">
+                                                    📄 Unduh RPS &#8599;
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ($c_sap !== '') : ?>
+                                                <a href="<?php echo esc_url($c_sap); ?>" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#92400E;background:#FEF3C7;border:1px solid #FDE68A;padding:3px 9px;border-radius:999px;text-decoration:none;">
+                                                    🗓️ Unduh SAP &#8599;
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>

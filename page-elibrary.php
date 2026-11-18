@@ -116,6 +116,19 @@ $portal_links = function_exists('ppb_get_elibrary_portal_links') ? ppb_get_elibr
 
 $ajax_url     = admin_url('admin-ajax.php');
 $submit_nonce = wp_create_nonce('ppb_elibrary_submit_nonce');
+
+$normalized_elibrary_items = array();
+foreach ($elibrary_items as $idx => $item) {
+    $raw_url = isset($item['file_url']) ? (string) $item['file_url'] : '';
+    $clean_url = function_exists('ppb_clean_document_url')
+        ? ppb_clean_document_url($raw_url)
+        : (($raw_url === '#') ? '' : trim($raw_url));
+    $item['id']       = isset($item['id']) ? (int) $item['id'] : ($idx + 1);
+    $item['kode']     = !empty($item['kode']) ? $item['kode'] : sprintf('ELB-%02d', $idx + 1);
+    $item['file_url'] = $clean_url;
+    $normalized_elibrary_items[] = $item;
+}
+$elibrary_items = $normalized_elibrary_items;
 ?>
 
 <div class="bk-page-wrapper" style="width:100%;min-height:100vh;background-color:var(--canvas, #FAF8F5);font-family:var(--font-sans, 'Plus Jakarta Sans', sans-serif);color:var(--ink, #142219);">
@@ -156,15 +169,17 @@ $submit_nonce = wp_create_nonce('ppb_elibrary_submit_nonce');
             <!-- Top 3 External Repository & Journal Cards -->
             <div class="bk-elib-links" aria-label="Tautan Repositori &amp; Jurnal Resmi">
                 <?php foreach ($portal_links as $lk) :
-                    $is_ext = preg_match('/^https?:\/\//i', $lk['href']) && strpos($lk['href'], home_url()) === false;
+                    $href_raw = isset($lk['href']) ? (string) $lk['href'] : '';
+                    $href     = function_exists('ppb_clean_document_url') ? ppb_clean_document_url($href_raw) : (($href_raw === '#') ? '' : trim($href_raw));
+                    $is_ext   = $href !== '' && preg_match('/^https?:\/\//i', $href) && strpos($href, home_url()) === false;
                 ?>
-                    <a href="<?php echo esc_url($lk['href']); ?>"<?php echo $is_ext ? ' target="_blank" rel="noopener noreferrer"' : ''; ?> class="bk-elib-link-card">
+                    <a href="<?php echo esc_url($href !== '' ? $href : home_url('/e-library/')); ?>"<?php echo $is_ext ? ' target="_blank" rel="noopener noreferrer"' : ''; ?> class="bk-elib-link-card">
                         <div>
                             <span class="bk-tag bk-tag-sage" style="margin-bottom:8px;"><?php echo esc_html($lk['badge']); ?></span>
                             <strong class="bk-fd" style="display:block;font-size:15px;color:var(--ink);margin-bottom:4px;"><?php echo esc_html($lk['title']); ?></strong>
                             <div style="font-size:12.5px;color:var(--muted);line-height:1.45;"><?php echo esc_html($lk['sub']); ?></div>
                         </div>
-                        <span class="bk-elib-cta"><?php echo esc_html($lk['cta']); ?></span>
+                        <span class="bk-elib-cta bk-elib-link-cta"><?php echo esc_html($lk['cta']); ?></span>
                     </a>
                 <?php endforeach; ?>
             </div>
@@ -184,8 +199,8 @@ $submit_nonce = wp_create_nonce('ppb_elibrary_submit_nonce');
             <!-- Hairline List of E-Library Items (ELB-01..ELB-xx) -->
             <div class="bk-hairline-list" id="bk-elib-list">
                 <?php foreach ($elibrary_items as $idx => $item) :
-                    $item_id   = isset($item['id']) ? (int) $item['id'] : ($idx + 1);
-                    $kode      = !empty($item['kode']) ? $item['kode'] : sprintf('ELB-%02d', $idx + 1);
+                    $item_id   = (int) $item['id'];
+                    $kode      = (string) $item['kode'];
                     $cat       = !empty($item['category']) ? $item['category'] : 'modul';
                     $cat_label = !empty($item['cat_label']) ? $item['cat_label'] : 'Modul Praktikum';
                     $authors   = !empty($item['authors']) ? $item['authors'] : 'Tim Dosen BK FIP UNM';
@@ -193,7 +208,7 @@ $submit_nonce = wp_create_nonce('ppb_elibrary_submit_nonce');
                     $meta      = !empty($item['meta']) ? $item['meta'] : '64 Hlm · PDF 3.2 MB';
                     $title     = !empty($item['title']) ? $item['title'] : 'Modul Bimbingan dan Konseling';
                     $desc      = !empty($item['desc']) ? $item['desc'] : '';
-                    $file_url  = !empty($item['file_url']) ? $item['file_url'] : '#';
+                    $file_url  = (string) ($item['file_url'] ?? '');
                     $search_blob = strtolower($kode . ' ' . $title . ' ' . $authors . ' ' . $cat_label . ' ' . $desc);
                 ?>
                     <div class="bk-hairline-row bk-elib-row"
@@ -210,12 +225,12 @@ $submit_nonce = wp_create_nonce('ppb_elibrary_submit_nonce');
                             <div style="font-size:12.5px;color:var(--forest);font-weight:600;margin-bottom:4px;">Oleh: <?php echo esc_html($authors); ?></div>
                             <span style="font-size:13.5px;color:var(--ink-2);"><?php echo esc_html($desc); ?></span>
                         </div>
-                        <div class="bk-elib-act">
+                        <div class="bk-elib-act bk-elib-actions">
                             <button type="button" class="bk-btn bk-btn-secondary bk-btn-sm" data-open-elib="<?php echo esc_attr($item_id); ?>">Detail</button>
-                            <?php if ($file_url && $file_url !== '#') : ?>
-                                <a href="<?php echo esc_url($file_url); ?>" target="_blank" rel="noopener noreferrer" class="bk-btn bk-btn-primary bk-btn-sm">Unduh PDF</a>
+                            <?php if ($file_url !== '') : ?>
+                                <a href="<?php echo esc_url($file_url); ?>" target="_blank" rel="noopener noreferrer" class="bk-btn bk-btn-primary bk-btn-sm">Unduh PDF &#8599;</a>
                             <?php else : ?>
-                                <button type="button" class="bk-btn bk-btn-primary bk-btn-sm" data-toast="<?php echo esc_attr('Mengunduh ' . $title . ' (PDF)…'); ?>">Unduh PDF</button>
+                                <button type="button" class="bk-btn bk-btn-secondary bk-btn-sm" data-toast="Berkas PDF sedang dalam proses pengunggahan oleh Admin/GPM.">⏳ Segera Diunggah</button>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -333,9 +348,10 @@ $submit_nonce = wp_create_nonce('ppb_elibrary_submit_nonce');
         var format = el.format || 'PDF';
         var meta = el.meta || 'PDF';
         var cit = el.authors + '. (' + el.year + '). ' + el.title + ' [' + catLabel + ']. Jurusan PPB FIP Universitas Negeri Makassar.';
-        var dlBtn = (el.file_url && el.file_url !== '#')
-            ? '<a href="' + esc(el.file_url) + '" target="_blank" rel="noopener noreferrer" class="bk-btn bk-btn-primary bk-btn-sm">Unduh Dokumen PDF</a>'
-            : '<button type="button" class="bk-btn bk-btn-primary bk-btn-sm" data-toast="' + esc('Mengunduh ' + el.title + ' (' + meta + ')…') + '">Unduh Dokumen PDF</button>';
+        var hasUrl = (el.file_url && el.file_url !== '#' && String(el.file_url).indexOf('javascript:') !== 0);
+        var dlBtn = hasUrl
+            ? '<a href="' + esc(el.file_url) + '" target="_blank" rel="noopener noreferrer" class="bk-btn bk-btn-primary bk-btn-sm">Unduh Dokumen PDF &#8599;</a>'
+            : '<button type="button" class="bk-btn bk-btn-secondary bk-btn-sm" data-toast="Berkas PDF sedang dalam proses pengunggahan oleh Admin/GPM.">⏳ Segera Diunggah</button>';
 
         openDrawer('E-LIBRARY BK · ' + kode, el.title,
             '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:18px;">' +
@@ -347,7 +363,7 @@ $submit_nonce = wp_create_nonce('ppb_elibrary_submit_nonce');
                 '<li><span style="color:var(--muted);">Penyusun / Penulis</span><strong style="text-align:right;">' + esc(el.authors) + '</strong></li>' +
                 '<li><span style="color:var(--muted);">Tahun Terbit</span><span class="bk-fm">' + esc(el.year) + '</span></li>' +
                 '<li><span style="color:var(--muted);">Spesifikasi Berkas</span><span style="text-align:right;">' + esc(meta) + '</span></li>' +
-                '<li><span style="color:var(--muted);">Aksesibilitas</span><strong style="color:var(--forest);">Terbuka · Sivitas &amp; Umum</strong></li>' +
+                '<li><span style="color:var(--muted);">Status Berkas</span><strong style="color:' + (hasUrl ? 'var(--forest)' : '#B45309') + ';">' + (hasUrl ? 'Tersedia · Siap Diunduh' : 'Menunggu Unggahan Admin/GPM') + '</strong></li>' +
             '</ul>' +
             '<div class="bk-kicker" style="margin-bottom:6px;">Abstrak &amp; Ringkasan Materi</div>' +
             '<p style="font-size:14px;color:var(--ink-2);line-height:1.7;margin:0 0 20px;">' + esc(el.desc) + '</p>' +
@@ -423,7 +439,7 @@ $submit_nonce = wp_create_nonce('ppb_elibrary_submit_nonce');
             }
         }
 
-        if (listWrap) listWrap.style.display = visible > 0 ? 'flex' : 'none';
+        if (listWrap) listWrap.style.display = visible > 0 ? 'block' : 'none';
         if (emptyBox) emptyBox.style.display = visible === 0 ? 'block' : 'none';
     }
 
@@ -529,14 +545,18 @@ $submit_nonce = wp_create_nonce('ppb_elibrary_submit_nonce');
                 fetch(AJAX_URL, { method: 'POST', body: fd, credentials: 'same-origin' })
                     .then(function(r){ return r.json(); })
                     .then(function(res){
-                        var tik = (res && res.success && res.data && res.data.ticket) ? res.data.ticket : fallbackTik;
-                        renderTicketConfirmation(tik, jdl, kat, usr, cat);
+                        if (res && res.success) {
+                            var tik = (res.data && res.data.ticket) ? res.data.ticket : fallbackTik;
+                            renderTicketConfirmation(tik, jdl, kat, usr, cat);
+                        } else {
+                            if (subBtn) { subBtn.disabled = false; subBtn.textContent = 'Kirim Pengajuan Repositori →'; }
+                            showToast((res && res.data && res.data.message) ? res.data.message : 'Gagal mengirim pengajuan.');
+                        }
                     })
                     .catch(function(){
-                        renderTicketConfirmation(fallbackTik, jdl, kat, usr, cat);
+                        if (subBtn) { subBtn.disabled = false; subBtn.textContent = 'Kirim Pengajuan Repositori →'; }
+                        showToast('Gagal terhubung ke server.');
                     });
-            } else {
-                renderTicketConfirmation(fallbackTik, jdl, kat, usr, cat);
             }
         });
     }

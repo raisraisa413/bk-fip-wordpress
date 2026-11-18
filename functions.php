@@ -1169,7 +1169,7 @@ function bk_fip_render_settings_page() {
                     'desc'      => sanitize_textarea_field($c['desc'] ?? ''),
                     'date'      => sanitize_text_field($c['date'] ?? ''),
                     'thumb'     => bk_sanitize_asset_or_url($c['thumb'] ?? ''),
-                    'video_url' => esc_url_raw($c['video_url'] ?? ''),
+                    'video_url' => function_exists('ppb_clean_document_url') ? ppb_clean_document_url($c['video_url'] ?? '') : esc_url_raw($c['video_url'] ?? ''),
                 );
             }
             if (count($chapters) === 3) {
@@ -1330,7 +1330,10 @@ function bk_fip_render_settings_page() {
                                 <input type="text" class="bk-media-input" name="<?php echo esc_attr($n); ?>[thumb]" value="<?php echo esc_attr($vc['thumb'] ?? ''); ?>" placeholder="Thumbnail: Link Google Drive, URL Media Library, atau assets/img/..." style="flex:1;min-width:220px;">
                                 <button type="button" class="button bk-media-pick">📷 Unggah / Pilih Gambar</button>
                             </div>
-                            <input type="url" name="<?php echo esc_attr($n); ?>[video_url]" value="<?php echo esc_attr($vc['video_url'] ?? ''); ?>" placeholder="URL Video (YouTube / Google Drive / Vimeo / MP4)" style="grid-column:span 2; width:100%;">
+                            <div style="grid-column:span 2; display:flex; gap:6px; flex-wrap:wrap;">
+                                <input type="text" class="bk-video-input" name="<?php echo esc_attr($n); ?>[video_url]" value="<?php echo esc_attr($vc['video_url'] ?? ''); ?>" placeholder="URL Video (YouTube / Google Drive / Vimeo / Upload MP4)" style="flex:1;min-width:220px;">
+                                <button type="button" class="button bk-video-media-pick">🎬 Unggah / Pilih Video</button>
+                            </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -1417,6 +1420,22 @@ function bk_fip_render_settings_page() {
                     input.value = url;
                     var prev = wrap ? wrap.querySelector('.bk-media-prev') : null;
                     if (prev) prev.src = url;
+                });
+                frame.open();
+            });
+        });
+        document.querySelectorAll('.bk-video-media-pick').forEach(function(btn){
+            btn.addEventListener('click', function(e){
+                e.preventDefault();
+                if (typeof wp === 'undefined' || !wp.media) {
+                    alert('Media Library WordPress belum termuat. Muat ulang halaman atau tempel link video secara langsung.');
+                    return;
+                }
+                var input = btn.parentNode.querySelector('.bk-video-input');
+                var frame = wp.media({ title: 'Unggah atau Pilih Video Profil', button: { text: 'Gunakan Video Ini' }, library: { type: 'video' }, multiple: false });
+                frame.on('select', function(){
+                    var url = frame.state().get('selection').first().toJSON().url;
+                    if (input) input.value = url;
                 });
                 frame.open();
             });
@@ -3093,12 +3112,19 @@ function bk_fip_build_dosen_dossier_entry($d) {
     $foto_url = bk_fip_resolve_dosen_foto_url($d['foto_link'] ?? '');
 
     $mk_compact = array();
-    foreach (array_slice($mk_raw, 0, 12) as $mk) {
+    foreach (array_slice($mk_raw, 0, 16) as $mk) {
         if (!is_array($mk)) continue;
+        $mk_meta = trim((string)(isset($mk['sks']) ? $mk['sks'] . ' SKS' : '')) . (!empty($mk['jenjang']) ? ' · ' . trim((string)$mk['jenjang']) : '');
+        if (!empty($mk['semester']) || !empty($mk['sem'])) {
+            $sem_v = (int) ($mk['semester'] ?? ($mk['sem'] ?? 0));
+            if ($sem_v > 0) $mk_meta .= ' · Sem ' . $sem_v;
+        }
         $mk_compact[] = array(
             trim((string)($mk['kode'] ?? '')),
             trim((string)($mk['nama'] ?? '')),
-            trim((string)(isset($mk['sks']) ? $mk['sks'] . ' SKS' : '')) . (!empty($mk['jenjang']) ? ' · ' . trim((string)$mk['jenjang']) : ''),
+            $mk_meta,
+            function_exists('ppb_clean_document_url') ? ppb_clean_document_url($mk['rps_url'] ?? '') : trim((string)($mk['rps_url'] ?? '')),
+            function_exists('ppb_clean_document_url') ? ppb_clean_document_url($mk['sap_url'] ?? '') : trim((string)($mk['sap_url'] ?? '')),
         );
     }
 
@@ -3262,7 +3288,15 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
             $tags_html .= '<span class="bk-tag">' . esc_html($t) . '</span>';
         }
 
-        $search_text = esc_attr(strtolower($nama . ' ' . $nip . ' ' . $jabatan . ' ' . $struktural . ' ' . $badge_label . ' ' . implode(' ', $kepakaran)));
+        $mk_search = array();
+        if (!empty($d['mata_kuliah']) && is_array($d['mata_kuliah'])) {
+            foreach ($d['mata_kuliah'] as $mk_item) {
+                if (!is_array($mk_item)) continue;
+                if (!empty($mk_item['kode'])) $mk_search[] = (string) $mk_item['kode'];
+                if (!empty($mk_item['nama'])) $mk_search[] = (string) $mk_item['nama'];
+            }
+        }
+        $search_text = esc_attr(strtolower($nama . ' ' . $nip . ' ' . $jabatan . ' ' . $struktural . ' ' . $badge_label . ' ' . implode(' ', $kepakaran) . ' ' . implode(' ', $mk_search)));
 
         if ($foto_url !== '') {
             $av_cls = 'bk-avatar' . ($is_prof ? ' is-prof' : '') . ' has-photo';
@@ -3615,7 +3649,16 @@ window.BK_DOSEN_DOSSIER = <?php echo $dossier_json; ?>;
                     (d.bio ? "<p style=\"font-size:13.5px;color:var(--ink-2);line-height:1.65;margin:0 0 16px;\">" + esc(d.bio) + "</p>" : "") +
                     "<div class=\"bk-kicker\" style=\"margin-bottom:8px;\">Mata Kuliah Diampu (" + mkArr.length + ")</div>" +
                     (mkArr.length
-                        ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;margin-bottom:16px;\">" + mkArr.map(function(m) { return "<div class=\"bk-drawer-item\"><strong>" + esc((m[0] ? m[0] + " — " : "") + m[1]) + "</strong>" + (m[2] ? "<div class=\"bk-fm\" style=\"font-size:11.5px;color:var(--ink-muted);margin-top:2px;\">" + esc(m[2]) + "</div>" : "") + "</div>"; }).join("") + "</div>"
+                        ? "<div class=\"bk-hairline-list\" style=\"padding:0 14px;margin-bottom:16px;\">" + mkArr.map(function(m) {
+                            var linksHtml = "";
+                            if (m[3] || m[4]) {
+                                linksHtml = "<div style=\"display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;\">" +
+                                    (m[3] ? "<a href=\"" + esc(m[3]) + "\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:#0D3B22;background:#E8F0EA;border:1px solid #C5DACB;padding:2px 8px;border-radius:999px;text-decoration:none;\">📄 RPS &#8599;</a>" : "") +
+                                    (m[4] ? "<a href=\"" + esc(m[4]) + "\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:#92400E;background:#FEF3C7;border:1px solid #FDE68A;padding:2px 8px;border-radius:999px;text-decoration:none;\">🗓️ SAP &#8599;</a>" : "") +
+                                    "</div>";
+                            }
+                            return "<div class=\"bk-drawer-item\"><strong>" + esc((m[0] ? m[0] + " — " : "") + m[1]) + "</strong>" + (m[2] ? "<div class=\"bk-fm\" style=\"font-size:11.5px;color:var(--ink-muted);margin-top:2px;\">" + esc(m[2]) + "</div>" : "") + linksHtml + "</div>";
+                        }).join("") + "</div>"
                         : "<div class=\"bk-empty\" style=\"padding:18px;margin-bottom:16px;\">Daftar lengkap pengampuan kelas tersedia pada halaman profil dosen.</div>") +
                     "<div style=\"display:flex;gap:8px;flex-wrap:wrap;\">" +
                     "<a href=\"" + esc(fullUrl) + "\" class=\"bk-btn bk-btn-primary bk-btn-sm\">Buka Halaman Profil Lengkap &rarr;</a>" +
@@ -3883,6 +3926,14 @@ function bk_fip_render_sync_dosen_page() {
             // Rebuild public roster page
             bk_fip_rebuild_dosen_roster_html($current_dosen);
 
+            // Auto-sync course assignments bi-directionally with Manajemen Mata Kuliah
+            if (isset($_POST['mk_ids_present']) && function_exists('ppb_update_lecturer_courses')) {
+                $posted_mk_ids = isset($_POST['mk_ids']) && is_array($_POST['mk_ids'])
+                    ? array_map('sanitize_key', wp_unslash($_POST['mk_ids']))
+                    : array();
+                ppb_update_lecturer_courses($edit_slug, $posted_mk_ids);
+            }
+
             $notice = '<div class="notice notice-success is-dismissible" style="padding:16px;border-left:4px solid #0D3B22;background:#f0fff4;border-radius:8px;margin-bottom:20px;">
                 <h3 style="margin:0 0 6px 0;color:#0D3B22;">&#10003; Data Profil Dosen Berhasil Diperbarui!</h3>
                 <p style="margin:0;font-size:13.5px;color:#2d3748;">
@@ -4107,10 +4158,26 @@ function bk_fip_render_sync_dosen_page() {
                             <?php if (empty($all_dosen)) : ?>
                                 <tr><td colspan="7" style="text-align:center;padding:40px;color:#6B7280;">Belum ada data dosen. Silakan klik tombol sinkronisasi di atas.</td></tr>
                             <?php else : 
+                                $all_matkul = function_exists('ppb_get_mata_kuliah_list') ? ppb_get_mata_kuliah_list(true) : array();
+                                $mk_ids_by_dosen = array();
+                                if (is_array($all_matkul)) {
+                                    foreach ($all_matkul as $mk_row) {
+                                        $mid = sanitize_key($mk_row['id'] ?? '');
+                                        if ($mid === '' || empty($mk_row['dosen_slugs']) || !is_array($mk_row['dosen_slugs'])) continue;
+                                        foreach ($mk_row['dosen_slugs'] as $ds_slug) {
+                                            $ds_slug = sanitize_title($ds_slug);
+                                            if ($ds_slug !== '') {
+                                                $mk_ids_by_dosen[$ds_slug][] = $mid;
+                                            }
+                                        }
+                                    }
+                                }
                                 $no = 1;
                                 $total_count = count($all_dosen);
                                 foreach ($all_dosen as $d) : 
                                     $slug = $d['slug'] ?? '';
+                                    $mk_ids_for_d = array_values(array_unique($mk_ids_by_dosen[sanitize_title($slug)] ?? array()));
+                                    $mk_cnt_for_d = !empty($mk_ids_for_d) ? count($mk_ids_for_d) : count($d['mata_kuliah'] ?? array());
                                     $nama_lengkap = $d['nama_lengkap'] ?? ($d['nama'] ?? '');
                                     $nama_panggilan = $d['nama_panggilan'] ?? '';
                                     $jabatan = $d['jabatan_fungsional'] ?? 'Dosen BK';
@@ -4167,6 +4234,7 @@ function bk_fip_render_sync_dosen_page() {
                                         'bio'                => $d['bio'] ?? '',
                                         'pendidikan'         => $d['pendidikan'] ?? array(),
                                         'pengalaman'         => $d['pengalaman'] ?? array(),
+                                        'mk_ids'             => $mk_ids_for_d,
                                     )), ENT_QUOTES, 'UTF-8');
                             ?>
                                 <tr id="dosen-row-<?php echo esc_attr($slug); ?>" data-slug="<?php echo esc_attr($slug); ?>" data-nama="<?php echo esc_attr($nama_lengkap); ?>" data-rank="<?php echo (int)$h_rank; ?>" style="transition:background 0.3s ease;">
@@ -4204,6 +4272,9 @@ function bk_fip_render_sync_dosen_page() {
                                                 🎯 <?php echo esc_html($kepakaran_str); ?>
                                             </div>
                                         <?php endif; ?>
+                                        <div style="margin-top:4px;">
+                                            <span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;background:#E8F0EA;color:#0D3B22;border:1px solid #C5DACB;padding:1px 7px;border-radius:999px;">📖 <?php echo (int) $mk_cnt_for_d; ?> MK Diampu</span>
+                                        </div>
                                     </td>
                                     <td style="vertical-align:middle;padding:10px;">
                                         <span style="background:<?php echo $badge_bg; ?>;color:<?php echo $badge_col; ?>;border:1px solid <?php echo $badge_border; ?>;padding:3px 8px;border-radius:9999px;font-size:10.5px;font-weight:700;letter-spacing:0.03em;display:inline-block;white-space:nowrap;">
@@ -4427,6 +4498,48 @@ function bk_fip_render_sync_dosen_page() {
                                 <input type="text" name="no_hp" id="edit-nohp" placeholder="08... / Gd FIP Lt. 2" style="width:100%;height:36px;border-radius:8px;border:1.5px solid #D1D5DB;padding:0 10px;font-size:12.5px;">
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Mata Kuliah Diampu (Auto-Sync dengan Manajemen Mata Kuliah) -->
+                    <div style="background:#FAF8F5;border:1.5px solid #D4E3D8;border-radius:12px;padding:16px;margin-bottom:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <h4 style="margin:0;font-size:13px;font-weight:800;color:#0D3B22;text-transform:uppercase;letter-spacing:0.04em;">📖 Mata Kuliah yang Diampu</h4>
+                                <span id="edit-mk-count" style="background:#0D3B22;color:#F5B82E;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;">0 dipilih</span>
+                            </div>
+                            <a href="<?php echo esc_url(admin_url('admin.php?page=ppb-mata-kuliah-manager')); ?>" target="_blank" style="font-size:11.5px;font-weight:700;color:#0D3B22;text-decoration:underline;">Kelola RPS/SAP &amp; MK Baru ↗</a>
+                        </div>
+                        <?php if (!empty($all_matkul) && is_array($all_matkul)) : ?>
+                            <input type="hidden" name="mk_ids_present" value="1">
+                            <input type="text" id="edit-mk-search" oninput="bkFilterModalMk(this.value)" placeholder="Cari kode atau nama mata kuliah (mis. BK103, Konseling, S2)..." style="width:100%;height:34px;border-radius:8px;border:1.5px solid #D1D5DB;padding:0 10px;font-size:12.5px;margin-bottom:10px;background:#ffffff;">
+                            <div id="edit-mk-checklist" style="max-height:210px;overflow-y:auto;background:#ffffff;border:1px solid #D1D5DB;border-radius:8px;padding:6px;display:grid;gap:4px;">
+                                <?php foreach ($all_matkul as $mk_opt) :
+                                    $opt_id   = sanitize_key($mk_opt['id'] ?? '');
+                                    $opt_kode = (string) ($mk_opt['kode'] ?? '');
+                                    $opt_nama = (string) ($mk_opt['nama'] ?? '');
+                                    if ($opt_id === '' || $opt_nama === '') continue;
+                                    $opt_jenj = (string) ($mk_opt['jenjang'] ?? 'S1');
+                                    $opt_sks  = (int) ($mk_opt['sks'] ?? 3);
+                                    $opt_sem  = (int) ($mk_opt['semester'] ?? 1);
+                                    $opt_rps  = !empty($mk_opt['rps_url']);
+                                    $opt_search = strtolower(trim($opt_kode . ' ' . $opt_nama . ' ' . $opt_jenj . ' sem ' . $opt_sem));
+                                ?>
+                                    <label class="bk-modal-mk-row" data-search="<?php echo esc_attr($opt_search); ?>" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 9px;border-radius:6px;cursor:pointer;border:1px solid transparent;transition:background 0.15s;" onmouseover="this.style.background='#F2F6F3'" onmouseout="this.style.background='transparent'">
+                                        <span style="display:flex;align-items:center;gap:8px;min-width:0;">
+                                            <input type="checkbox" class="bk-modal-mk-cb" name="mk_ids[]" value="<?php echo esc_attr($opt_id); ?>" onchange="bkRefreshModalMkCount()" style="margin:0;flex-shrink:0;">
+                                            <span style="font-family:monospace;font-size:11px;font-weight:700;background:#E8F0EA;color:#0D3B22;padding:2px 6px;border-radius:4px;flex-shrink:0;"><?php echo esc_html($opt_kode); ?></span>
+                                            <span style="font-size:12.5px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo esc_html($opt_nama); ?></span>
+                                        </span>
+                                        <span style="display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-size:10.5px;color:#4B5563;">
+                                            <span style="background:#F3F4F6;padding:1px 6px;border-radius:4px;font-weight:600;"><?php echo esc_html($opt_jenj); ?> &middot; <?php echo $opt_sks; ?> SKS &middot; Sem <?php echo $opt_sem; ?></span>
+                                            <?php if ($opt_rps) : ?><span style="background:#DCFCE7;color:#166534;padding:1px 5px;border-radius:4px;font-weight:700;">RPS</span><?php endif; ?>
+                                        </span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else : ?>
+                            <p style="margin:0;font-size:12px;color:#6B7280;">Belum ada data mata kuliah terdaftar. Tambahkan melalui menu Manajemen Mata Kuliah.</p>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Modal Actions -->
@@ -4684,6 +4797,24 @@ function bk_fip_render_sync_dosen_page() {
                 bkAddPengalamanItem('', '', '');
             }
         }
+        // Populate Mata Kuliah Diampu (Auto-Sync)
+        var mkSearch = document.getElementById('edit-mk-search');
+        if (mkSearch) {
+            mkSearch.value = '';
+            bkFilterModalMk('');
+        }
+        var mkLookup = {};
+        if (d.mk_ids && Array.isArray(d.mk_ids)) {
+            d.mk_ids.forEach(function(id) {
+                if (id) mkLookup[String(id)] = true;
+            });
+        }
+        var mkCheckboxes = document.querySelectorAll('.bk-modal-mk-cb');
+        mkCheckboxes.forEach(function(cb) {
+            cb.checked = !!mkLookup[String(cb.value)];
+        });
+        bkRefreshModalMkCount();
+
         document.getElementById('modal-title').innerText = 'Edit Data: ' + (d.nama_lengkap || d.slug);
 
         var modal = document.getElementById('bk-edit-modal-backdrop');
@@ -4693,6 +4824,26 @@ function bk_fip_render_sync_dosen_page() {
     function bkCloseEditModal() {
         var modal = document.getElementById('bk-edit-modal-backdrop');
         modal.style.display = 'none';
+    }
+
+    function bkRefreshModalMkCount() {
+        var countEl = document.getElementById('edit-mk-count');
+        if (!countEl) return;
+        var checked = document.querySelectorAll('.bk-modal-mk-cb:checked').length;
+        countEl.textContent = checked + ' dipilih';
+    }
+
+    function bkFilterModalMk(query) {
+        var q = (query || '').toLowerCase().trim();
+        var rows = document.querySelectorAll('#edit-mk-checklist .bk-modal-mk-row');
+        rows.forEach(function(row) {
+            var hay = (row.getAttribute('data-search') || '').toLowerCase();
+            if (!q || hay.indexOf(q) !== -1) {
+                row.style.display = 'flex';
+            } else {
+                row.style.display = 'none';
+            }
+        });
     }
 
     function bkUpdatePhotoPreview(url) {
@@ -5059,6 +5210,51 @@ function bk_fip_run_site_health_db_optimization() {
         'ppb_mega_menu_autoseeded_v3',
         'ppb_mega_menu_autoseeded_v4',
         'ppb_spotlight_defaults_v2',
+        'ppb_mata_kuliah_list',
+        'ppb_mata_kuliah_seeded_v1',
+        'ppb_lamdik_settings',
+        'ppb_link_buku_kurikulum',
+        'ppb_link_sk_kurikulum',
+        'ppb_link_pedoman_penilaian',
+        'ppb_link_pedoman_skripsi',
+        'ppb_link_rubrik_konseling',
+        'ppb_link_rubrik_project',
+        'ppb_link_sk_kepakaran',
+        'ppb_link_moa_pendidikan',
+        'ppb_link_moa_penelitian',
+        'ppb_link_moa_pkm',
+        'ppb_link_roadmap_pilar1_sk',
+        'ppb_link_roadmap_pilar1_doc',
+        'ppb_link_roadmap_pilar2_sk',
+        'ppb_link_roadmap_pilar2_doc',
+        'ppb_link_roadmap_pilar3_sk',
+        'ppb_link_roadmap_pilar3_doc',
+        'ppb_km_total_aktif',
+        'ppb_km_lulus_tepat_waktu',
+        'ppb_km_persen_3t',
+        'ppb_km_rasio_dosen',
+        'ppb_km_ipk_rata',
+        'ppb_ts_response_rate',
+        'ppb_ts_waktu_tunggu_3bln',
+        'ppb_ts_keselarasan_tinggi',
+        'ppb_ts_kepuasan_sangat_baik',
+        'ppb_ts_drive_laporan_link',
+        'ppb_ts_catatan_analisis',
+        'ppb_layanan_wa_hotline',
+        'ppb_layanan_jam_operasional',
+        'ppb_layanan_lokasi_lab',
+        'ppb_layanan_sop_perlindungan_link',
+        'ppb_layanan_sipadu_url',
+        'ppb_layanan_survei_url',
+        'ppb_survei_submissions',
+        'ppb_survei_settings',
+        'ppb_mis_pnbp_data',
+        'ppb_jurnal_bk_data',
+        'ppb_maba_statistik_data',
+        'ppb_mbkm_kemanusiaan_data',
+        'ppb_lab_kegiatan_list',
+        'ppb_lab_lomba_list',
+        'ppb_sarpras_list',
     );
 
     foreach ($large_options as $opt_name) {
