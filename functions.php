@@ -2375,267 +2375,530 @@ add_filter('document_title_parts', function($title_parts) {
 
 /**
  * --------------------------------------------------------------------------
- * SUPABASE BK-CONNECT INTEGRATION & SYNC ENGINE
+ * SINTA KEMDIKTISAINTEK DIRECT INTEGRATION & HYBRID SYNC ENGINE
  * --------------------------------------------------------------------------
  */
-if (!defined('BK_SUPABASE_URL')) {
-    define('BK_SUPABASE_URL', 'https://bhrmckukselzpvvectwt.supabase.co');
-}
-if (!defined('BK_SUPABASE_ANON_KEY')) {
-    define('BK_SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJocm1ja3Vrc2VsenB2dmVjdHd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjA2NTYsImV4cCI6MjA5NTQ5NjY1Nn0.A3M5ieKqotcOL9gk297IqiBbsRxkL61n6rg3_UJPpcM');
+function bk_fip_get_sinta_sync_token() {
+    $token = get_option('bk_sinta_sync_token', '');
+    if (empty($token)) {
+        $token = wp_generate_password(40, false, false);
+        update_option('bk_sinta_sync_token', $token, false);
+    }
+    return $token;
 }
 
-function bk_fip_sync_dosen_from_supabase() {
-    $headers = array(
-        'apikey'        => BK_SUPABASE_ANON_KEY,
-        'Authorization' => 'Bearer ' . BK_SUPABASE_ANON_KEY,
+function bk_fip_extract_sinta_id($dosen) {
+    $sid = trim((string)($dosen['sinta_id'] ?? ''));
+    if ($sid !== '' && preg_match('/^\d+$/', $sid)) {
+        return $sid;
+    }
+    $surl = trim((string)($dosen['sinta_url'] ?? ''));
+    if ($surl !== '' && preg_match('/\/authors\/profile\/(\d+)/', $surl, $m)) {
+        return $m[1];
+    }
+    return '';
+}
+
+function bk_fip_load_dosen_data() {
+    $json_file = get_template_directory() . '/dosen-data.json';
+    $list = file_exists($json_file) ? json_decode(file_get_contents($json_file), true) : array();
+    if (!is_array($list) || empty($list)) {
+        $list = get_option('bk_dosen_data_cache', array());
+    }
+    return is_array($list) ? $list : array();
+}
+
+function bk_fip_save_dosen_data($dosen_list) {
+    $json_path = get_template_directory() . '/dosen-data.json';
+    file_put_contents($json_path, json_encode($dosen_list, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    update_option('bk_dosen_data_cache', $dosen_list, false);
+    update_option('bk_dosen_last_synced', current_time('mysql'));
+    if (function_exists('bk_fip_rebuild_dosen_roster_html')) {
+        bk_fip_rebuild_dosen_roster_html($dosen_list);
+    }
+}
+
+function bk_fip_sinta_http_get($url) {
+    $resp = wp_remote_get($url, array(
+        'timeout' => 20,
+        'headers' => array(
+            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'Accept'     => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        ),
+    ));
+    if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) {
+        return false;
+    }
+    return wp_remote_retrieve_body($resp);
+}
+
+function bk_fip_parse_sinta_int($str) {
+    $cleaned = preg_replace('/[^\d]/', '', (string)$str);
+    return $cleaned !== '' ? (int)$cleaned : 0;
+}
+
+function bk_fip_sinta_dom($html) {
+    if (empty($html) || !class_exists('DOMDocument')) {
+        return null;
+    }
+    libxml_use_internal_errors(true);
+    $dom = new DOMDocument();
+    $dom->loadHTML('<?xml encoding="UTF-8">' . $html);
+    libxml_clear_errors();
+    return new DOMXPath($dom);
+}
+
+function bk_fip_parse_sinta_profile_metrics($html) {
+    $metrics = array(
+        'sinta_score_overall' => 0,
+        'sinta_score_3yr'     => 0,
+        'scopus_articles'     => 0,
+        'scopus_citations'    => 0,
+        'scopus_h_index'      => 0,
+        'gs_articles'         => 0,
+        'gs_citations'        => 0,
+        'gs_h_index'          => 0,
     );
+    $xpath = bk_fip_sinta_dom($html);
+    if (!$xpath) return $metrics;
 
-    // 1. Fetch Dosen
-    $resp_dosen = wp_remote_get(BK_SUPABASE_URL . '/rest/v1/dosen?select=*&aktif=eq.true&order=urutan.asc,nama.asc', array('headers' => $headers, 'timeout' => 25));
-    if (is_wp_error($resp_dosen) || wp_remote_retrieve_response_code($resp_dosen) !== 200) {
-        $msg = is_wp_error($resp_dosen) ? $resp_dosen->get_error_message() : 'HTTP ' . wp_remote_retrieve_response_code($resp_dosen);
-        return array('success' => false, 'error' => 'Gagal mengambil data dosen: ' . $msg);
-    }
-    $raw_dosen = json_decode(wp_remote_retrieve_body($resp_dosen), true);
-    if (!is_array($raw_dosen) || empty($raw_dosen)) {
-        return array('success' => false, 'error' => 'Data dosen kosong dari Supabase.');
-    }
-
-    // 2. Fetch Publikasi
-    $resp_pub = wp_remote_get(BK_SUPABASE_URL . '/rest/v1/dosen_publikasi?select=*&order=tahun.desc', array('headers' => $headers, 'timeout' => 25));
-    $raw_pub = (!is_wp_error($resp_pub) && wp_remote_retrieve_response_code($resp_pub) === 200) ? json_decode(wp_remote_retrieve_body($resp_pub), true) : array();
-    if (!is_array($raw_pub)) $raw_pub = array();
-
-    // 3. Fetch Penelitian
-    $resp_pen = wp_remote_get(BK_SUPABASE_URL . '/rest/v1/dosen_penelitian?select=*&order=tahun.desc', array('headers' => $headers, 'timeout' => 25));
-    $raw_pen = (!is_wp_error($resp_pen) && wp_remote_retrieve_response_code($resp_pen) === 200) ? json_decode(wp_remote_retrieve_body($resp_pen), true) : array();
-    if (!is_array($raw_pen)) $raw_pen = array();
-
-    // 4. Fetch Pengabdian
-    $resp_peng = wp_remote_get(BK_SUPABASE_URL . '/rest/v1/dosen_pengabdian?select=*&order=tahun.desc', array('headers' => $headers, 'timeout' => 25));
-    $raw_peng = (!is_wp_error($resp_peng) && wp_remote_retrieve_response_code($resp_peng) === 200) ? json_decode(wp_remote_retrieve_body($resp_peng), true) : array();
-    if (!is_array($raw_peng)) $raw_peng = array();
-
-    // 5. Fetch Buku
-    $resp_buku = wp_remote_get(BK_SUPABASE_URL . '/rest/v1/dosen_buku?select=*&order=tahun.desc', array('headers' => $headers, 'timeout' => 25));
-    $raw_buku = (!is_wp_error($resp_buku) && wp_remote_retrieve_response_code($resp_buku) === 200) ? json_decode(wp_remote_retrieve_body($resp_buku), true) : array();
-    if (!is_array($raw_buku)) $raw_buku = array();
-
-    // Index related records by dosen_id
-    $pub_by_dosen = array();
-    foreach ($raw_pub as $p) {
-        $did = $p['dosen_id'] ?? '';
-        if ($did) $pub_by_dosen[$did][] = $p;
-    }
-    $pen_by_dosen = array();
-    foreach ($raw_pen as $p) {
-        $did = $p['dosen_id'] ?? '';
-        if ($did) $pen_by_dosen[$did][] = $p;
-    }
-    $peng_by_dosen = array();
-    foreach ($raw_peng as $p) {
-        $did = $p['dosen_id'] ?? '';
-        if ($did) $peng_by_dosen[$did][] = $p;
-    }
-    $buku_by_dosen = array();
-    foreach ($raw_buku as $p) {
-        $did = $p['dosen_id'] ?? '';
-        if ($did) $buku_by_dosen[$did][] = $p;
+    $pr_nums = $xpath->query("//*[contains(concat(' ', normalize-space(@class), ' '), ' pr-num ')]");
+    foreach ($pr_nums as $num_node) {
+        $val = bk_fip_parse_sinta_int($num_node->textContent);
+        $sib = $num_node->nextSibling;
+        while ($sib && $sib->nodeType !== XML_ELEMENT_NODE) {
+            $sib = $sib->nextSibling;
+        }
+        if ($sib && strpos(' ' . $sib->getAttribute('class') . ' ', ' pr-txt ') !== false) {
+            $label = strtolower(trim($sib->textContent));
+            if (strpos($label, 'sinta score overall') !== false) {
+                $metrics['sinta_score_overall'] = $val;
+            } elseif (strpos($label, 'sinta score 3yr') !== false) {
+                $metrics['sinta_score_3yr'] = $val;
+            }
+        }
     }
 
-    // Cache existing local edits so syncing NEVER wipes admin custom data
-    $existing_json_file = get_template_directory() . '/dosen-data.json';
-    $existing_map = array();
-    if (file_exists($existing_json_file)) {
-        $ex_list = json_decode(file_get_contents($existing_json_file), true);
-        if (is_array($ex_list)) {
-            foreach ($ex_list as $ex) {
-                if (!empty($ex['slug'])) {
-                    $existing_map[$ex['slug']] = $ex;
+    $rows = $xpath->query("//table[contains(concat(' ', normalize-space(@class), ' '), ' stat-table ')]//tr");
+    foreach ($rows as $row) {
+        $cols = $xpath->query("./th|./td", $row);
+        if ($cols->length < 3) continue;
+        $label = strtolower(trim($cols->item(0)->textContent));
+        if ($label === 'article') {
+            $metrics['scopus_articles'] = bk_fip_parse_sinta_int($cols->item(1)->textContent);
+            $metrics['gs_articles']     = bk_fip_parse_sinta_int($cols->item(2)->textContent);
+        } elseif ($label === 'citation') {
+            $metrics['scopus_citations'] = bk_fip_parse_sinta_int($cols->item(1)->textContent);
+            $metrics['gs_citations']     = bk_fip_parse_sinta_int($cols->item(2)->textContent);
+        } elseif ($label === 'h-index') {
+            $metrics['scopus_h_index'] = bk_fip_parse_sinta_int($cols->item(1)->textContent);
+            $metrics['gs_h_index']     = bk_fip_parse_sinta_int($cols->item(2)->textContent);
+        }
+    }
+    return $metrics;
+}
+
+function bk_fip_parse_sinta_publications($html, $source_type) {
+    $items = array();
+    $xpath = bk_fip_sinta_dom($html);
+    if (!$xpath) return $items;
+
+    $cards = $xpath->query("//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-list-item ')]");
+    foreach ($cards as $card) {
+        $title_a = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-title ')]//a", $card)->item(0);
+        if (!$title_a) continue;
+        $judul = trim(preg_replace('/\s+/', ' ', $title_a->textContent));
+        if ($judul === '') continue;
+
+        $url = trim($title_a->getAttribute('href'));
+        if ($url === '#!') $url = '';
+
+        $pub_el = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-pub ')]", $card)->item(0);
+        $media = $pub_el ? trim(preg_replace('/\s+/', ' ', $pub_el->textContent)) : '';
+
+        $year_el = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-year ')]", $card)->item(0);
+        $tahun = 0;
+        if ($year_el && preg_match('/\b(19\d{2}|20\d{2})\b/', $year_el->textContent, $ym)) {
+            $tahun = (int)$ym[1];
+        }
+
+        $quart_el = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-quartile ')]", $card)->item(0);
+        $quart_txt = $quart_el ? trim(preg_replace('/\s+/', ' ', $quart_el->textContent)) : '';
+
+        $peran = 'Anggota';
+        $penulis = '';
+        $meta_links = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-meta ')]//a", $card);
+        foreach ($meta_links as $ma) {
+            $mt = trim(preg_replace('/\s+/', ' ', $ma->textContent));
+            $lower = strtolower($mt);
+            if (strpos($lower, 'author order') === 0) {
+                if (preg_match('/:\s*1\b/', $mt)) {
+                    $peran = 'Penulis Utama';
+                }
+            } elseif (strpos($lower, 'creator :') === 0 || strpos($lower, 'authors :') === 0) {
+                $parts = explode(':', $mt, 2);
+                $penulis = isset($parts[1]) ? trim($parts[1]) : '';
+            }
+        }
+
+        if ($source_type === 'Scopus') {
+            $akreditasi = preg_match('/\b(Q[1-4]|no-Q)\b/i', $quart_txt, $qm) ? $qm[1] : 'Scopus';
+        } elseif ($source_type === 'GARUDA') {
+            $akreditasi = preg_match('/\b(SINTA\s*[1-6])\b/i', $quart_txt, $sm) ? strtoupper($sm[1]) : 'GARUDA';
+        } else {
+            $akreditasi = 'Scholar';
+        }
+
+        $items[] = array(
+            'judul'      => $judul,
+            'tahun'      => $tahun,
+            'media'      => $media,
+            'akreditasi' => $akreditasi,
+            'peran'      => $peran,
+            'url'        => $url,
+            'sumber'     => $source_type,
+            'penulis'    => $penulis,
+        );
+    }
+    return $items;
+}
+
+function bk_fip_parse_sinta_researches_or_services($html, $is_service = false, $author_name = '') {
+    $items = array();
+    $xpath = bk_fip_sinta_dom($html);
+    if (!$xpath) return $items;
+
+    $first_name = strtolower(trim(explode(',', (string)$author_name)[0]));
+    $cards = $xpath->query("//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-list-item ')]");
+    foreach ($cards as $card) {
+        $title_a = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-title ')]//a", $card)->item(0);
+        if (!$title_a) continue;
+        $judul = trim(preg_replace('/\s+/', ' ', $title_a->textContent));
+        if ($judul === '') continue;
+
+        $pub_el = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-pub ')]", $card)->item(0);
+        $sumber_dana = $pub_el ? trim(preg_replace('/\s+/', ' ', $pub_el->textContent)) : ($is_service ? 'PNBP UNM' : 'KEMENDIKBUDRISTEK');
+
+        $year_el = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-year ')]", $card)->item(0);
+        $tahun = 0;
+        if ($year_el && preg_match('/\b(19\d{2}|20\d{2})\b/', $year_el->textContent, $ym)) {
+            $tahun = (int)$ym[1];
+        }
+
+        $leader = '';
+        $meta_links = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-meta ')]//a", $card);
+        foreach ($meta_links as $ma) {
+            $mt = trim(preg_replace('/\s+/', ' ', $ma->textContent));
+            if (stripos($mt, 'leader :') === 0) {
+                $parts = explode(':', $mt, 2);
+                $leader = isset($parts[1]) ? trim($parts[1]) : '';
+                break;
+            }
+        }
+
+        $is_leader = ($first_name !== '' && $leader !== '' && strpos(strtolower($leader), $first_name) !== false);
+        if ($is_service) {
+            $peran = $is_leader ? 'Ketua Pelaksana' : ($leader !== '' ? 'Ketua: ' . $leader : 'Anggota');
+            $items[] = array(
+                'judul'       => $judul,
+                'tahun'       => $tahun,
+                'peran'       => $peran,
+                'sumber_dana' => $sumber_dana,
+                'lokasi'      => '',
+            );
+        } else {
+            $peran = $is_leader ? 'Ketua Peneliti' : ($leader !== '' ? 'Ketua: ' . $leader : 'Anggota');
+            $items[] = array(
+                'judul'       => $judul,
+                'tahun'       => $tahun,
+                'peran'       => $peran,
+                'sumber_dana' => $sumber_dana,
+                'lama_tahun'  => 1,
+            );
+        }
+    }
+    return $items;
+}
+
+function bk_fip_parse_sinta_books($html) {
+    $items = array();
+    $xpath = bk_fip_sinta_dom($html);
+    if (!$xpath) return $items;
+
+    $cards = $xpath->query("//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-list-item ')]");
+    foreach ($cards as $card) {
+        $title_a = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-title ')]//a", $card)->item(0);
+        if (!$title_a) continue;
+        $judul = trim(preg_replace('/\s+/', ' ', $title_a->textContent));
+        if ($judul === '') continue;
+
+        $pub_el = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-pub ')]", $card)->item(0);
+        $penerbit = $pub_el ? trim(preg_replace('/\s+/', ' ', $pub_el->textContent)) : '';
+
+        $year_el = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-year ')]", $card)->item(0);
+        $tahun = 0;
+        if ($year_el && preg_match('/\b(19\d{2}|20\d{2})\b/', $year_el->textContent, $ym)) {
+            $tahun = (int)$ym[1];
+        }
+
+        $quart_el = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' ar-quartile ')]", $card)->item(0);
+        $isbn_txt = $quart_el ? trim(preg_replace('/\s+/', ' ', $quart_el->textContent)) : '';
+        $isbn = trim(preg_replace('/^ISBN\s*:\s*/i', '', $isbn_txt));
+
+        $items[] = array(
+            'judul'    => $judul,
+            'tahun'    => $tahun,
+            'penerbit' => $penerbit,
+            'isbn'     => $isbn,
+        );
+    }
+    return $items;
+}
+
+function bk_fip_fetch_sinta_author($sinta_id, $author_name = '') {
+    $sinta_id = preg_replace('/[^\d]/', '', (string)$sinta_id);
+    if ($sinta_id === '') {
+        return new WP_Error('invalid_sinta_id', 'SINTA ID tidak valid.');
+    }
+
+    $base = 'https://sinta.kemdiktisaintek.go.id/authors/profile/' . $sinta_id;
+    $profile_html = bk_fip_sinta_http_get($base);
+    if ($profile_html === false) {
+        return new WP_Error('sinta_unreachable', 'Gagal menghubungi SINTA untuk ID ' . $sinta_id);
+    }
+
+    $metrics = bk_fip_parse_sinta_profile_metrics($profile_html);
+
+    $seen_titles = array();
+    $publikasi = array();
+    foreach (array('scopus' => 'Scopus', 'garuda' => 'GARUDA', 'googlescholar' => 'Google Scholar') as $view => $label) {
+        $vh = bk_fip_sinta_http_get($base . '/?view=' . $view);
+        if ($vh !== false) {
+            foreach (bk_fip_parse_sinta_publications($vh, $label) as $pub) {
+                $norm = preg_replace('/[^a-z0-9]+/', '', strtolower($pub['judul']));
+                if ($norm !== '' && !isset($seen_titles[$norm])) {
+                    $seen_titles[$norm] = true;
+                    $publikasi[] = $pub;
                 }
             }
         }
     }
+    usort($publikasi, function($a, $b) {
+        return ((int)($b['tahun'] ?? 0)) <=> ((int)($a['tahun'] ?? 0));
+    });
 
-    $existing_slugs = array();
-    $dosen_list = array();
+    $res_html = bk_fip_sinta_http_get($base . '/?view=researches');
+    $penelitian = ($res_html !== false) ? bk_fip_parse_sinta_researches_or_services($res_html, false, $author_name) : array();
 
-    foreach ($raw_dosen as $d) {
-        $did = $d['id'] ?? '';
-        $nama = trim($d['nama'] ?? '');
-        $nama_lengkap = trim($d['nama_lengkap'] ?? $nama);
+    $srv_html = bk_fip_sinta_http_get($base . '/?view=services');
+    $pengabdian = ($srv_html !== false) ? bk_fip_parse_sinta_researches_or_services($srv_html, true, $author_name) : array();
 
-        // Generate clean unique slug
-        $base_slug = sanitize_title(explode(',', $nama)[0]);
-        $prefixes = array('prof-', 'dr-', 'dra-', 'drs-', 'ir-', 'h-', 'hj-');
-        foreach ($prefixes as $pfx) {
-            if (strpos($base_slug, $pfx) === 0) {
-                $base_slug = substr($base_slug, strlen($pfx));
-            }
-        }
-        $slug = $base_slug;
-        $counter = 1;
-        while (in_array($slug, $existing_slugs)) {
-            $counter++;
-            $slug = $base_slug . '-' . $counter;
-        }
-        $existing_slugs[] = $slug;
-
-        // Kepakaran
-        $bidang = trim($d['bidang_keahlian'] ?? '');
-        $kepakaran_list = array();
-        if ($bidang) {
-            foreach (preg_split('/[,;
-]+/', $bidang) as $k) {
-                $k = trim($k);
-                if ($k) $kepakaran_list[] = $k;
-            }
-        }
-
-        $my_pubs = array();
-        if (isset($pub_by_dosen[$did])) {
-            foreach ($pub_by_dosen[$did] as $p) {
-                $my_pubs[] = array(
-                    'id'         => $p['id'] ?? '',
-                    'judul'      => trim($p['judul'] ?? ''),
-                    'tahun'      => (int)($p['tahun'] ?? 0),
-                    'media'      => trim($p['media'] ?? ''),
-                    'akreditasi' => trim($p['akreditasi'] ?? 'GARUDA'),
-                    'peran'      => trim($p['peran'] ?? 'Penulis Pertama'),
-                    'url'        => trim($p['url'] ?? ''),
-                    'sumber'     => trim($p['sumber'] ?? 'SINTA'),
-                    'penulis'    => trim($p['penulis'] ?? ''),
-                );
-            }
-        }
-
-        $my_pen = array();
-        if (isset($pen_by_dosen[$did])) {
-            foreach ($pen_by_dosen[$did] as $p) {
-                $my_pen[] = array(
-                    'id'          => $p['id'] ?? '',
-                    'judul'       => trim($p['judul'] ?? ''),
-                    'tahun'       => (int)($p['tahun'] ?? 0),
-                    'peran'       => trim($p['peran'] ?? 'Ketua Peneliti'),
-                    'sumber_dana' => trim($p['sumber_dana'] ?? 'KEMENDIKBUDRISTEK'),
-                    'lama_tahun'  => (int)($p['lama_tahun'] ?? 1),
-                );
-            }
-        }
-
-        $my_peng = array();
-        if (isset($peng_by_dosen[$did])) {
-            foreach ($peng_by_dosen[$did] as $p) {
-                $my_peng[] = array(
-                    'id'          => $p['id'] ?? '',
-                    'judul'       => trim($p['judul'] ?? ''),
-                    'tahun'       => (int)($p['tahun'] ?? 0),
-                    'peran'       => trim($p['peran'] ?? 'Ketua Pelaksana'),
-                    'sumber_dana' => trim($p['sumber_dana'] ?? 'PNBP UNM'),
-                    'lokasi'      => trim($p['lokasi'] ?? ''),
-                );
-            }
-        }
-
-        $my_buku = array();
-        if (isset($buku_by_dosen[$did])) {
-            foreach ($buku_by_dosen[$did] as $p) {
-                $my_buku[] = array(
-                    'id'       => $p['id'] ?? '',
-                    'judul'    => trim($p['judul'] ?? ''),
-                    'tahun'    => (int)($p['tahun'] ?? 0),
-                    'penerbit' => trim($p['penerbit'] ?? ''),
-                    'isbn'     => trim($p['isbn'] ?? ''),
-                );
-            }
-        }
-
-        // Merge with existing local admin edits if available
-        $prev = isset($existing_map[$slug]) ? $existing_map[$slug] : array();
-        $my_pend = !empty($prev['pendidikan']) ? $prev['pendidikan'] : (is_array($d['pendidikan'] ?? null) ? $d['pendidikan'] : array());
-        $my_peng = !empty($prev['pengalaman']) ? $prev['pengalaman'] : array();
-        $my_foto = !empty($prev['foto_link']) ? $prev['foto_link'] : trim($d['foto_link'] ?? '');
-        $my_panggilan = !empty($prev['nama_panggilan']) ? $prev['nama_panggilan'] : '';
-        $my_struktural = !empty($prev['jabatan_struktural']) ? $prev['jabatan_struktural'] : '';
-        $my_ruang = !empty($prev['ruang_kerja']) ? $prev['ruang_kerja'] : '';
-        $my_nidn = !empty($prev['nidn']) ? $prev['nidn'] : trim($d['nidn'] ?? '');
-        $my_kep = !empty($prev['kepakaran']) ? $prev['kepakaran'] : $kepakaran_list;
-
-        $dosen_list[] = array(
-            'id'                 => $did,
-            'nama'               => $nama,
-            'nama_lengkap'       => !empty($prev['nama_lengkap']) ? $prev['nama_lengkap'] : $nama_lengkap,
-            'nama_panggilan'     => $my_panggilan,
-            'slug'               => $slug,
-            'nip'                => !empty($prev['nip']) ? $prev['nip'] : trim($d['nip'] ?? ''),
-            'nidn'               => $my_nidn,
-            'email'              => !empty($prev['email']) ? $prev['email'] : trim($d['email'] ?? ''),
-            'no_hp'              => !empty($prev['no_hp']) ? $prev['no_hp'] : trim($d['no_hp'] ?? ''),
-            'unit'               => !empty($prev['unit']) ? $prev['unit'] : trim($d['unit'] ?? 'S1 Bimbingan dan Konseling'),
-            'jabatan_fungsional' => !empty($prev['jabatan_fungsional']) ? $prev['jabatan_fungsional'] : trim($d['jabatan_fungsional'] ?? 'Lektor'),
-            'jabatan_struktural' => $my_struktural,
-            'ruang_kerja'        => $my_ruang,
-            'bidang_keahlian'    => implode(', ', $my_kep),
-            'kepakaran'          => $my_kep,
-            'sinta_id'           => !empty($prev['sinta_id']) ? $prev['sinta_id'] : trim($d['sinta_id'] ?? ''),
-            'sinta_url'          => !empty($prev['sinta_url']) ? $prev['sinta_url'] : trim($d['sinta_url'] ?? ''),
-            'scholar_url'        => !empty($prev['scholar_url']) ? $prev['scholar_url'] : trim($d['scholar_url'] ?? ''),
-            'scopus_url'         => !empty($prev['scopus_url']) ? $prev['scopus_url'] : trim($d['scopus_url'] ?? ''),
-            'foto_link'          => $my_foto,
-            'bio'                => !empty($prev['bio']) ? $prev['bio'] : trim($d['bio'] ?? ''),
-            'stat'               => array(
-                'publikasi'  => count($my_pubs),
-                'penelitian' => count($my_pen),
-                'pengabdian' => count($my_peng),
-                'buku'       => count($my_buku),
-            ),
-            'publikasi'          => $my_pubs,
-            'penelitian'         => $my_pen,
-            'pengabdian'         => $my_peng,
-            'buku'               => $my_buku,
-            'pendidikan'         => $my_pend,
-            'pengalaman'         => $my_peng,
-        );
-    }
-
-    // Preserve custom order if previously configured
-    $saved_order = get_option('bk_dosen_custom_order', array());
-    if (!empty($saved_order) && is_array($saved_order)) {
-        usort($dosen_list, function($a, $b) use ($saved_order) {
-            $slug_a = $a['slug'] ?? '';
-            $slug_b = $b['slug'] ?? '';
-            $order_a = isset($saved_order[$slug_a]) ? (int)$saved_order[$slug_a] : 999;
-            $order_b = isset($saved_order[$slug_b]) ? (int)$saved_order[$slug_b] : 999;
-            if ($order_a === $order_b) {
-                return strcmp($a['nama_lengkap'] ?? '', $b['nama_lengkap'] ?? '');
-            }
-            return ($order_a < $order_b) ? -1 : 1;
-        });
-    }
-
-    // Save to dosen-data.json
-    $json_path = get_template_directory() . '/dosen-data.json';
-    file_put_contents($json_path, json_encode($dosen_list, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-
-    // Save persistent backup to WordPress options
-    update_option('bk_dosen_data_cache', $dosen_list, false);
-    update_option('bk_dosen_last_synced', current_time('mysql'));
-
-    // Automatically rebuild public page /profil/dosen/
-    if (function_exists('bk_fip_rebuild_dosen_roster_html')) {
-        bk_fip_rebuild_dosen_roster_html($dosen_list);
-    }
+    $book_html = bk_fip_sinta_http_get($base . '/?view=books');
+    $buku = ($book_html !== false) ? bk_fip_parse_sinta_books($book_html) : array();
 
     return array(
-        'success'    => true,
-        'dosen'      => count($dosen_list),
-        'publikasi'  => count($raw_pub),
-        'penelitian' => count($raw_pen),
-        'pengabdian' => count($raw_peng),
-        'buku'       => count($raw_buku),
+        'sinta_id'      => $sinta_id,
+        'sinta_metrics' => $metrics,
+        'publikasi'     => $publikasi,
+        'penelitian'    => $penelitian,
+        'pengabdian'    => $pengabdian,
+        'buku'          => $buku,
     );
 }
+
+function bk_fip_apply_sinta_updates($updates) {
+    if (!is_array($updates) || empty($updates)) {
+        return 0;
+    }
+
+    $dosen_list = bk_fip_load_dosen_data();
+    if (empty($dosen_list)) {
+        return 0;
+    }
+
+    $by_slug = array();
+    $by_sinta = array();
+    foreach ($updates as $u) {
+        if (!empty($u['slug'])) {
+            $by_slug[sanitize_title($u['slug'])] = $u;
+        }
+        if (!empty($u['sinta_id'])) {
+            $by_sinta[trim((string)$u['sinta_id'])] = $u;
+        }
+    }
+
+    $updated_count = 0;
+    $now = current_time('mysql');
+
+    foreach ($dosen_list as &$d) {
+        $slug = sanitize_title($d['slug'] ?? '');
+        $sid  = bk_fip_extract_sinta_id($d);
+
+        $match = null;
+        if ($slug !== '' && isset($by_slug[$slug])) {
+            $match = $by_slug[$slug];
+        } elseif ($sid !== '' && isset($by_sinta[$sid])) {
+            $match = $by_sinta[$sid];
+        }
+
+        if (!$match) {
+            continue;
+        }
+
+        if ($sid !== '' && empty($d['sinta_id'])) {
+            $d['sinta_id'] = $sid;
+        }
+        if (empty($d['sinta_url']) && !empty($d['sinta_id'])) {
+            $d['sinta_url'] = 'https://sinta.kemdiktisaintek.go.id/authors/profile/' . $d['sinta_id'];
+        }
+
+        if (isset($match['sinta_metrics']) && is_array($match['sinta_metrics'])) {
+            $d['sinta_metrics'] = $match['sinta_metrics'];
+        }
+        if (isset($match['publikasi']) && is_array($match['publikasi'])) {
+            $d['publikasi'] = $match['publikasi'];
+        }
+        if (isset($match['penelitian']) && is_array($match['penelitian'])) {
+            $d['penelitian'] = $match['penelitian'];
+        }
+        if (isset($match['pengabdian']) && is_array($match['pengabdian'])) {
+            $d['pengabdian'] = $match['pengabdian'];
+        }
+        if (isset($match['buku']) && is_array($match['buku'])) {
+            $d['buku'] = $match['buku'];
+        }
+
+        $d['stat'] = array(
+            'publikasi'  => count($d['publikasi'] ?? array()),
+            'penelitian' => count($d['penelitian'] ?? array()),
+            'pengabdian' => count($d['pengabdian'] ?? array()),
+            'buku'       => count($d['buku'] ?? array()),
+        );
+        $d['sinta_last_synced'] = $now;
+        $updated_count++;
+    }
+    unset($d);
+
+    if ($updated_count > 0) {
+        bk_fip_save_dosen_data($dosen_list);
+    }
+
+    return $updated_count;
+}
+
+function bk_fip_verify_sinta_rest_token($request) {
+    $auth = $request->get_header('authorization');
+    if (empty($auth) || stripos($auth, 'Bearer ') !== 0) {
+        return new WP_Error('unauthorized', 'Missing Bearer token.', array('status' => 401));
+    }
+    $provided = trim(substr($auth, 7));
+    $expected = bk_fip_get_sinta_sync_token();
+    if (!hash_equals($expected, $provided)) {
+        return new WP_Error('forbidden', 'Invalid SINTA sync token.', array('status' => 403));
+    }
+    return true;
+}
+
+add_action('rest_api_init', function() {
+    register_rest_route('bk-fip/v1', '/dosen-sinta-ids', array(
+        'methods'             => 'GET',
+        'permission_callback' => 'bk_fip_verify_sinta_rest_token',
+        'callback'            => function() {
+            $dosen_list = bk_fip_load_dosen_data();
+            $out = array();
+            foreach ($dosen_list as $d) {
+                $sid = bk_fip_extract_sinta_id($d);
+                if ($sid !== '') {
+                    $out[] = array(
+                        'slug'     => $d['slug'] ?? '',
+                        'nama'     => $d['nama_lengkap'] ?? ($d['nama'] ?? ''),
+                        'sinta_id' => $sid,
+                    );
+                }
+            }
+            return rest_ensure_response(array(
+                'count' => count($out),
+                'dosen' => $out,
+            ));
+        },
+    ));
+
+    register_rest_route('bk-fip/v1', '/sync-sinta', array(
+        'methods'             => 'POST',
+        'permission_callback' => 'bk_fip_verify_sinta_rest_token',
+        'callback'            => function($request) {
+            $body = $request->get_json_params();
+            $updates = isset($body['updates']) && is_array($body['updates']) ? $body['updates'] : array();
+            if (empty($updates)) {
+                return new WP_Error('empty_payload', 'No updates provided.', array('status' => 400));
+            }
+            $updated = bk_fip_apply_sinta_updates($updates);
+            return rest_ensure_response(array(
+                'success' => true,
+                'updated' => $updated,
+            ));
+        },
+    ));
+});
+
+add_action('wp_ajax_bk_sync_single_sinta', function() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => 'Akses ditolak.'));
+    }
+    check_ajax_referer('bk_sinta_ajax_nonce', 'nonce');
+
+    $slug = sanitize_title($_POST['slug'] ?? '');
+    if ($slug === '') {
+        wp_send_json_error(array('message' => 'Slug dosen tidak valid.'));
+    }
+
+    $dosen_list = bk_fip_load_dosen_data();
+    $target = null;
+    foreach ($dosen_list as $d) {
+        if (($d['slug'] ?? '') === $slug) {
+            $target = $d;
+            break;
+        }
+    }
+    if (!$target) {
+        wp_send_json_error(array('message' => 'Data dosen tidak ditemukan.'));
+    }
+
+    $sid = bk_fip_extract_sinta_id($target);
+    if ($sid === '') {
+        wp_send_json_error(array('message' => 'Dosen ini belum memiliki SINTA ID / SINTA URL.'));
+    }
+
+    $nama = $target['nama_lengkap'] ?? ($target['nama'] ?? '');
+    $scraped = bk_fip_fetch_sinta_author($sid, $nama);
+    if (is_wp_error($scraped)) {
+        wp_send_json_error(array('message' => $scraped->get_error_message()));
+    }
+
+    $scraped['slug'] = $slug;
+    $updated = bk_fip_apply_sinta_updates(array($scraped));
+
+    wp_send_json_success(array(
+        'slug'       => $slug,
+        'sinta_id'   => $sid,
+        'updated'    => $updated,
+        'publikasi'  => count($scraped['publikasi']),
+        'penelitian' => count($scraped['penelitian']),
+        'pengabdian' => count($scraped['pengabdian']),
+        'buku'       => count($scraped['buku']),
+        'metrics'    => $scraped['sinta_metrics'],
+    ));
+});
+
+add_action('wp_ajax_bk_regenerate_sinta_token', function() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => 'Akses ditolak.'));
+    }
+    check_ajax_referer('bk_sinta_ajax_nonce', 'nonce');
+    $token = wp_generate_password(40, false, false);
+    update_option('bk_sinta_sync_token', $token, false);
+    wp_send_json_success(array('token' => $token));
+});
 
 // Direktori Dosen kini terpusat di dalam 🏛️ Portal PPB FIP
 function bk_fip_register_direktori_dosen_menu() {}
@@ -3590,27 +3853,7 @@ function bk_fip_render_sync_dosen_page() {
         }
     }
 
-    // Handle Supabase Sync Action
-    if (isset($_POST['bk_trigger_supabase_sync']) && check_admin_referer('bk_supabase_sync_action', 'bk_supabase_sync_nonce')) {
-        $result = bk_fip_sync_dosen_from_supabase();
-        if ($result['success']) {
-            $notice = '<div class="notice notice-success is-dismissible" style="padding:16px;border-left:4px solid #0D3B22;background:#f0fff4;border-radius:8px;margin-bottom:20px;">
-                <h3 style="margin:0 0 6px 0;color:#0D3B22;">&#10003; Berhasil Menyinkronkan Data Dosen &amp; Rekam Jejak!</h3>
-                <p style="margin:0;font-size:13.5px;color:#2d3748;">
-                    Telah tersinkron <strong>' . (int)$result['dosen'] . ' Dosen</strong>, 
-                    <strong>' . (int)$result['publikasi'] . ' Publikasi Ilmiah</strong>, 
-                    <strong>' . (int)$result['penelitian'] . ' Penelitian/Hibah</strong>, 
-                    <strong>' . (int)$result['pengabdian'] . ' Pengabdian</strong>, dan 
-                    <strong>' . (int)$result['buku'] . ' Buku/Monograf</strong> dari Supabase BK-Connect.
-                </p>
-            </div>';
-        } else {
-            $notice = '<div class="notice notice-error is-dismissible" style="padding:16px;border-left:4px solid #dc2626;border-radius:8px;margin-bottom:20px;">
-                <h3 style="margin:0 0 6px 0;color:#991b1b;">&times; Gagal Sinkronisasi</h3>
-                <p style="margin:0;font-size:13.5px;color:#7f1d1d;">' . esc_html($result['error']) . '</p>
-            </div>';
-        }
-    }
+    // SINTA sync is handled via AJAX (per-dosen / batch) and GitHub Actions REST API
 
     // Handle Save Custom Order Action
     if (isset($_POST['bk_save_dosen_order']) && check_admin_referer('bk_dosen_order_action', 'bk_dosen_order_nonce')) {
@@ -3685,7 +3928,7 @@ function bk_fip_render_sync_dosen_page() {
                     Direktori Dosen &amp; Pengaturan Profil Akademik
                 </h1>
                 <p style="font-size:13.5px;color:#4B5563;margin:0;">
-                    Edit data profil dosen (NIP, Nama Panggilan, Kepakaran, Foto Transparan), atur urutan tampilan publik, dan integrasi pangkalan data Supabase BK-Connect.
+                    Edit data profil dosen (NIP, Nama Panggilan, Kepakaran, Foto Transparan), atur urutan tampilan publik, dan sinkronkan rekam jejak langsung dari SINTA Kemdiktisaintek.
                 </p>
             </div>
             <div>
@@ -3710,7 +3953,7 @@ function bk_fip_render_sync_dosen_page() {
             <div style="background:#ffffff;border:1px solid #D4E3D8;border-radius:14px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
                 <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;">Publikasi Ilmiah</div>
                 <div style="font-size:32px;font-weight:800;color:#F5B82E;line-height:1.2;margin:4px 0;"><?php echo $tot_pub; ?></div>
-                <div style="font-size:12px;color:#6B7280;">Scopus, SINTA, Garuda</div>
+                <div style="font-size:12px;color:#6B7280;">Scopus, SINTA, Garuda, Scholar</div>
             </div>
 
             <div style="background:#ffffff;border:1px solid #D4E3D8;border-radius:14px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
@@ -3726,26 +3969,52 @@ function bk_fip_render_sync_dosen_page() {
             </div>
         </div>
 
-        <!-- Sync Banner Card -->
-        <div style="background:linear-gradient(135deg, #0D3B22 0%, #155532 100%);border-radius:16px;padding:22px 28px;color:#ffffff;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;margin-bottom:26px;box-shadow:0 4px 16px rgba(13,59,34,0.12);">
-            <div style="max-width:640px;">
-                <h2 style="font-size:17px;font-weight:700;color:#ffffff;margin:0 0 6px 0;">
-                    Sinkronisasi dengan Supabase BK-Connect
-                </h2>
-                <p style="font-size:12.5px;line-height:1.55;color:rgba(255,255,255,0.85);margin:0 0 8px 0;">
-                    Tarik publikasi ilmiah, hibah riset, pengabdian masyarakat (PkM), dan buku monograf terbaru langsung dari database Supabase BK-Connect tanpa merusak data editan dan urutan kustom yang telah Anda simpan.
-                </p>
-                <div style="font-size:11.5px;color:#F5B82E;">
-                    &bull; Terakhir disinkronkan: <strong><?php echo esc_html($last_synced); ?></strong>
+        <!-- SINTA Sync Banner Card -->
+        <?php $sinta_token = bk_fip_get_sinta_sync_token(); ?>
+        <div style="background:linear-gradient(135deg, #0D3B22 0%, #155532 100%);border-radius:16px;padding:22px 28px;color:#ffffff;margin-bottom:26px;box-shadow:0 4px 16px rgba(13,59,34,0.12);">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;">
+                <div style="max-width:650px;">
+                    <h2 style="font-size:17px;font-weight:700;color:#ffffff;margin:0 0 6px 0;">
+                        Sinkronisasi Langsung SINTA Kemdiktisaintek
+                    </h2>
+                    <p style="font-size:12.5px;line-height:1.55;color:rgba(255,255,255,0.85);margin:0 0 8px 0;">
+                        Tarik skor SINTA, publikasi (Scopus, Garuda, Google Scholar), penelitian, pengabdian masyarakat, dan buku langsung dari SINTA berdasarkan SINTA ID masing-masing dosen tanpa menimpa editan manual admin.
+                    </p>
+                    <div style="font-size:11.5px;color:#F5B82E;">
+                        &bull; Terakhir disinkronkan: <strong id="bk-last-synced-label"><?php echo esc_html($last_synced); ?></strong>
+                    </div>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+                    <button type="button" id="bk-batch-sinta-btn" onclick="bkStartBatchSintaSync()" class="button button-primary" style="background:#F5B82E;color:#0D3B22;border:none;font-size:13.5px;font-weight:700;padding:10px 22px;border-radius:10px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.2);transition:all 0.2s;">
+                        ⚡ Sync Semua Dosen Sekarang
+                    </button>
+                    <button type="button" onclick="var el=document.getElementById('bk-gha-token-box');el.style.display=(el.style.display==='none'?'block':'none');" class="button" style="background:rgba(255,255,255,0.14);color:#ffffff;border:1px solid rgba(255,255,255,0.3);font-size:12.5px;font-weight:600;padding:9px 16px;border-radius:10px;cursor:pointer;">
+                        🔑 Token GitHub Actions
+                    </button>
                 </div>
             </div>
-            <div>
-                <form method="post" action="">
-                    <?php wp_nonce_field('bk_supabase_sync_action', 'bk_supabase_sync_nonce'); ?>
-                    <button type="submit" name="bk_trigger_supabase_sync" class="button button-primary" style="background:#F5B82E;color:#0D3B22;border:none;font-size:13.5px;font-weight:700;padding:10px 22px;border-radius:10px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.2);transition:all 0.2s;" onmouseover="this.style.background='#e5a93b'" onmouseout="this.style.background='#F5B82E'">
-                        ⚡ Tarik Data Terbaru Sekarang
-                    </button>
-                </form>
+
+            <!-- Batch Progress Bar -->
+            <div id="bk-sinta-progress-wrap" style="display:none;margin-top:16px;background:rgba(0,0,0,0.22);border-radius:10px;padding:12px 14px;">
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;">
+                    <span id="bk-sinta-progress-text">Mempersiapkan sinkronisasi SINTA...</span>
+                    <strong id="bk-sinta-progress-pct" style="color:#F5B82E;">0%</strong>
+                </div>
+                <div style="height:8px;background:rgba(255,255,255,0.15);border-radius:999px;overflow:hidden;">
+                    <div id="bk-sinta-progress-bar" style="height:100%;width:0%;background:#F5B82E;transition:width 0.25s ease;"></div>
+                </div>
+            </div>
+
+            <!-- GitHub Actions Token Box -->
+            <div id="bk-gha-token-box" style="display:none;margin-top:16px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:14px;">
+                <div style="font-size:12px;color:rgba(255,255,255,0.9);margin-bottom:8px;">
+                    Simpan token berikut ke GitHub Repository Secrets (<code>BK_SINTA_SYNC_TOKEN</code>) bersama <code>WP_SITE_URL</code> (<code><?php echo esc_html(home_url()); ?></code>) untuk jadwal sync otomatis mingguan:
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                    <input type="text" id="bk-sinta-token-input" readonly value="<?php echo esc_attr($sinta_token); ?>" style="flex:1;min-width:260px;font-family:monospace;font-size:12px;background:#ffffff;color:#0D3B22;border:none;border-radius:6px;padding:6px 10px;">
+                    <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('bk-sinta-token-input').value);this.textContent='✓ Tersalin';setTimeout(()=>this.textContent='Salin Token',1500);" class="button" style="background:#F5B82E;color:#0D3B22;border:none;font-weight:700;border-radius:6px;">Salin Token</button>
+                    <button type="button" onclick="bkRegenerateSintaToken(this)" class="button" style="background:rgba(255,255,255,0.16);color:#ffffff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;">Regenerate</button>
+                </div>
             </div>
         </div>
 
@@ -3918,6 +4187,9 @@ function bk_fip_render_sync_dosen_page() {
                                     <td style="text-align:center;vertical-align:middle;padding:10px;"><strong style="color:#0D3B22;font-size:13px;"><?php echo $pen_cnt; ?></strong></td>
                                     <td style="text-align:center;vertical-align:middle;padding:10px;">
                                         <div style="display:inline-flex;gap:6px;align-items:center;">
+                                            <button type="button" class="button button-small bk-sync-sinta-btn" data-slug="<?php echo esc_attr($slug); ?>" data-nama="<?php echo esc_attr($nama_lengkap); ?>" onclick="bkSyncSingleSinta('<?php echo esc_js($slug); ?>', this)" title="Tarik data terbaru dari SINTA" style="background:#E8F0EA;color:#0D3B22;border:1px solid #C5DACB;font-weight:700;border-radius:6px;padding:4px 9px;font-size:11.5px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;">
+                                                <span>🔄 SINTA</span>
+                                            </button>
                                             <button type="button" class="button button-small" onclick='bkOpenEditModal(<?php echo $edit_json; ?>)' style="background:#F5B82E;color:#0D3B22;border:none;font-weight:700;border-radius:6px;padding:4px 10px;font-size:11.5px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
                                                 <span>✏️ Edit</span>
                                             </button>
@@ -4094,10 +4366,14 @@ function bk_fip_render_sync_dosen_page() {
                             <span>🌐 Repositori Akademik &amp; Kontak Resmi</span>
                         </h4>
 
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                        <div style="display:grid;grid-template-columns:160px 1fr 1fr;gap:14px;margin-bottom:14px;">
+                            <div>
+                                <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:4px;">SINTA ID (Angka):</label>
+                                <input type="text" name="sinta_id" id="edit-sinta-id" placeholder="6656787" style="width:100%;height:36px;border-radius:8px;border:1.5px solid #D1D5DB;padding:0 10px;font-size:12.5px;font-family:monospace;">
+                            </div>
                             <div>
                                 <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:4px;">SINTA Dikti URL:</label>
-                                <input type="url" name="sinta_url" id="edit-sinta-url" placeholder="https://sinta.kemdikbud.go.id/authors/profile/..." style="width:100%;height:36px;border-radius:8px;border:1.5px solid #D1D5DB;padding:0 10px;font-size:12.5px;">
+                                <input type="url" name="sinta_url" id="edit-sinta-url" placeholder="https://sinta.kemdiktisaintek.go.id/authors/profile/..." style="width:100%;height:36px;border-radius:8px;border:1.5px solid #D1D5DB;padding:0 10px;font-size:12.5px;">
                             </div>
                             <div>
                                 <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:4px;">Google Scholar URL:</label>
@@ -4341,6 +4617,7 @@ function bk_fip_render_sync_dosen_page() {
         document.getElementById('edit-unit').value = d.unit || 'S1 Bimbingan dan Konseling';
         document.getElementById('edit-foto-link').value = d.foto_link || '';
         document.getElementById('edit-kepakaran').value = d.kepakaran || '';
+        document.getElementById('edit-sinta-id').value = d.sinta_id || '';
         document.getElementById('edit-sinta-url').value = d.sinta_url || '';
         document.getElementById('edit-scholar-url').value = d.scholar_url || '';
         document.getElementById('edit-scopus-url').value = d.scopus_url || '';
@@ -4419,6 +4696,109 @@ function bk_fip_render_sync_dosen_page() {
         } else {
             alert('Fitur Media Library WordPress tidak tersedia.');
         }
+    }
+
+    var bkSintaNonce = '<?php echo esc_js(wp_create_nonce("bk_sinta_ajax_nonce")); ?>';
+
+    function bkSyncSingleSinta(slug, btnEl) {
+        if (!slug) return;
+        var origText = btnEl ? btnEl.innerHTML : '';
+        if (btnEl) {
+            btnEl.disabled = true;
+            btnEl.innerHTML = '<span>⏳ Sync...</span>';
+        }
+        var fd = new FormData();
+        fd.append('action', 'bk_sync_single_sinta');
+        fd.append('nonce', bkSintaNonce);
+        fd.append('slug', slug);
+
+        return fetch(ajaxurl, { method: 'POST', body: fd, credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    if (res && res.success) {
+                        btnEl.innerHTML = '<span>✓ SINTA</span>';
+                        setTimeout(function() { btnEl.innerHTML = origText; }, 2200);
+                    } else {
+                        btnEl.innerHTML = '<span>⚠ Gagal</span>';
+                        setTimeout(function() { btnEl.innerHTML = origText; }, 2200);
+                    }
+                }
+                return res;
+            })
+            .catch(function(err) {
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = origText;
+                }
+                return { success: false, data: { message: String(err) } };
+            });
+    }
+
+    async function bkStartBatchSintaSync() {
+        var btns = Array.prototype.slice.call(document.querySelectorAll('.bk-sync-sinta-btn'));
+        if (!btns.length) return;
+
+        var mainBtn = document.getElementById('bk-batch-sinta-btn');
+        var wrap = document.getElementById('bk-sinta-progress-wrap');
+        var bar = document.getElementById('bk-sinta-progress-bar');
+        var txt = document.getElementById('bk-sinta-progress-text');
+        var pct = document.getElementById('bk-sinta-progress-pct');
+
+        if (mainBtn) {
+            mainBtn.disabled = true;
+            mainBtn.textContent = '⏳ Sedang Sinkronisasi...';
+        }
+        if (wrap) wrap.style.display = 'block';
+
+        var total = btns.length;
+        var ok = 0;
+        var skipped = 0;
+
+        for (var i = 0; i < total; i++) {
+            var b = btns[i];
+            var slug = b.getAttribute('data-slug');
+            var nama = b.getAttribute('data-nama') || slug;
+            var percent = Math.round(((i) / total) * 100);
+            if (bar) bar.style.width = percent + '%';
+            if (pct) pct.textContent = percent + '%';
+            if (txt) txt.textContent = 'Menarik SINTA (' + (i + 1) + '/' + total + '): ' + nama + '...';
+
+            var res = await bkSyncSingleSinta(slug, b);
+            if (res && res.success) {
+                ok++;
+            } else {
+                skipped++;
+            }
+        }
+
+        if (bar) bar.style.width = '100%';
+        if (pct) pct.textContent = '100%';
+        if (txt) txt.textContent = 'Selesai! ' + ok + ' dosen berhasil disinkronkan' + (skipped ? ' (' + skipped + ' dilewati/tanpa SINTA ID).' : '.');
+        if (mainBtn) {
+            mainBtn.disabled = false;
+            mainBtn.textContent = '⚡ Sync Semua Dosen Sekarang';
+        }
+        var lbl = document.getElementById('bk-last-synced-label');
+        if (lbl) lbl.textContent = 'Baru saja (muat ulang halaman untuk melihat angka terbaru)';
+    }
+
+    function bkRegenerateSintaToken(btn) {
+        if (!confirm('Buat ulang token? Secret BK_SINTA_SYNC_TOKEN di GitHub Actions juga harus diperbarui.')) return;
+        btn.disabled = true;
+        var fd = new FormData();
+        fd.append('action', 'bk_regenerate_sinta_token');
+        fd.append('nonce', bkSintaNonce);
+        fetch(ajaxurl, { method: 'POST', body: fd, credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                btn.disabled = false;
+                if (res && res.success && res.data && res.data.token) {
+                    document.getElementById('bk-sinta-token-input').value = res.data.token;
+                }
+            })
+            .catch(function() { btn.disabled = false; });
     }
     </script>
     <?php

@@ -281,6 +281,27 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
                             <span style="font-size:10px;color:rgba(255,255,255,0.65);">PkM Institusi</span>
                         </div>
                     </div>
+
+                    <?php
+                    $sm = $d['sinta_metrics'] ?? array();
+                    if (!empty($sm) && ((int)($sm['sinta_score_overall'] ?? 0) > 0 || (int)($sm['gs_citations'] ?? 0) > 0)) :
+                    ?>
+                        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;">
+                            <span style="font-size:10.5px;font-weight:700;color:#F5B82E;text-transform:uppercase;letter-spacing:0.06em;margin-right:4px;">Metrik SINTA:</span>
+                            <span style="font-size:11.5px;background:rgba(245,184,46,0.15);border:1px solid rgba(245,184,46,0.35);color:#FDE68A;padding:4px 10px;border-radius:999px;font-weight:600;">
+                                Skor Overall: <strong><?php echo number_format((int)($sm['sinta_score_overall'] ?? 0), 0, ',', '.'); ?></strong>
+                            </span>
+                            <span style="font-size:11.5px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);color:#ffffff;padding:4px 10px;border-radius:999px;">
+                                3Yr: <strong><?php echo number_format((int)($sm['sinta_score_3yr'] ?? 0), 0, ',', '.'); ?></strong>
+                            </span>
+                            <span style="font-size:11.5px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);color:#ffffff;padding:4px 10px;border-radius:999px;">
+                                Scopus H-Index: <strong><?php echo (int)($sm['scopus_h_index'] ?? 0); ?></strong> (<?php echo (int)($sm['scopus_citations'] ?? 0); ?> Sitasi)
+                            </span>
+                            <span style="font-size:11.5px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);color:#ffffff;padding:4px 10px;border-radius:999px;">
+                                Scholar H-Index: <strong><?php echo (int)($sm['gs_h_index'] ?? 0); ?></strong> (<?php echo number_format((int)($sm['gs_citations'] ?? 0), 0, ',', '.'); ?> Sitasi)
+                            </span>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
             </div>
