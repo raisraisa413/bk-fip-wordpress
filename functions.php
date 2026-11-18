@@ -4014,7 +4014,12 @@ function bk_fip_render_sync_dosen_page() {
                     Edit data profil dosen (NIP, Nama Panggilan, Kepakaran, Foto Transparan), atur urutan tampilan publik, dan sinkronkan rekam jejak langsung dari SINTA Kemdiktisaintek.
                 </p>
             </div>
-            <div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <?php if (function_exists('ppb_render_excel_import_admin_page')) : ?>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=ppb-excel-import&dataset=dosen')); ?>" class="button" style="background:#F5B82E;color:#0D3B22;border:none;font-weight:800;padding:8px 16px;border-radius:8px;font-size:13px;display:inline-flex;align-items:center;gap:6px;">
+                        <span>📥 Import / Export Excel &amp; JSON</span>
+                    </a>
+                <?php endif; ?>
                 <a href="<?php echo esc_url(home_url('/profil/dosen/')); ?>" target="_blank" class="button" style="background:#0D3B22;color:#ffffff;border:none;font-weight:700;padding:8px 18px;border-radius:8px;font-size:13px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(13,59,34,0.15);">
                     <span>Buka Halaman Publik ↗</span>
                 </a>
