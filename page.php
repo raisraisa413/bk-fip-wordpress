@@ -71,7 +71,7 @@ if (have_posts()) : while (have_posts()) : the_post();
     $is_legacy_layout = (!$is_wfie_edited && $target_page && strpos($clean_target_content, 'bk-page-head') !== false && (strpos($content, 'bk-page-head') === false || strpos($content, 'bk-subnav-sticky-wrap') !== false));
     $force_refresh = !empty($_GET['refresh_pages']) || !empty($_GET['sync_ppb_content']) || (!$is_wfie_edited && get_option('ppb_content_synced_version', '') !== '21.6');
 
-    if (!$has_modern_markup || $is_empty || $needs_dosen_refresh || $is_truncated || $is_corrupted || $is_roadmap_corrupted || $is_legacy_layout || $force_refresh) {
+    if ((!$has_modern_markup && !$is_wfie_edited) || $is_empty || $needs_dosen_refresh || $is_truncated || $is_corrupted || $is_roadmap_corrupted || $is_legacy_layout || $force_refresh) {
         if ($target_page) {
             $content = $clean_target_content;
             // Instantly repair in database

@@ -2275,15 +2275,18 @@ add_filter('template_include', function($template) {
                             clean_post_cache($post_id);
                         } else {
                             // Failsafe auto-repair: if DB content is corrupt, truncated, or lacks key sections
+                            $is_wfie_edited = !empty(get_post_meta($post_id, '_wfie_custom_edited', true));
                             $db_content = $wpdb->get_var($wpdb->prepare("SELECT post_content FROM $wpdb->posts WHERE ID = %d", $post_id));
                             $expected_len = strlen($clean_matched_content);
                             $actual_len = strlen($db_content);
                             $has_legacy_subnav = (strpos($clean_matched_content, 'bk-page-head') !== false && (strpos($db_content, 'bk-page-head') === false || strpos($db_content, 'bk-subnav-sticky-wrap') !== false));
-                            $needs_db_repair = ($actual_len < ($expected_len - 150))
-                                             || $has_legacy_subnav
-                                             || ($matched_page['slug'] === 'struktur' && strpos($db_content, 'Bagan Kepemimpinan') === false)
-                                             || ($matched_page['slug'] === 'roadmap' && strpos($db_content, '3 Pilar Kepakaran') === false)
-                                             || (strpos($db_content, 'bk-page-wrapper') === false)
+                            $needs_db_repair = (!$is_wfie_edited && (
+                                                 ($actual_len < ($expected_len - 150))
+                                                 || $has_legacy_subnav
+                                                 || ($matched_page['slug'] === 'struktur' && strpos($db_content, 'Bagan Kepemimpinan') === false)
+                                                 || ($matched_page['slug'] === 'roadmap' && strpos($db_content, '3 Pilar Kepakaran') === false)
+                                                 || (strpos($db_content, 'bk-page-wrapper') === false)
+                                             ))
                                              || !empty($_GET['refresh_pages'])
                                              || !empty($_GET['sync_ppb_content']);
 
@@ -2300,8 +2303,9 @@ add_filter('template_include', function($template) {
 
                         if ($post_id) {
                             $post = get_post($post_id);
+                            $is_wfie_edited = !empty(get_post_meta($post_id, '_wfie_custom_edited', true));
                             // Immediate in-memory failsafe: guarantee current render is 100% pristine
-                            $post_needs_failsafe = $post && (
+                            $post_needs_failsafe = !$is_wfie_edited && $post && (
                                 strlen($post->post_content) < (strlen($clean_matched_content) - 150)
                                 || strpos($post->post_content, 'bk-page-wrapper') === false
                                 || (strpos($clean_matched_content, 'bk-page-head') !== false && (strpos($post->post_content, 'bk-page-head') === false || strpos($post->post_content, 'bk-subnav-sticky-wrap') !== false))
