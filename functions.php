@@ -2152,10 +2152,13 @@ add_filter('template_include', function($template) {
                     $post->post_content = $clean_dosen_content;
                 }
                 setup_postdata($post);
+                $wp_query->post = $post;
                 $wp_query->posts = array($post);
                 $wp_query->post_count = 1;
+                $wp_query->current_post = -1;
                 $wp_query->is_404 = false;
                 $wp_query->is_page = true;
+                $wp_query->is_single = false;
                 $wp_query->is_singular = true;
                 $wp_query->is_archive = false;
                 $wp_query->is_post_type_archive = false;
@@ -2359,11 +2362,13 @@ add_filter('template_include', function($template) {
     return $template;
 });
 
-// Set document title for Single Dosen Profile
+// Set document title for Single Dosen Profile & Dosen Roster Directory
 add_filter('document_title_parts', function($title_parts) {
     global $current_dosen;
-    if (!empty($current_dosen)) {
+    if (!empty($current_dosen) && is_array($current_dosen) && !empty($current_dosen['nama_lengkap'])) {
         $title_parts['title'] = $current_dosen['nama_lengkap'] . ' - Profil & Rekam Jejak Dosen';
+    } elseif (function_exists('bk_fip_is_dosen_roster_page') && bk_fip_is_dosen_roster_page()) {
+        $title_parts['title'] = 'Direktori Dosen & Kepakaran';
     }
     return $title_parts;
 }, 99);
