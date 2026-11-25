@@ -365,22 +365,22 @@ if (!function_exists('ppb_get_mega_menu_default_spotlights')) {
         return [
             'profil' => [
                 'badge'       => 'LAMDIK UNGGUL',
-                'title'       => 'Akreditasi Unggul S1 & S2',
-                'description' => 'Tata kelola pendidikan calon konselor berstandar nasional dengan kelengkapan eviden 9 Kriteria LAMDIK.',
-                'action_text' => 'Buka 9 Kriteria',
+                'title'       => 'Akreditasi S1, S2 & S3',
+                'description' => 'Tata kelola Jurusan PPB serta kelengkapan eviden 9 Kriteria LAMDIK terstruktur untuk jenjang S1, S2, dan S3.',
+                'action_text' => 'Portal Akreditasi',
                 'url'         => home_url('/akreditasi/'),
             ],
             'akademik' => [
                 'badge'       => 'KURIKULUM OBE 2025',
-                'title'       => 'Peta Kuliah Terintegrasi',
-                'description' => 'Jelajahi 41 mata kuliah S1 hingga S3 beserta capaian CPL, indikator SDGs, RPS 16 pertemuan, dan SAP.',
+                'title'       => 'Kurikulum S1, S2 & S3',
+                'description' => 'Jelajahi struktur mata kuliah, RPS 16 pertemuan, SAP, dan pedoman akademik khusus jenjang S1, S2, dan S3.',
                 'action_text' => 'Struktur Kurikulum',
-                'url'         => home_url('/akademik/kurikulum/'),
+                'url'         => home_url('/akademik/kurikulum/?jenjang=s1'),
             ],
             'layanan' => [
                 'badge'       => 'LAB BK & SIPADU',
                 'title'       => 'Portal Layanan Terpadu',
-                'description' => 'Akses peminjaman alat tes Lab BK Gunungsari, alur persuratan mahasiswa, dan layanan SIPADU daring.',
+                'description' => 'Akses peminjaman alat tes Lab BK Gunungsari, persuratan S1–S3 & Jurusan, serta layanan SIPADU daring.',
                 'action_text' => 'Buka Persuratan & SIPADU',
                 'url'         => home_url('/layanan/persuratan/'),
             ],
@@ -419,9 +419,9 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
     /**
      * Mengembalikan struktur navigasi 4 Pilar Editorial Calm BK FIP UNM:
      * 1. Beranda (tautan langsung)
-     * 2. Profil & Mutu (3 kolom — termasuk Direktori 25 Dosen di Jati Diri & Visi)
-     * 3. Akademik (3 kolom)
-     * 4. Layanan & Warta (3 kolom — termasuk Portal SIPADU Daring ↗ di Portal, Advokasi & Mutu)
+     * 2. Profil & Mutu (3 kolom — payung Jurusan PPB & Akreditasi S1/S2/S3)
+     * 3. Akademik (3 kolom — pemisahan Kurikulum S1/S2/S3 & Perkuliahan)
+     * 4. Layanan & Warta (3 kolom — Persuratan, Lab BK, SIPADU & Warta)
      */
     function ppb_get_default_mega_menu_data() {
         $spotlights = ppb_get_mega_menu_spotlights();
@@ -437,7 +437,7 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                 'mega_cols'   => 0,
                 'icon'        => 'home',
                 'badge'       => '',
-                'subtitle'    => 'Halaman utama Jurusan PPB / Prodi BK FIP UNM',
+                'subtitle'    => 'Halaman utama Jurusan PPB FIP UNM (S1 · S2 · S3)',
                 'align'       => 'left',
                 'sections'    => [],
             ],
@@ -450,26 +450,27 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                 'is_mega'     => true,
                 'mega_cols'   => 3,
                 'icon'        => 'building',
-                'badge'       => 'Unggul',
-                'subtitle'    => 'Jati diri, 25 dosen, akreditasi LAMDIK & kemitraan tridharma',
+                'badge'       => 'Jurusan PPB',
+                'subtitle'    => 'Payung Jurusan PPB, direktori dosen, akreditasi S1/S2/S3 & kemitraan',
                 'align'       => 'left',
                 'spotlight'   => $spotlights['profil'],
                 'sections'    => [
                     [
-                        'heading' => 'Jati Diri & Visi',
+                        'heading' => 'Payung Jurusan & SDM',
                         'icon'    => 'compass',
                         'items'   => [
-                            ['title' => "Visi Keilmuan & CARA'DE", 'url' => home_url('/profil/visi-keilmuan/'), 'subtitle' => 'Diversitas, sains-teknologi & kewirausahaan', 'icon' => 'compass', 'badge' => ''],
-                            ['title' => 'Sejarah 1969 & Pimpinan', 'url' => home_url('/profil/sejarah/'), 'subtitle' => 'Rekam jejak 57 tahun & tata kelola jurusan', 'icon' => 'history', 'badge' => ''],
-                            ['title' => 'Direktori 25 Dosen', 'url' => home_url('/profil/dosen/'), 'subtitle' => '4 Guru Besar, Doktor, SINTA & buku ajar', 'icon' => 'users', 'badge' => '25 Dosen'],
+                            ['title' => "Visi Keilmuan & CARA'DE", 'url' => home_url('/profil/visi-keilmuan/'), 'subtitle' => 'Visi Jurusan PPB, diversitas & kewirausahaan', 'icon' => 'compass', 'badge' => ''],
+                            ['title' => 'Sejarah & Struktur Jurusan', 'url' => home_url('/profil/sejarah/'), 'subtitle' => 'Rekam jejak 1969, Pimpinan Jurusan & Prodi S1–S3', 'icon' => 'history', 'badge' => ''],
+                            ['title' => 'Direktori Dosen PPB', 'url' => home_url('/profil/dosen/'), 'subtitle' => 'Dosen S1, S2 & S3, Guru Besar, SINTA & buku ajar', 'icon' => 'users', 'badge' => 'S1–S3'],
                         ],
                     ],
                     [
                         'heading' => 'Akreditasi & Mutu',
                         'icon'    => 'award',
                         'items'   => [
-                            ['title' => 'Akreditasi Unggul LAMDIK', 'url' => home_url('/akreditasi/'), 'subtitle' => 'SK resmi S1–S3 & eviden 9 Kriteria', 'icon' => 'award', 'badge' => '9 Kriteria'],
-                            ['title' => 'GPM & Siklus PPEPP', 'url' => home_url('/akreditasi/upm/'), 'subtitle' => 'Renstra 2024–2028 & Audit Mutu Internal', 'icon' => 'shield', 'badge' => ''],
+                            ['title' => 'Akreditasi LAMDIK (S1, S2 & S3)', 'url' => home_url('/akreditasi/'), 'subtitle' => 'Eviden 9 Kriteria, LED & LKPS terpisah per prodi', 'icon' => 'award', 'badge' => '9 Kriteria'],
+                            ['title' => 'Sertifikat & SK Akreditasi', 'url' => home_url('/akreditasi/sertifikat/'), 'subtitle' => 'SK Unggul S1, S2 & Baik Sekali S3 resmi LAMDIK', 'icon' => 'file-badge', 'badge' => 'S1–S3'],
+                            ['title' => 'UPM / GPM & Dokumen Mutu', 'url' => home_url('/akreditasi/upm/'), 'subtitle' => 'Renstra Jurusan, Renop, PPEPP & Audit Mutu', 'icon' => 'shield', 'badge' => 'Jurusan'],
                         ],
                     ],
                     [
@@ -492,24 +493,25 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                 'mega_cols'   => 3,
                 'icon'        => 'graduation-cap',
                 'badge'       => 'OBE 2025',
-                'subtitle'    => 'Kurikulum OBE 2025, RPS/SAP, jadwal seminar/ujian, riset PNBP & jurnal BK',
+                'subtitle'    => 'Kurikulum S1, S2 & S3, RPS/SAP, jadwal ujian, riset PNBP & jurnal BK',
                 'align'       => 'left',
                 'spotlight'   => $spotlights['akademik'],
                 'sections'    => [
                     [
-                        'heading' => 'Kurikulum OBE 2025',
+                        'heading' => 'Kurikulum Per Jenjang',
                         'icon'    => 'layers',
                         'items'   => [
-                            ['title' => 'Kurikulum S1 Sarjana (144 SKS)', 'url' => home_url('/akademik/kurikulum/'), 'subtitle' => 'Sebaran 8 semester, RPS, SDGs & MBKM', 'icon' => 'layers', 'badge' => 'OBE 2025'],
-                            ['title' => 'Program S2 Magister & S3 Doktor', 'url' => home_url('/akademik/rps-sap/'), 'subtitle' => 'Kurikulum riset terapan & keilmuan lanjut', 'icon' => 'graduation', 'badge' => ''],
+                            ['title' => 'Kurikulum S1 BK (Sarjana)', 'url' => home_url('/akademik/kurikulum/?jenjang=s1'), 'subtitle' => '144 SKS, OBE 2025, RPS, SDGs & MBKM', 'icon' => 'layers', 'badge' => 'OBE 2025'],
+                            ['title' => 'Kurikulum S2 BK (Magister)', 'url' => home_url('/akademik/kurikulum/?jenjang=s2'), 'subtitle' => 'Riset terapan, supervisi klinis & RPS S2', 'icon' => 'graduation', 'badge' => 'S2'],
+                            ['title' => 'Kurikulum S3 BK (Doktoral)', 'url' => home_url('/akademik/kurikulum/?jenjang=s3'), 'subtitle' => 'Disertasi, novelty indigenos & RPS S3', 'icon' => 'graduation', 'badge' => 'S3'],
                         ],
                     ],
                     [
                         'heading' => 'Perkuliahan & Penilaian',
                         'icon'    => 'calendar',
                         'items'   => [
-                            ['title' => 'Jadwal Seminar & Ujian', 'url' => home_url('/akademik/jadwal-ujian/'), 'subtitle' => 'Proposal, seminar hasil & ujian skripsi', 'icon' => 'calendar', 'badge' => ''],
-                            ['title' => 'Pedoman Penilaian & Rubrik', 'url' => home_url('/akademik/panduan/'), 'subtitle' => 'Skala nilai OBE, rubrik analitik & prosedur', 'icon' => 'file', 'badge' => ''],
+                            ['title' => 'Jadwal Seminar & Ujian', 'url' => home_url('/akademik/jadwal-ujian/'), 'subtitle' => 'Proposal, hasil, skripsi S1, tesis S2 & disertasi S3', 'icon' => 'calendar', 'badge' => 'S1–S3'],
+                            ['title' => 'Pedoman Penilaian & Rubrik', 'url' => home_url('/akademik/panduan/'), 'subtitle' => 'Pedoman tugas akhir, rubrik OBE & buku panduan per jenjang', 'icon' => 'file', 'badge' => ''],
                         ],
                     ],
                     [
@@ -532,7 +534,7 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                 'mega_cols'   => 3,
                 'icon'        => 'life-buoy',
                 'badge'       => 'Terpadu',
-                'subtitle'    => 'Persuratan F-01..F-06, Lab BK, SIPADU daring, advokasi & warta resmi',
+                'subtitle'    => 'Persuratan & SOP per jenjang, Lab BK, SIPADU daring, advokasi & warta',
                 'align'       => 'left',
                 'spotlight'   => $spotlights['layanan'],
                 'sections'    => [
@@ -540,7 +542,7 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                         'heading' => 'Layanan & Lab BK',
                         'icon'    => 'mail',
                         'items'   => [
-                            ['title' => 'Persuratan F-01..F-06 & SOP', 'url' => home_url('/layanan/persuratan/'), 'subtitle' => 'Template DOCX resmi & alur layanan terukur', 'icon' => 'mail', 'badge' => ''],
+                            ['title' => 'Persuratan & SOP Layanan', 'url' => home_url('/layanan/persuratan/'), 'subtitle' => 'Template F-01..F-06 S1/S2/S3 & alur SOP resmi', 'icon' => 'mail', 'badge' => ''],
                             ['title' => 'Laboratorium BK & Alat Tes', 'url' => home_url('/laboratorium/'), 'subtitle' => '4 bilik one-way mirror, IST/CFIT & studio', 'icon' => 'lab', 'badge' => ''],
                             ['title' => 'E-Library & Modul PDF', 'url' => home_url('/e-library/'), 'subtitle' => 'Arsip modul kuliah & pedoman tugas akhir', 'icon' => 'folder', 'badge' => 'Digital'],
                         ],
@@ -551,7 +553,7 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                         'items'   => [
                             ['title' => 'Portal SIPADU Daring ↗', 'url' => $sipadu_url, 'subtitle' => 'Pengajuan surat, SK bimbingan & layanan daring', 'icon' => 'globe', 'badge' => 'SIPADU ↗', 'target' => '_blank'],
                             ['title' => 'Perlindungan & Konseling Krisis', 'url' => home_url('/layanan/perlindungan-mahasiswa/'), 'subtitle' => 'Kode etik ABKIN, peer support & Satgas PPKS', 'icon' => 'shield', 'badge' => ''],
-                            ['title' => 'Survei Kepuasan Layanan GPM', 'url' => home_url('/survei/'), 'subtitle' => 'Evaluasi mutu dosen, tendik & fasilitas lab', 'icon' => 'check', 'badge' => ''],
+                            ['title' => 'Survei Kepuasan Layanan GPM', 'url' => home_url('/survei/'), 'subtitle' => 'Evaluasi mutu dosen, tendik & layanan per prodi', 'icon' => 'check', 'badge' => ''],
                         ],
                     ],
                     [
@@ -559,7 +561,7 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                         'icon'    => 'news',
                         'items'   => [
                             ['title' => 'Berita & Pengumuman Resmi', 'url' => home_url('/berita/'), 'subtitle' => 'Kabar tridharma & informasi gelombang sidang', 'icon' => 'news', 'badge' => ''],
-                            ['title' => 'Prestasi & Karya Inovasi BK', 'url' => home_url('/kemahasiswaan/prestasi/'), 'subtitle' => 'Medali nasional/ASEAN, SI-KARIR & SI-PACCE', 'icon' => 'award', 'badge' => ''],
+                            ['title' => 'Prestasi & Karya Inovasi BK', 'url' => home_url('/kemahasiswaan/prestasi/'), 'subtitle' => 'Medali nasional/ASEAN, karya mahasiswa & tracer S1–S3', 'icon' => 'award', 'badge' => ''],
                         ],
                     ],
                 ],

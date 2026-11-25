@@ -456,7 +456,7 @@ if (!function_exists('bk_fip_get_homepage_defaults')) {
                     'kurikulum' => 'OBE 2025 Terintegrasi MBKM',
                     'sk' => 'SK LAMDIK No. 742/SK/LAMDIK/Ak/S/VIII/2023 (s.d. 2028)',
                     'kompetensi' => "Mikrokonseling & Teknik Terapi Kognitif-Perilaku (CBT / SFBT)\nAsesmen Psikologi Tes & Non-Tes (IST, RMIB, AUM, DCM, IKMS)\nManajemen Program BK Komprehensif, Karir & Konseling Digital",
-                    'url' => '/akademik/kurikulum/',
+                    'url' => '/akademik/kurikulum/?jenjang=s1',
                 ),
                 's2' => array(
                     'code' => 'S2', 'tab_label' => 'S2 Magister',
@@ -467,7 +467,7 @@ if (!function_exists('bk_fip_get_homepage_defaults')) {
                     'kurikulum' => 'Riset Terapan & Supervisi Klinis',
                     'sk' => 'SK LAMDIK No. 412/SK/LAMDIK/Ak/M/V/2024',
                     'kompetensi' => "Metodologi Penelitian Kuantitatif, Kualitatif & R&D BK\nPengembangan Modul & Instrumen Psikometri Terapan\nKonseling Krisis, Rehabilitasi & Trauma Multi-Kultur",
-                    'url' => '/akademik/kurikulum/',
+                    'url' => '/akademik/kurikulum/?jenjang=s2',
                 ),
                 's3' => array(
                     'code' => 'S3', 'tab_label' => 'S3 Doktoral',
@@ -478,14 +478,14 @@ if (!function_exists('bk_fip_get_homepage_defaults')) {
                     'kurikulum' => 'Disertasi & Kebaruan Teori Indigenos',
                     'sk' => 'SK LAMDIK No. 189/SK/LAMDIK/Ak/D/X/2023',
                     'kompetensi' => "Filsafat Keilmuan & Epistemologi Konseling Kontemporer\nKonstruksi Model Konseling Indigenos & Kearifan Lokal\nPublikasi Bereputasi Internasional (Scopus/WoS) & Kebijakan",
-                    'url' => '/akademik/kurikulum/',
+                    'url' => '/akademik/kurikulum/?jenjang=s3',
                 ),
             ),
             'video_chapters' => array(
                 array(
                     'num' => '01', 'duration' => '03:45', 'badge' => 'Bagian 1 · Visi & Sejarah 1969',
                     'title' => '57 Tahun Mendidik Calon Konselor Nusantara',
-                    'desc' => 'Dari Bimbingan Penyuluhan (1969) menjadi prodi terakreditasi Unggul LAMDIK untuk jenjang Sarjana dan Magister di Fakultas Ilmu Pendidikan UNM.',
+                    'desc' => 'Dari Bimbingan Penyuluhan (1969) menjadi jurusan terakreditasi Unggul LAMDIK untuk jenjang Sarjana, Magister, dan Doktor di Fakultas Ilmu Pendidikan UNM.',
                     'date' => 'Profil Jurusan · Kampus Tidung', 'thumb' => 'assets/img/hero-campus.jpg', 'video_url' => '',
                 ),
                 array(
@@ -502,12 +502,12 @@ if (!function_exists('bk_fip_get_homepage_defaults')) {
                 ),
             ),
             'portal_cards' => array(
-                array('code' => 'P-01', 'title' => 'Kurikulum OBE 2025', 'desc' => '144 SKS, RPS 16 pertemuan, CPL & indikator SDGs.', 'url' => '/akademik/kurikulum/', 'icon' => 'layers'),
-                array('code' => 'P-02', 'title' => 'Persuratan F-01..F-06', 'desc' => 'Template DOCX resmi pengajuan judul, bimbingan & sidang.', 'url' => '/layanan/akademik/', 'icon' => 'file-text'),
+                array('code' => 'P-01', 'title' => 'Kurikulum OBE 2025', 'desc' => 'Struktur S1, S2 & S3, RPS 16 pertemuan, CPL & SDGs.', 'url' => '/akademik/kurikulum/', 'icon' => 'layers'),
+                array('code' => 'P-02', 'title' => 'Persuratan F-01..F-06', 'desc' => 'Template DOCX resmi pengajuan judul, bimbingan & sidang.', 'url' => '/layanan/persuratan/', 'icon' => 'file-text'),
                 array('code' => 'P-03', 'title' => 'Laboratorium BK', 'desc' => '4 bilik one-way mirror, alat tes IST/CFIT & studio.', 'url' => '/laboratorium/', 'icon' => 'flask-conical'),
                 array('code' => 'P-04', 'title' => 'E-Library & Modul', 'desc' => 'Modul praktikum, buku ajar & repositori artikel.', 'url' => '/e-library/', 'icon' => 'library'),
-                array('code' => 'P-05', 'title' => 'Direktori 25 Dosen', 'desc' => 'Guru Besar, Doktor, kepakaran & profil SINTA.', 'url' => '/profil/dosen/', 'icon' => 'users'),
-                array('code' => 'P-06', 'title' => 'Akreditasi Unggul', 'desc' => 'SK LAMDIK S1–S3 & eviden 9 Kriteria mutu.', 'url' => '/akreditasi/', 'icon' => 'award'),
+                array('code' => 'P-05', 'title' => 'Direktori Dosen PPB', 'desc' => 'Guru Besar, Doktor, kepakaran & profil SINTA.', 'url' => '/profil/dosen/', 'icon' => 'users'),
+                array('code' => 'P-06', 'title' => 'Akreditasi LAMDIK', 'desc' => 'Borang 9 Kriteria S1, S2 & S3 serta Renstra Jurusan.', 'url' => '/akreditasi/', 'icon' => 'award'),
             ),
             'admisi_title' => 'Penerimaan Mahasiswa Baru 2026',
             'admisi_desc'  => 'Jalur SNBP, SNBT, dan Mandiri UNM untuk S1 Bimbingan dan Konseling — serta Pascasarjana S2 & S3.',
@@ -595,15 +595,21 @@ if (!function_exists('bk_fip_get_search_index')) {
             $idx[] = array('type' => $type, 'title' => wp_strip_all_tags($title), 'sub' => wp_strip_all_tags($sub), 'url' => $url);
         };
 
-        // 1. Core pages
+        // 1. Core pages (Jurusan PPB & Jenjang S1/S2/S3)
         $pages = array(
-            array('Profil Jurusan & Visi Keilmuan', 'Visi, misi & nilai CARA\'DE', '/profil/'),
-            array('Direktori Dosen', '25 dosen, Guru Besar & Doktor', '/profil/dosen/'),
-            array('Akreditasi Unggul LAMDIK', 'SK S1–S3 & 9 Kriteria', '/akreditasi/'),
-            array('Kurikulum OBE 2025', '144 SKS, RPS & SDGs', '/akademik/kurikulum/'),
-            array('Jadwal Seminar & Ujian', 'Proposal, hasil & skripsi', '/akademik/jadwal-ujian/'),
+            array('Jurusan PPB — Profil & Tata Kelola', 'Payung Jurusan, Visi Keilmuan & Struktur Pimpinan', '/profil/'),
+            array('Direktori Dosen PPB', 'Daftar lengkap dosen S1, S2 & S3, Guru Besar & Doktor', '/profil/dosen/'),
+            array('Akreditasi LAMDIK (S1, S2 & S3)', 'Portal 9 Kriteria, LED, LKPS & Dokumen Mutu', '/akreditasi/'),
+            array('Akreditasi S1 Bimbingan & Konseling', 'Borang 9 Kriteria & SK Unggul LAMDIK S1', '/akreditasi/s1/'),
+            array('Akreditasi S2 Bimbingan & Konseling', 'Borang 9 Kriteria & SK Unggul LAMDIK S2', '/akreditasi/s2/'),
+            array('Akreditasi S3 Ilmu Pendidikan (BK)', 'Borang 9 Kriteria & SK LAMDIK S3', '/akreditasi/s3/'),
+            array('UPM / GPM & Dokumen Mutu Jurusan', 'Renstra, Renop & Siklus PPEPP Jurusan PPB', '/akreditasi/upm/'),
+            array('Kurikulum S1 BK (OBE 2025)', '144 SKS, RPS 16 pertemuan & SDGs S1', '/akademik/kurikulum/?jenjang=s1'),
+            array('Kurikulum S2 Bimbingan & Konseling', 'Mata kuliah magister, riset terapan & RPS S2', '/akademik/kurikulum/?jenjang=s2'),
+            array('Kurikulum S3 Ilmu Pendidikan (BK)', 'Mata kuliah doktoral, disertasi & RPS S3', '/akademik/kurikulum/?jenjang=s3'),
+            array('Jadwal Seminar & Ujian', 'Proposal, hasil, skripsi, tesis & disertasi', '/akademik/jadwal-ujian/'),
             array('Riset & Jurnal JKBK', 'Hibah PNBP, PkM & publikasi', '/mis-pnbp/'),
-            array('Layanan Akademik & Persuratan', 'Template F-01..F-06 & SOP', '/layanan/akademik/'),
+            array('Layanan Persuratan & SOP', 'Template F-01..F-06 & alur layanan per jenjang', '/layanan/persuratan/'),
             array('Laboratorium BK', 'Bilik mikrokonseling & alat tes', '/laboratorium/'),
             array('E-Library & Repositori', 'Modul, buku ajar & artikel', '/e-library/'),
             array('Berita & Pengumuman', 'Warta jurusan terbaru', '/berita/'),
@@ -2195,6 +2201,19 @@ add_filter('template_include', function($template) {
             }
         }
 
+        // 6b. AKREDITASI PER-JENJANG VIRTUAL ROUTING (/akreditasi/s1/, /akreditasi/s2/, /akreditasi/s3/, dst.)
+        if (preg_match('#^akreditasi/([a-z0-9_-]+)$#i', $path, $ak_m)) {
+            $sub_slug = strtolower($ak_m[1]);
+            if (!in_array($sub_slug, array('sertifikat', 'upm'), true)) {
+                $valid_units = function_exists('ppb_get_prodi_units') ? array_keys(ppb_get_prodi_units(false)) : array('s1', 's2', 's3');
+                if (in_array($sub_slug, $valid_units, true)) {
+                    $GLOBALS['ppb_active_akreditasi_unit'] = $sub_slug;
+                    $_GET['jenjang'] = $sub_slug;
+                    $path = 'akreditasi';
+                }
+            }
+        }
+
         // 7. UNIVERSAL INTELLIGENT ROUTING FOR ALL PRODI PAGES
         if (!empty($path)) {
             $json_file = get_template_directory() . '/pages-data.json';
@@ -3240,11 +3259,61 @@ function bk_fip_get_dosen_dossier_map($dosen_list = null) {
  * Interactive dossier drawer and JS controller are rendered in wp_footer
  * so WordPress KSES/wptexturize never strips or corrupts them.
  */
+if (!function_exists('bk_fip_infer_dosen_jenjang')) {
+function bk_fip_infer_dosen_jenjang($d) {
+    $jenjang = array();
+    if (!empty($d['jenjang']) && is_array($d['jenjang'])) {
+        foreach ($d['jenjang'] as $j) {
+            $k = strtolower(trim((string) $j));
+            if ($k !== '' && !in_array($k, $jenjang, true)) $jenjang[] = $k;
+        }
+    }
+    $unit_str = strtolower((string) ($d['unit'] ?? ''));
+    if (strpos($unit_str, 's1') !== false) $jenjang[] = 's1';
+    if (strpos($unit_str, 's2') !== false || strpos($unit_str, 'magister') !== false) $jenjang[] = 's2';
+    if (strpos($unit_str, 's3') !== false || strpos($unit_str, 'doktor') !== false) $jenjang[] = 's3';
+    if (!empty($d['mata_kuliah']) && is_array($d['mata_kuliah'])) {
+        foreach ($d['mata_kuliah'] as $mk) {
+            if (!is_array($mk)) continue;
+            $mk_j = strtolower(trim((string) ($mk['jenjang'] ?? '') . ' ' . ($mk['semester'] ?? '') . ' ' . ($mk['kode'] ?? '')));
+            if (strpos($mk_j, 's2') !== false || strpos($mk_j, 'magister') !== false) $jenjang[] = 's2';
+            if (strpos($mk_j, 's3') !== false || strpos($mk_j, 'doktor') !== false) $jenjang[] = 's3';
+        }
+    }
+    if (!empty($d['slug']) && function_exists('get_page_by_path')) {
+        $cpt = get_page_by_path($d['slug'], OBJECT, 'ppb_dosen');
+        if ($cpt) {
+            $cpt_j = get_post_meta($cpt->ID, '_ppb_dosen_jenjang', true);
+            if (is_array($cpt_j) && !empty($cpt_j)) {
+                foreach ($cpt_j as $cj) {
+                    $ck = strtolower(trim((string) $cj));
+                    if ($ck !== '') $jenjang[] = $ck;
+                }
+            }
+        }
+    }
+    $jenjang = array_values(array_unique(array_filter($jenjang)));
+    if (empty($jenjang)) {
+        $jenjang = array('s1');
+    }
+    return $jenjang;
+}
+}
+
 function bk_fip_build_dosen_roster_html($dosen_list) {
     if (empty($dosen_list) || !is_array($dosen_list)) return '';
 
     $count_total = count($dosen_list);
     $tier_counts = array('prof' => 0, 'dr' => 0, 'dosen' => 0);
+    $prodi_units = function_exists('ppb_get_prodi_units') ? ppb_get_prodi_units(true) : array(
+        's1' => array('slug' => 's1', 'kode' => 'S1'),
+        's2' => array('slug' => 's2', 'kode' => 'S2'),
+        's3' => array('slug' => 's3', 'kode' => 'S3'),
+    );
+    $jenjang_counts = array();
+    foreach (array_keys($prodi_units) as $ps) {
+        $jenjang_counts[$ps] = 0;
+    }
     $cards_html = '';
 
     foreach ($dosen_list as $d) {
@@ -3258,6 +3327,13 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
         if ($slug === 'abdul-saman' && $struktural === '') $struktural = 'Dekan FIP UNM';
         if ($slug === 'suciani-latif' && $struktural === '') $struktural = 'Ketua Jurusan PPB';
         if ($slug === 'sahril-buchori' && $struktural === '') $struktural = 'Sekretaris Jurusan PPB';
+
+        $dsn_jenjang = bk_fip_infer_dosen_jenjang($d);
+        foreach ($dsn_jenjang as $jk) {
+            if (!isset($jenjang_counts[$jk])) $jenjang_counts[$jk] = 0;
+            $jenjang_counts[$jk]++;
+        }
+        $jenjang_lbl = implode(' · ', array_map('strtoupper', $dsn_jenjang));
 
         $profile_url = '/profil/dosen/' . $slug . '/';
         $sinta_url = trim((string)($d['sinta_url'] ?? ''));
@@ -3294,7 +3370,7 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
         $foto_url = bk_fip_resolve_dosen_foto_url($d['foto_link'] ?? '');
 
         $role_line = $struktural !== '' ? ($struktural . ' · ' . $jabatan) : $jabatan;
-        $tags_html = '';
+        $tags_html = '<span class="bk-tag bk-tag-sage" title="Jenjang pengajaran pada Jurusan PPB">' . esc_html($jenjang_lbl) . '</span>';
         foreach (array_slice($kepakaran, 0, 3) as $t) {
             $tags_html .= '<span class="bk-tag">' . esc_html($t) . '</span>';
         }
@@ -3307,7 +3383,7 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
                 if (!empty($mk_item['nama'])) $mk_search[] = (string) $mk_item['nama'];
             }
         }
-        $search_text = esc_attr(strtolower($nama . ' ' . $nip . ' ' . $jabatan . ' ' . $struktural . ' ' . $badge_label . ' ' . implode(' ', $kepakaran) . ' ' . implode(' ', $mk_search)));
+        $search_text = esc_attr(strtolower($nama . ' ' . $nip . ' ' . $jabatan . ' ' . $struktural . ' ' . $badge_label . ' ' . $jenjang_lbl . ' ' . ($d['unit'] ?? '') . ' ' . implode(' ', $kepakaran) . ' ' . implode(' ', $mk_search)));
 
         if ($foto_url !== '') {
             $av_cls = 'bk-avatar' . ($is_prof ? ' is-prof' : '') . ' has-photo';
@@ -3322,7 +3398,7 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
             ? '<span style="color:var(--border-strong);">&bull;</span><a href="' . esc_url($sinta_url) . '" target="_blank" rel="noopener noreferrer" style="color:var(--forest);font-weight:700;font-size:11px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;">SINTA &#8599;</a>'
             : '';
 
-        $cards_html .= '<article class="bk-dosen-card-item" data-slug="' . esc_attr($slug) . '" data-tier="' . esc_attr($tier_key) . '" data-text="' . $search_text . '">
+        $cards_html .= '<article class="bk-dosen-card-item" data-slug="' . esc_attr($slug) . '" data-tier="' . esc_attr($tier_key) . '" data-jenjang="' . esc_attr(implode(',', $dsn_jenjang)) . '" data-text="' . $search_text . '">
             <div class="bk-dosen-card-top">
                 <div class="bk-dosen-card-head">
                     <div class="bk-dosen-identity">
@@ -3354,6 +3430,13 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
         </article>' . "\n";
     }
 
+    $jenjang_pills_html = '<button type="button" class="bk-pill is-active" data-djenjang="all" role="tab" aria-selected="true">Semua Jenjang</button>';
+    foreach ($prodi_units as $pslug => $pmeta) {
+        $pkode = !empty($pmeta['kode']) ? $pmeta['kode'] : strtoupper($pslug);
+        $j_cnt = (int) ($jenjang_counts[$pslug] ?? 0);
+        $jenjang_pills_html .= '<button type="button" class="bk-pill" data-djenjang="' . esc_attr($pslug) . '" role="tab" aria-selected="false">' . esc_html($pkode) . ' (' . $j_cnt . ')</button>';
+    }
+
     $full_html = '<div class="bk-page-wrapper" style="width:100%;min-height:100vh;background:#FAF8F5;color:#1F2937;font-family:\'Plus Jakarta Sans\',sans-serif;line-height:1.6;">
     <header class="bk-page-head">
         <div class="bk-container">
@@ -3365,7 +3448,7 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
                 <span>Dosen &amp; Tenaga Pengajar</span>
             </div>
             <h1>Dosen &amp; Tenaga Pengajar</h1>
-            <p class="bk-page-lead">Telusuri profil akademik, publikasi ilmiah SINTA/Scopus, penelitian &amp; hibah, pengabdian masyarakat, dan rekam jejak kepakaran para akademisi Jurusan PPB FIP UNM.</p>
+            <p class="bk-page-lead">Telusuri profil akademik, publikasi ilmiah SINTA/Scopus, penelitian &amp; hibah, pengabdian masyarakat, dan rekam jejak kepakaran para akademisi Jurusan PPB FIP UNM (Jenjang S1, S2 &amp; S3).</p>
         </div>
     </header>
 
@@ -3388,20 +3471,23 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
 
             <div class="bk-ugm-head" style="margin-bottom:20px;">
                 <div class="bk-ugm-title-block">
-                    <div class="bk-kicker">Sumber Daya Manusia</div>
+                    <div class="bk-kicker">Sumber Daya Manusia · Jurusan PPB</div>
                     <h2 class="bk-section-h2">Direktori ' . $count_total . ' Dosen &amp; Kepakaran</h2>
                 </div>
                 <div class="bk-sec-rule" aria-hidden="true"></div>
                 <div style="font-size:12.5px;color:var(--ink-muted);">Klik Dossier untuk membuka rekam jejak SINTA, matkul &amp; buku</div>
             </div>
 
-            <div class="bk-toolbar" style="margin-bottom:16px;">
-                <input type="search" id="bk-dosen-search" class="bk-inp" placeholder="Cari nama dosen, NIP, atau topik riset..." aria-label="Cari nama dosen, NIP, atau topik riset">
+            <div class="bk-toolbar" style="margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+                <input type="search" id="bk-dosen-search" class="bk-inp" placeholder="Cari nama dosen, NIP, jenjang S1/S2/S3, atau topik riset..." aria-label="Cari nama dosen, NIP, atau topik riset">
                 <div class="bk-filter-pills" id="bk-dosen-tier-pills" role="tablist" aria-label="Filter Jenjang Akademik Dosen">
                     <button type="button" class="bk-pill is-active" data-dtier="all" role="tab" aria-selected="true">Semua (' . $count_total . ')</button>
                     <button type="button" class="bk-pill" data-dtier="prof" role="tab" aria-selected="false">Guru Besar (' . (int)$tier_counts['prof'] . ')</button>
                     <button type="button" class="bk-pill" data-dtier="dr" role="tab" aria-selected="false">Doktor (' . (int)$tier_counts['dr'] . ')</button>
                     <button type="button" class="bk-pill" data-dtier="dosen" role="tab" aria-selected="false">Dosen (' . (int)$tier_counts['dosen'] . ')</button>
+                </div>
+                <div class="bk-filter-pills" id="bk-dosen-jenjang-pills" role="tablist" aria-label="Filter Homebase / Pengajaran Prodi">
+                    ' . $jenjang_pills_html . '
                 </div>
             </div>
 
@@ -3519,11 +3605,13 @@ window.BK_DOSEN_DOSSIER = <?php echo $dossier_json; ?>;
 
     var searchIn = document.getElementById("bk-dosen-search");
     var pillsWrap = document.getElementById("bk-dosen-tier-pills");
+    var jenjangPillsWrap = document.getElementById("bk-dosen-jenjang-pills");
     var gridEl = document.getElementById("bk-dosen-grid");
     var countEl = document.getElementById("bk-dosen-count");
     var emptyEl = document.getElementById("bk-dosen-empty");
     var resetBtn = document.getElementById("bk-dosen-reset");
     var activeTier = "all";
+    var activeJenjang = "all";
     var totalAll = gridEl ? gridEl.querySelectorAll(".bk-dosen-card-item").length : <?php echo (int)$total_all; ?>;
 
     var bp = window.location.pathname.indexOf("/yamato/") === 0 ? "/yamato" : "";
@@ -3572,10 +3660,12 @@ window.BK_DOSEN_DOSSIER = <?php echo $dossier_json; ?>;
         for (var i = 0; i < cards.length; i++) {
             var c = cards[i];
             var t = c.getAttribute("data-tier") || "";
+            var jList = (c.getAttribute("data-jenjang") || "").toLowerCase().split(",");
             var txt = (c.getAttribute("data-text") || "").toLowerCase();
             var okTier = (activeTier === "all" || t === activeTier);
+            var okJenjang = (activeJenjang === "all" || jList.indexOf(activeJenjang) !== -1);
             var okQ = (!q || txt.indexOf(q) !== -1);
-            if (okTier && okQ) {
+            if (okTier && okJenjang && okQ) {
                 c.style.display = "flex";
                 vis++;
             } else {
@@ -3585,8 +3675,8 @@ window.BK_DOSEN_DOSSIER = <?php echo $dossier_json; ?>;
         if (emptyEl) emptyEl.style.display = vis === 0 ? "block" : "none";
         if (grid) grid.style.display = vis === 0 ? "none" : "grid";
         if (countEl) {
-            if (q || activeTier !== "all") {
-                countEl.innerHTML = "Menampilkan <strong style=\"color:var(--forest);\">" + vis + "</strong> dari " + totalAll + " dosen" + (q ? " untuk pencarian &ldquo;" + esc(q) + "&rdquo;" : "");
+            if (q || activeTier !== "all" || activeJenjang !== "all") {
+                countEl.innerHTML = "Menampilkan <strong style=\"color:var(--forest);\">" + vis + "</strong> dari " + totalAll + " dosen" + (activeJenjang !== "all" ? " · Jenjang <strong>" + esc(activeJenjang.toUpperCase()) + "</strong>" : "") + (q ? " untuk pencarian &ldquo;" + esc(q) + "&rdquo;" : "");
             } else {
                 countEl.innerHTML = "Menampilkan seluruh <strong style=\"color:var(--forest);\">" + totalAll + "</strong> dosen &amp; tenaga pengajar Jurusan PPB";
             }
@@ -3747,13 +3837,34 @@ window.BK_DOSEN_DOSSIER = <?php echo $dossier_json; ?>;
             applyFilters();
         });
     }
+    if (jenjangPillsWrap) {
+        jenjangPillsWrap.addEventListener("click", function(e) {
+            var pill = e.target.closest("[data-djenjang]");
+            if (!pill) return;
+            activeJenjang = (pill.getAttribute("data-djenjang") || "all").toLowerCase();
+            jenjangPillsWrap.querySelectorAll("[data-djenjang]").forEach(function(b) {
+                var act = (b === pill);
+                b.classList.toggle("is-active", act);
+                b.setAttribute("aria-selected", act ? "true" : "false");
+            });
+            applyFilters();
+        });
+    }
     if (resetBtn) {
         resetBtn.addEventListener("click", function() {
             activeTier = "all";
+            activeJenjang = "all";
             if (searchIn) searchIn.value = "";
             if (pillsWrap) {
                 pillsWrap.querySelectorAll("[data-dtier]").forEach(function(b) {
                     var act = b.getAttribute("data-dtier") === "all";
+                    b.classList.toggle("is-active", act);
+                    b.setAttribute("aria-selected", act ? "true" : "false");
+                });
+            }
+            if (jenjangPillsWrap) {
+                jenjangPillsWrap.querySelectorAll("[data-djenjang]").forEach(function(b) {
+                    var act = b.getAttribute("data-djenjang") === "all";
                     b.classList.toggle("is-active", act);
                     b.setAttribute("aria-selected", act ? "true" : "false");
                 });
@@ -5228,7 +5339,11 @@ function bk_fip_run_site_health_db_optimization() {
         'ppb_spotlight_defaults_v2',
         'ppb_mata_kuliah_list',
         'ppb_mata_kuliah_seeded_v1',
+        'ppb_jurusan_units',
         'ppb_lamdik_settings',
+        'ppb_lamdik_settings_v1_backup',
+        'ppb_akademik_links_by_unit',
+        'ppb_km_stats_by_unit',
         'ppb_link_buku_kurikulum',
         'ppb_link_sk_kurikulum',
         'ppb_link_pedoman_penilaian',

@@ -406,21 +406,29 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
     </section>
 
     <!-- =====================================================================
-         SECTION 3: PENDIDIKAN BERKELANJUTAN (S1 / S2 / S3 SEGMENTED TABS + KAJUR QUOTE)
+         SECTION 3: PENDIDIKAN BERKELANJUTAN (PRODI JURUSAN PPB + KAJUR QUOTE)
          ===================================================================== -->
-    <section class="bk-band bk-band-surface" id="prodi_unified_section" aria-label="Jenjang Pendidikan Sarjana hingga Doktor">
+    <?php
+    $jur_info       = function_exists('ppb_get_jurusan_info') ? ppb_get_jurusan_info() : array('nama' => 'Jurusan Psikologi Pendidikan dan Bimbingan', 'singkatan' => 'Jurusan PPB FIP UNM');
+    $reg_prodi      = function_exists('ppb_get_prodi_units') ? ppb_get_prodi_units(true) : array();
+    $prodi_keys     = !empty($reg_prodi) ? array_keys($reg_prodi) : array('s1', 's2', 's3');
+    $lamdik_cfg_all = function_exists('ppb_get_lamdik_settings') ? ppb_get_lamdik_settings() : array();
+    $lamdik_prodi   = (isset($lamdik_cfg_all['prodi']) && is_array($lamdik_cfg_all['prodi'])) ? $lamdik_cfg_all['prodi'] : array();
+    ?>
+    <section class="bk-band bk-band-surface" id="prodi_unified_section" aria-label="Program Studi di Bawah Jurusan PPB FIP UNM">
         <div class="bk-wrap">
             <div class="bk-ugm-head">
                 <div class="bk-ugm-title-block">
-                    <div class="bk-kicker">Pendidikan Berkelanjutan</div>
-                    <h2 class="bk-section-h2">Pilih Jenjang Studi Sarjana hingga Doktor</h2>
+                    <div class="bk-kicker">Program Studi &middot; <?php echo esc_html($jur_info['singkatan'] ?? 'Jurusan PPB FIP UNM'); ?></div>
+                    <h2 class="bk-section-h2">Pendidikan Berkelanjutan Sarjana hingga Doktor</h2>
                 </div>
                 <div class="bk-sec-rule" aria-hidden="true"></div>
                 <div class="bk-ugm-actions">
-                    <div class="bk-seg-control" id="bk-degree-tabs" role="tablist" aria-label="Pilih Jenjang Studi">
-                        <?php foreach (array('s1', 's2', 's3') as $d_idx => $deg_key) :
+                    <div class="bk-seg-control" id="bk-degree-tabs" role="tablist" aria-label="Pilih Program Studi">
+                        <?php foreach ($prodi_keys as $d_idx => $deg_key) :
                             $deg_item = $degrees_map[$deg_key] ?? array();
-                            $deg_lbl  = !empty($deg_item['tab_label']) ? $deg_item['tab_label'] : ($deg_item['label'] ?? strtoupper($deg_key));
+                            $reg_u    = $reg_prodi[$deg_key] ?? array();
+                            $deg_lbl  = !empty($deg_item['tab_label']) ? $deg_item['tab_label'] : (!empty($reg_u['short_label']) ? $reg_u['short_label'] : ($deg_item['label'] ?? strtoupper($deg_key)));
                         ?>
                         <button type="button" class="bk-seg-btn <?php echo $d_idx === 0 ? 'is-active' : ''; ?>" data-deg-tab="<?php echo esc_attr($deg_key); ?>" role="tab" aria-selected="<?php echo $d_idx === 0 ? 'true' : 'false'; ?>">
                             <?php echo esc_html($deg_lbl); ?>
@@ -430,8 +438,13 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                 </div>
             </div>
 
-            <?php foreach (array('s1', 's2', 's3') as $d_idx => $deg_key) :
-                $dg = $degrees_map[$deg_key] ?? array();
+            <?php foreach ($prodi_keys as $d_idx => $deg_key) :
+                $reg_u = $reg_prodi[$deg_key] ?? array();
+                $dg    = $degrees_map[$deg_key] ?? array();
+                $dg_code = !empty($dg['code']) ? $dg['code'] : strtoupper($deg_key);
+                $dg_title = !empty($dg['title']) ? $dg['title'] : ($reg_u['label'] ?? ('Program Studi ' . $dg_code . ' Bimbingan dan Konseling'));
+                $dg_kkni = !empty($dg['kkni']) ? $dg['kkni'] : ('Kerangka KKNI & LAMDIK · ' . $dg_code);
+                $dg_summary = !empty($dg['summary']) ? $dg['summary'] : ('Penyelenggaraan pendidikan tinggi bidang Bimbingan dan Konseling jenjang ' . $dg_code . ' di bawah naungan Jurusan PPB FIP UNM.');
                 if (!empty($dg['kompetensi']) && is_array($dg['kompetensi'])) {
                     $komp_list = $dg['kompetensi'];
                 } elseif (!empty($dg['kompetensi']) && is_string($dg['kompetensi'])) {
@@ -439,23 +452,31 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                 } else {
                     $komp_list = array();
                 }
-                $cta_url = !empty($dg['cta_url']) ? $dg['cta_url'] : (!empty($dg['url']) ? $dg['url'] : home_url('/akademik/kurikulum/'));
-                $lamdik_cert_fallback = '';
-                if (function_exists('ppb_get_lamdik_settings')) {
-                    $lamdik_cfg = ppb_get_lamdik_settings();
-                    $lamdik_cert_fallback = $lamdik_cfg['sertifikat'][$deg_key]['cert_url']
-                        ?? ($lamdik_cfg['sertifikat'][$deg_key]['sk_url'] ?? ($lamdik_cfg['folder_utama_url'] ?? ''));
+                $base_kurikulum_url = home_url('/akademik/kurikulum/?jenjang=' . rawurlencode($deg_key));
+                $raw_cta = !empty($dg['cta_url']) ? $dg['cta_url'] : (!empty($dg['url']) ? $dg['url'] : '');
+                if ($raw_cta === '' || preg_match('#/akademik/kurikulum/?$#', $raw_cta)) {
+                    $cta_url = $base_kurikulum_url;
+                } else {
+                    $cta_url = $raw_cta;
                 }
+                $prodi_lm = $lamdik_prodi[$deg_key] ?? array();
+                $lm_cert  = $prodi_lm['sertifikat'] ?? array();
+                $lm_gen   = $prodi_lm['general'] ?? array();
+                $lamdik_cert_fallback = !empty($lm_cert['cert_url'])
+                    ? $lm_cert['cert_url']
+                    : (!empty($lm_cert['sk_url']) ? $lm_cert['sk_url'] : ($lm_gen['folder_utama_url'] ?? ''));
+                $akreditasi_url = home_url('/akreditasi/' . rawurlencode($deg_key) . '/');
                 $cert_url = !empty($dg['cert_url'])
                     ? $dg['cert_url']
-                    : ($lamdik_cert_fallback !== '' ? $lamdik_cert_fallback : home_url('/akreditasi/sertifikat/'));
-                $fokus_val = !empty($dg['fokus']) ? $dg['fokus'] : ($dg['kurikulum'] ?? '');
+                    : ($lamdik_cert_fallback !== '' ? $lamdik_cert_fallback : $akreditasi_url);
+                $fokus_val = !empty($dg['fokus']) ? $dg['fokus'] : ($dg['kurikulum'] ?? 'Kurikulum Berbasis OBE & KKNI');
+                $sk_val    = !empty($dg['sk']) ? $dg['sk'] : ($lm_cert['no_sk'] ?? ($reg_u['akreditasi_sk'] ?? 'Akreditasi LAMDIK'));
             ?>
             <div class="bk-prodi-panel" data-deg-panel="<?php echo esc_attr($deg_key); ?>" style="<?php echo $d_idx === 0 ? '' : 'display:none;'; ?>">
                 <div>
-                    <span class="bk-tag bk-tag-sage" style="margin-bottom:10px;"><?php echo esc_html($dg['kkni'] ?? ''); ?></span>
-                    <h3 class="bk-font-display" style="font-size:23px;margin:0 0 8px;color:var(--text-primary, #111C16);"><?php echo esc_html($dg['title'] ?? ''); ?></h3>
-                    <p class="bk-read-width" style="font-size:14.5px;color:var(--text-secondary, #2E3D35);margin:0;line-height:1.68;"><?php echo esc_html($dg['summary'] ?? ''); ?></p>
+                    <span class="bk-tag bk-tag-sage" style="margin-bottom:10px;"><?php echo esc_html($dg_kkni); ?></span>
+                    <h3 class="bk-font-display" style="font-size:23px;margin:0 0 8px;color:var(--text-primary, #111C16);"><?php echo esc_html($dg_title); ?></h3>
+                    <p class="bk-read-width" style="font-size:14.5px;color:var(--text-secondary, #2E3D35);margin:0;line-height:1.68;"><?php echo esc_html($dg_summary); ?></p>
                     <?php if (!empty($komp_list)) : ?>
                     <ul class="bk-check-list">
                         <?php foreach ($komp_list as $km) : ?>
@@ -471,11 +492,11 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                     <ul class="bk-spec-list">
                         <li>
                             <span style="color:var(--text-muted, #55625B);">Gelar</span>
-                            <strong><?php echo esc_html($dg['gelar'] ?? ''); ?></strong>
+                            <strong><?php echo esc_html($dg['gelar'] ?? ($reg_u['gelar'] ?? '-')); ?></strong>
                         </li>
                         <li>
                             <span style="color:var(--text-muted, #55625B);">Beban Studi</span>
-                            <strong><?php echo esc_html($dg['beban'] ?? ''); ?></strong>
+                            <strong><?php echo esc_html($dg['beban'] ?? '-'); ?></strong>
                         </li>
                         <li>
                             <span style="color:var(--text-muted, #55625B);">Kurikulum &amp; Fokus</span>
@@ -483,14 +504,15 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                         </li>
                         <li>
                             <span style="color:var(--text-muted, #55625B);">SK LAMDIK</span>
-                            <span class="bk-mono" style="font-size:11.5px;"><?php echo esc_html($dg['sk'] ?? ''); ?></span>
+                            <span class="bk-mono" style="font-size:11.5px;"><?php echo esc_html($sk_val); ?></span>
                         </li>
                     </ul>
                     <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
                         <a href="<?php echo esc_url($cta_url); ?>" class="bk-btn bk-btn-primary bk-btn-sm">
-                            <span>Buka Kurikulum <?php echo esc_html($dg['code'] ?? strtoupper($deg_key)); ?></span>
+                            <span>Kurikulum <?php echo esc_html($dg_code); ?></span>
                             <span aria-hidden="true">&rarr;</span>
                         </a>
+                        <a href="<?php echo esc_url($akreditasi_url); ?>" class="bk-btn bk-btn-ghost bk-btn-sm">Akreditasi <?php echo esc_html($dg_code); ?></a>
                         <a href="<?php echo esc_url($cert_url); ?>" class="bk-btn bk-btn-ghost bk-btn-sm">Sertifikat</a>
                     </div>
                 </div>
@@ -506,7 +528,7 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
                         <strong style="font-size:13.5px;color:var(--unm-forest, #0D3B22);display:block;"><?php echo esc_html($kajur_nama); ?></strong>
                         <span class="bk-mono" style="font-size:11px;color:var(--text-muted, #55625B);"><?php echo esc_html($kajur_jabatan); ?></span>
                     </div>
-                    <a href="<?php echo esc_url($kajur_link); ?>" class="bk-btn bk-btn-ghost bk-btn-sm">Sejarah &amp; Struktur Pimpinan &rarr;</a>
+                    <a href="<?php echo esc_url($kajur_link); ?>" class="bk-btn bk-btn-ghost bk-btn-sm">Sejarah &amp; Struktur Jurusan &rarr;</a>
                 </footer>
             </blockquote>
         </div>
@@ -539,7 +561,7 @@ $admisi_btn2_url   = $cfg['admisi_btn2_url'] ?? 'https://bk-connect-fipunm.verce
         'duration'  => '03:45',
         'badge'     => 'Bagian 1 · Visi & Sejarah 1969',
         'title'     => '57 Tahun Mendidik Calon Konselor Nusantara',
-        'desc'      => 'Dari Bimbingan Penyuluhan (1969) menjadi prodi terakreditasi Unggul LAMDIK untuk jenjang Sarjana dan Magister.',
+        'desc'      => 'Dari Bimbingan Penyuluhan (1969) menjadi jurusan terakreditasi Unggul LAMDIK untuk jenjang Sarjana, Magister, dan Doktor.',
         'meta'      => 'Profil Jurusan · Kampus Tidung',
         'poster'    => get_template_directory_uri() . '/assets/img/hero-campus.jpg',
         'video_url' => '',

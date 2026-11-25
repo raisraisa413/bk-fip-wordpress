@@ -155,6 +155,17 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
                 <div class="bk-dossier-hero-meta" style="flex:1;min-width:300px;padding-bottom:38px;">
                     
                     <!-- Badges Row -->
+                    <?php
+                    $dsn_jenjang = function_exists('bk_fip_infer_dosen_jenjang') ? bk_fip_infer_dosen_jenjang($d) : array();
+                    if (empty($dsn_jenjang)) {
+                        $u_low = strtolower((string) ($d['unit'] ?? 's1'));
+                        if (strpos($u_low, 's2') !== false || strpos($u_low, 'magister') !== false) $dsn_jenjang[] = 's2';
+                        if (strpos($u_low, 's3') !== false || strpos($u_low, 'doktor') !== false) $dsn_jenjang[] = 's3';
+                        if (empty($dsn_jenjang) || strpos($u_low, 's1') !== false) array_unshift($dsn_jenjang, 's1');
+                        $dsn_jenjang = array_values(array_unique($dsn_jenjang));
+                    }
+                    $dsn_jenjang_lbl = implode(' · ', array_map('strtoupper', $dsn_jenjang));
+                    ?>
                     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;">
                         <span style="background:rgba(245,184,46,0.18);border:1px solid rgba(245,184,46,0.35);color:#F5B82E;font-size:11px;font-weight:700;padding:4px 12px;border-radius:9999px;text-transform:uppercase;letter-spacing:0.06em;line-height:1;display:inline-block;">
                             <?php echo esc_html($d['jabatan_fungsional']); ?>
@@ -164,8 +175,11 @@ $total_pedagogik_count = count($pendidikan_list) + count($courses_list);
                                 🏛 <?php echo esc_html($d['jabatan_struktural']); ?>
                             </span>
                         <?php endif; ?>
-                        <span style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.85);font-size:11.5px;padding:4px 12px;border-radius:9999px;line-height:1;display:inline-block;">
-                            <?php echo esc_html($d['unit'] ?? 'S1 Bimbingan dan Konseling'); ?>
+                        <span style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.92);font-size:11.5px;padding:4px 12px;border-radius:9999px;line-height:1;display:inline-block;">
+                            Jurusan PPB · <?php echo esc_html($d['unit'] ?? 'Bimbingan dan Konseling'); ?>
+                        </span>
+                        <span style="background:rgba(16,185,129,0.2);border:1px solid rgba(110,231,183,0.4);color:#A7F3D0;font-size:11px;font-weight:700;padding:4px 10px;border-radius:9999px;line-height:1;display:inline-block;">
+                            Pengajaran: <?php echo esc_html($dsn_jenjang_lbl); ?>
                         </span>
                     </div>
 
