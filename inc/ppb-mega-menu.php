@@ -545,6 +545,7 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                             ['title' => 'Persuratan & SOP Layanan', 'url' => home_url('/layanan/persuratan/'), 'subtitle' => 'Template F-01..F-06 S1/S2/S3 & alur SOP resmi', 'icon' => 'mail', 'badge' => ''],
                             ['title' => 'Laboratorium BK & Alat Tes', 'url' => home_url('/laboratorium/'), 'subtitle' => '4 bilik one-way mirror, IST/CFIT & studio', 'icon' => 'lab', 'badge' => ''],
                             ['title' => 'E-Library & Modul PDF', 'url' => home_url('/e-library/'), 'subtitle' => 'Arsip modul kuliah & pedoman tugas akhir', 'icon' => 'folder', 'badge' => 'Digital'],
+                            ['title' => '7 Jurus BK: Canvas RPL', 'url' => home_url('/layanan/7jurusbk/'), 'subtitle' => 'Desain layanan BK, ARKA & ekspor RPL/LKPD PDF', 'icon' => 'compass', 'badge' => 'Baru'],
                         ],
                     ],
                     [
@@ -582,7 +583,7 @@ if (!function_exists('ppb_get_nav_tree')) {
         $has_custom_menu = false;
 
         // 1. Cek apakah ada menu yang dipasang di lokasi 'primary-menu' (dan sudah disinkronkan ke v4 Editorial Calm)
-        if (has_nav_menu('primary-menu') && get_option('ppb_mega_menu_autoseeded_v5', '') === 'yes') {
+        if (has_nav_menu('primary-menu') && get_option('ppb_mega_menu_autoseeded_v6', '') === 'yes') {
             $locations = get_nav_menu_locations();
             if (!empty($locations['primary-menu'])) {
                 $menu_items = wp_get_nav_menu_items($locations['primary-menu']);
@@ -1010,7 +1011,7 @@ add_action('admin_post_ppb_sync_mega_menu', function() {
 
     $menu_id = ppb_sync_default_mega_menu_to_wp();
     if ($menu_id) {
-        update_option('ppb_mega_menu_autoseeded_v5', 'yes', false);
+        update_option('ppb_mega_menu_autoseeded_v6', 'yes', false);
         wp_safe_redirect(admin_url('nav-menus.php?action=edit&menu=' . $menu_id . '&ppb_synced=1'));
     } else {
         wp_safe_redirect(admin_url('nav-menus.php?ppb_sync_failed=1'));
@@ -1421,8 +1422,8 @@ add_action('admin_init', function() {
     if (!current_user_can('manage_options')) {
         return;
     }
-    if (get_option('ppb_mega_menu_autoseeded_v5') !== 'yes') {
+    if (get_option('ppb_mega_menu_autoseeded_v6') !== 'yes') {
         ppb_sync_default_mega_menu_to_wp();
-        update_option('ppb_mega_menu_autoseeded_v5', 'yes', false);
+        update_option('ppb_mega_menu_autoseeded_v6', 'yes', false);
     }
 });

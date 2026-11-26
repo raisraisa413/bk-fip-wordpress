@@ -322,5 +322,12 @@
     "parent_slug": "",
     "menu_order": 10,
     "content": "[ppb_elibrary]"
+  },
+  {
+    "title": "7 Jurus BK Hebat — Universal Service Design Canvas",
+    "slug": "7jurusbk",
+    "parent_slug": "layanan",
+    "menu_order": 3,
+    "content": "<div class=\"bk-page-wrapper\" style=\"width:100%;min-height:100vh;background:#FAF8F5;color:#1F2937;font-family:'Plus Jakarta Sans',sans-serif;line-height:1.6;\">\n    <header class=\"bk-page-head\">\n        <div class=\"bk-container\">\n            <div class=\"bk-crumb\">\n                <a href=\"/\">Beranda</a>\n                <span>/</span>\n                <a href=\"/layanan/\">Layanan &amp; Lab BK</a>\n                <span>/</span>\n                <span>7 Jurus BK Hebat</span>\n            </div>\n            <h1>7 Jurus BK Hebat — Universal Service Design Canvas</h1>\n            <p class=\"bk-page-lead\">Rancang layanan Bimbingan dan Konseling yang bermakna, berdampak, dan terstruktur melalui 8 langkah desain universal hingga ekspor RPL BK, LKPD, dan Instrumen Evaluasi.</p>\n        </div>\n    </header>\n\n    <section class=\"bk-band\">\n        <div class=\"bk-container\">\n            <nav class=\"bk-tabs\" aria-label=\"Sub-menu Layanan &amp; Laboratorium BK\">\n                <a href=\"/layanan/persuratan/\" class=\"bk-tab-btn\">Persuratan &amp; SOP</a>\n                <a href=\"/lab-bk/inventaris/\" class=\"bk-tab-btn\">Lab BK &amp; Alat Tes</a>\n                <a href=\"/e-library/\" class=\"bk-tab-btn\">E-Library &amp; Modul</a>\n                <a href=\"/layanan/7jurusbk/\" class=\"bk-tab-btn is-active\" aria-current=\"page\">7 Jurus BK Canvas</a>\n                <a href=\"/layanan/perlindungan-mahasiswa/\" class=\"bk-tab-btn\">Perlindungan &amp; Survei</a>\n            </nav>\n\n[ppb_7jurus_canvas]\n        </div>\n    </section>\n</div>"
   }
 ]

@@ -1545,7 +1545,7 @@ function ppb_auto_sync_pages_content() {
 
 
 
-    if ($synced_version === '21.6' && !$force) {
+    if ($synced_version === '21.7' && !$force) {
         return;
     }
 
@@ -1956,7 +1956,7 @@ function ppb_auto_sync_pages_content() {
         }
     }
 
-    update_option('ppb_content_synced_version', '21.6');
+    update_option('ppb_content_synced_version', '21.7');
 
 
 
