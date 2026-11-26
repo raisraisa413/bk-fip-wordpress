@@ -2473,7 +2473,7 @@ function bk_fip_save_dosen_data($dosen_list) {
 }
 
 add_action('init', function() {
-    $sync_ver = '2026-11-26-v1';
+    $sync_ver = '2026-11-26-v2';
     if (get_option('bk_dosen_nip_kepakaran_sync_v', '') === $sync_ver) {
         return;
     }
@@ -3482,7 +3482,7 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
                         <div style="min-width:0;">
                             <h3 class="bk-dosen-card-name" style="margin-bottom:2px;min-height:0;"><a href="' . esc_url($profile_url) . '" data-open-dossier="' . esc_attr($slug) . '">' . esc_html($nama) . '</a></h3>
                             <div class="bk-dosen-meta-sub">' . esc_html($role_line) . '</div>
-                            ' . ($nip !== '' ? '<div class="bk-fm" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">NIP. ' . esc_html($nip) . '</div>' : '') . '
+                            ' . ($nip !== '' ? '<div class="bk-fm" style="font-size:10.5px;color:var(--ink-muted);margin-top:2px;white-space:nowrap;letter-spacing:-0.02em;">NIP. ' . esc_html($nip) . '</div>' : '') . '
                         </div>
                     </div>
                     <span class="' . esc_attr($tag_classes) . '" style="flex-shrink:0;">' . esc_html($badge_label) . '</span>
