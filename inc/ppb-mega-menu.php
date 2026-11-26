@@ -468,7 +468,7 @@ if (!function_exists('ppb_get_default_mega_menu_data')) {
                         'heading' => 'Akreditasi & Mutu',
                         'icon'    => 'award',
                         'items'   => [
-                            ['title' => 'Akreditasi LAMDIK (S1, S2 & S3)', 'url' => home_url('/akreditasi/'), 'subtitle' => 'Eviden 9 Kriteria, LED & LKPS terpisah per prodi', 'icon' => 'award', 'badge' => '9 Kriteria'],
+                            ['title' => 'Akreditasi LAMDIK (S1, S2 & S3)', 'url' => home_url('/akreditasi/'), 'subtitle' => 'LED 3.0, DKPS 3.0 & Link Drive Asesor per Prodi', 'icon' => 'award', 'badge' => 'IAPSK 3.0'],
                             ['title' => 'Sertifikat & SK Akreditasi', 'url' => home_url('/akreditasi/sertifikat/'), 'subtitle' => 'SK Unggul S1, S2 & Baik Sekali S3 resmi LAMDIK', 'icon' => 'file-badge', 'badge' => 'S1–S3'],
                             ['title' => 'UPM / GPM & Dokumen Mutu', 'url' => home_url('/akreditasi/upm/'), 'subtitle' => 'Renstra Jurusan, Renop, PPEPP & Audit Mutu', 'icon' => 'shield', 'badge' => 'Jurusan'],
                         ],
