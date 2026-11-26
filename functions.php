@@ -2472,6 +2472,73 @@ function bk_fip_save_dosen_data($dosen_list) {
     }
 }
 
+add_action('init', function() {
+    $sync_ver = '2026-11-26-v1';
+    if (get_option('bk_dosen_nip_kepakaran_sync_v', '') === $sync_ver) {
+        return;
+    }
+    $json_file = get_template_directory() . '/dosen-data.json';
+    if (!file_exists($json_file)) {
+        return;
+    }
+    $json_list = json_decode((string) file_get_contents($json_file), true);
+    if (!is_array($json_list) || empty($json_list)) {
+        return;
+    }
+
+    $by_slug = array();
+    foreach ($json_list as $row) {
+        if (!is_array($row) || empty($row['slug'])) continue;
+        $by_slug[(string) $row['slug']] = $row;
+    }
+
+    $cached = get_option('bk_dosen_data_cache', array());
+    if (is_array($cached) && !empty($cached)) {
+        foreach ($cached as &$c) {
+            if (!is_array($c) || empty($c['slug'])) continue;
+            $sl = (string) $c['slug'];
+            if (!isset($by_slug[$sl])) continue;
+            if (!empty($by_slug[$sl]['nip'])) {
+                $c['nip'] = (string) $by_slug[$sl]['nip'];
+            }
+            if (!empty($by_slug[$sl]['kepakaran']) && is_array($by_slug[$sl]['kepakaran'])) {
+                $c['kepakaran'] = $by_slug[$sl]['kepakaran'];
+            }
+        }
+        unset($c);
+        update_option('bk_dosen_data_cache', $cached, false);
+    } else {
+        $cached = $json_list;
+        update_option('bk_dosen_data_cache', $cached, false);
+    }
+
+    // Sync NIP & kepakaran saja ke CPT ppb_dosen / dosen (tanpa mengubah foto atau field lain)
+    $cpt_posts = get_posts(array(
+        'post_type'      => array('ppb_dosen', 'dosen'),
+        'post_status'    => 'any',
+        'posts_per_page' => -1,
+        'no_found_rows'  => true,
+    ));
+    if (!empty($cpt_posts)) {
+        foreach ($cpt_posts as $cp) {
+            $sl = (string) $cp->post_name;
+            if (!isset($by_slug[$sl])) continue;
+            if (!empty($by_slug[$sl]['nip'])) {
+                update_post_meta($cp->ID, '_ppb_dosen_nip', (string) $by_slug[$sl]['nip']);
+            }
+            if (!empty($by_slug[$sl]['kepakaran']) && is_array($by_slug[$sl]['kepakaran'])) {
+                update_post_meta($cp->ID, '_ppb_dosen_kepakaran', implode(', ', $by_slug[$sl]['kepakaran']));
+            }
+        }
+    }
+
+    if (function_exists('bk_fip_rebuild_dosen_roster_html') && !empty($cached)) {
+        bk_fip_rebuild_dosen_roster_html($cached);
+    }
+
+    update_option('bk_dosen_nip_kepakaran_sync_v', $sync_ver, false);
+}, 20);
+
 function bk_fip_sinta_http_get($url) {
     $resp = wp_remote_get($url, array(
         'timeout' => 20,
