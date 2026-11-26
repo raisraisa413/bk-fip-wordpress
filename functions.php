@@ -2121,6 +2121,15 @@ add_filter('template_include', function($template) {
             $clean_dosen_content = $dosen_page_entry
                 ? str_replace(array('http://bk-fip.local/', 'https://bk-fip.local/'), '/', (string)$dosen_page_entry['content'])
                 : '';
+            if (function_exists('bk_fip_build_dosen_roster_html') && function_exists('bk_fip_load_dosen_data')) {
+                $live_cached_dosen = get_option('bk_dosen_data_cache', array());
+                if (is_array($live_cached_dosen) && !empty($live_cached_dosen)) {
+                    $rebuilt_dosen_html = bk_fip_build_dosen_roster_html($live_cached_dosen);
+                    if (is_string($rebuilt_dosen_html) && strpos($rebuilt_dosen_html, 'bk-dosen-card-name') !== false) {
+                        $clean_dosen_content = $rebuilt_dosen_html;
+                    }
+                }
+            }
 
             // If not found in DB at all, auto-create it immediately from pages-data.json
             if (!$dosen_id && $dosen_page_entry) {
@@ -3621,6 +3630,22 @@ window.BK_DOSEN_DOSSIER = <?php echo $dossier_json; ?>;
     function initAvatars() {
         var grid = document.getElementById("bk-dosen-grid");
         if (!grid) return;
+        grid.querySelectorAll(".bk-dosen-card-item[data-slug]").forEach(function(card) {
+            var sl = card.getAttribute("data-slug");
+            var info = sl && DATA[sl];
+            var av = card.querySelector(".bk-avatar");
+            if (av && info && info.f && !av.querySelector("img")) {
+                var initTxt = av.textContent ? av.textContent.trim() : (info.i || "");
+                av.setAttribute("data-fb-init", initTxt);
+                av.classList.add("has-photo");
+                av.innerHTML = "";
+                var img = document.createElement("img");
+                img.src = assetUrl(info.f);
+                img.alt = info.n || "";
+                img.loading = "lazy";
+                av.appendChild(img);
+            }
+        });
         grid.querySelectorAll(".bk-avatar img").forEach(function(im) {
             var s = im.getAttribute("src") || "";
             if (bp && s.indexOf("/wp-content/") === 0) im.src = assetUrl(s);
