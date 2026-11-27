@@ -994,29 +994,62 @@ function bk_fip_render_dosen_metabox($post) {
     </div>
 
     <?php
-    $foto_link = get_post_meta($post->ID, '_dosen_foto_link', true);
-    $foto_prev = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($foto_link) : $foto_link;
+    $foto_link   = get_post_meta($post->ID, '_dosen_foto_link', true);
+    $foto_posisi = get_post_meta($post->ID, '_dosen_foto_posisi', true) ?: '50% 15%';
+    $foto_prev   = function_exists('bk_resolve_theme_asset_url') ? bk_resolve_theme_asset_url($foto_link) : $foto_link;
     wp_enqueue_media();
     ?>
     <div style="display:grid; grid-template-columns: 96px 1fr; gap: 16px; align-items:center; margin-top: 12px; padding: 14px; background:#FAF8F5; border:1px solid #E6E2DA; border-radius:10px;">
-        <div style="width:96px;height:120px;border-radius:10px;overflow:hidden;background:#0D3B22;border:2px solid #F5B82E;">
-            <img id="bk-dosen-foto-preview" src="<?php echo esc_url($foto_prev); ?>" alt="" style="width:100%;height:100%;object-fit:cover;object-position:50% 18%;<?php echo $foto_prev ? '' : 'display:none;'; ?>">
+        <div id="bk-dosen-foto-box" title="Klik area wajah pada foto untuk mengatur titik fokus" style="position:relative;width:96px;height:120px;border-radius:10px;overflow:hidden;background:#0D3B22;border:2px solid #F5B82E;cursor:crosshair;">
+            <img id="bk-dosen-foto-preview" src="<?php echo esc_url($foto_prev); ?>" alt="" style="width:100%;height:100%;object-fit:cover;object-position:<?php echo esc_attr($foto_posisi); ?>;<?php echo $foto_prev ? '' : 'display:none;'; ?>">
+            <span id="bk-dosen-focal-pin" style="position:absolute;width:12px;height:12px;border-radius:99px;background:#F5B82E;border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,0.6);transform:translate(-50%,-50%);pointer-events:none;left:50%;top:15%;<?php echo $foto_prev ? '' : 'display:none;'; ?>"></span>
         </div>
         <div>
             <label style="display:block; font-weight:600; margin-bottom: 5px;">Foto Potret Dosen (URL / Media Library / assets/img/...):</label>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; margin-bottom:6px;">
                 <input type="text" id="bk-dosen-foto-link" name="dosen_foto_link" value="<?php echo esc_attr($foto_link); ?>" style="flex:1;" placeholder="https://... atau assets/img/dosen-nama.jpg">
                 <button type="button" class="button" id="bk-dosen-foto-pick">Pilih dari Media</button>
                 <button type="button" class="button-link-delete" id="bk-dosen-foto-clear">Hapus</button>
             </div>
-            <small style="color:#666;">Potret rasio 4:5 (mis. 480×600px) dengan wajah di sepertiga atas. Tampil di kartu direktori (54px, crop 50% 22%) dan dossier profil (96×120px, crop 50% 18%). Jika kosong/gagal dimuat, inisial nama ditampilkan otomatis. Featured Image tetap dipakai sebagai cadangan.</small>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <label style="font-size:12px;font-weight:600;color:#0D3B22;">Titik Fokus Wajah:</label>
+                <input type="text" id="bk-dosen-foto-posisi" name="dosen_foto_posisi" value="<?php echo esc_attr($foto_posisi); ?>" style="width:90px;font-size:12px;" readonly>
+                <button type="button" class="button button-small" id="bk-dosen-foto-reset-pos">↺ Reset Atas (50% 15%)</button>
+                <span style="font-size:11px;color:#666;">Klik langsung bagian wajah pada foto preview di kiri.</span>
+            </div>
+            <small style="color:#666;">Potret rasio 4:5 dengan default fokus bagian atas (50% 15%). Jika wajah kurang pas, klik titik wajah pada preview di sebelah kiri.</small>
         </div>
     </div>
     <script>
     (function(){
-        var input = document.getElementById('bk-dosen-foto-link'), prev = document.getElementById('bk-dosen-foto-preview');
+        var input = document.getElementById('bk-dosen-foto-link'),
+            prev = document.getElementById('bk-dosen-foto-preview'),
+            box = document.getElementById('bk-dosen-foto-box'),
+            pin = document.getElementById('bk-dosen-focal-pin'),
+            posInp = document.getElementById('bk-dosen-foto-posisi');
         var base = <?php echo wp_json_encode(trailingslashit(get_template_directory_uri())); ?>;
-        function upd(v){ v = (v||'').trim(); if (v.indexOf('assets/') === 0) v = base + v; if (v) { prev.src = v; prev.style.display = 'block'; } else { prev.style.display = 'none'; } }
+        function applyPos(p) {
+            p = (p || '50% 15%').trim();
+            posInp.value = p;
+            prev.style.objectPosition = p;
+            var parts = p.split(/\s+/);
+            if (parts.length === 2) { pin.style.left = parts[0]; pin.style.top = parts[1]; }
+        }
+        function upd(v){
+            v = (v||'').trim();
+            if (v.indexOf('assets/') === 0) v = base + v;
+            if (v) { prev.src = v; prev.style.display = 'block'; pin.style.display = 'block'; }
+            else { prev.style.display = 'none'; pin.style.display = 'none'; }
+        }
+        applyPos(posInp.value);
+        box.addEventListener('click', function(e){
+            if (prev.style.display === 'none') return;
+            var r = box.getBoundingClientRect();
+            var x = Math.max(0, Math.min(100, Math.round(((e.clientX - r.left) / r.width) * 100)));
+            var y = Math.max(0, Math.min(100, Math.round(((e.clientY - r.top) / r.height) * 100)));
+            applyPos(x + '% ' + y + '%');
+        });
+        document.getElementById('bk-dosen-foto-reset-pos').addEventListener('click', function(){ applyPos('50% 15%'); });
         input.addEventListener('input', function(){ upd(input.value); });
         document.getElementById('bk-dosen-foto-clear').addEventListener('click', function(){ input.value = ''; upd(''); });
         document.getElementById('bk-dosen-foto-pick').addEventListener('click', function(e){
@@ -1064,6 +1097,11 @@ function bk_fip_save_dosen_metabox($post_id) {
     if (isset($_POST['dosen_foto_link'])) {
         $foto = function_exists('bk_sanitize_asset_or_url') ? bk_sanitize_asset_or_url(wp_unslash($_POST['dosen_foto_link'])) : esc_url_raw(wp_unslash($_POST['dosen_foto_link']));
         update_post_meta($post_id, '_dosen_foto_link', $foto);
+    }
+    if (isset($_POST['dosen_foto_posisi'])) {
+        $pos = sanitize_text_field(wp_unslash($_POST['dosen_foto_posisi']));
+        if (!preg_match('/^\d{1,3}%\s+\d{1,3}%$/', $pos)) $pos = '50% 15%';
+        update_post_meta($post_id, '_dosen_foto_posisi', $pos);
     }
 
 }
@@ -3509,8 +3547,9 @@ function bk_fip_build_dosen_roster_html($dosen_list) {
         $search_text = esc_attr(strtolower($nama . ' ' . $nip . ' ' . $jabatan . ' ' . $struktural . ' ' . $badge_label . ' ' . $jenjang_lbl . ' ' . ($d['unit'] ?? '') . ' ' . implode(' ', $kepakaran) . ' ' . implode(' ', $mk_search)));
 
         if ($foto_url !== '') {
+            $foto_pos = !empty($d['foto_posisi']) ? (string) $d['foto_posisi'] : '50% 15%';
             $av_cls = 'bk-avatar' . ($is_prof ? ' is-prof' : '') . ' has-photo';
-            $avatar_html = '<div class="' . $av_cls . '" data-fb-init="' . esc_attr($init) . '"><img src="' . esc_url($foto_url) . '" alt="' . esc_attr($nama) . '" loading="lazy"></div>';
+            $avatar_html = '<div class="' . $av_cls . '" data-fb-init="' . esc_attr($init) . '"><img src="' . esc_url($foto_url) . '" alt="' . esc_attr($nama) . '" loading="lazy" style="object-position:' . esc_attr($foto_pos) . ';"></div>';
         } else {
             $av_cls = 'bk-avatar' . ($is_prof ? ' is-prof' : '');
             $avatar_html = '<div class="' . $av_cls . '">' . esc_html($init) . '</div>';
@@ -4098,6 +4137,8 @@ function bk_fip_render_sync_dosen_page() {
                 $cd['jabatan_struktural'] = sanitize_text_field($_POST['jabatan_struktural'] ?? '');
                 $cd['unit']               = sanitize_text_field($_POST['unit'] ?? ($cd['unit'] ?? 'S1 Bimbingan dan Konseling'));
                 $cd['foto_link']          = function_exists('bk_sanitize_asset_or_url') ? bk_sanitize_asset_or_url(wp_unslash($_POST['foto_link'] ?? '')) : esc_url_raw($_POST['foto_link'] ?? '');
+                $raw_pos                  = sanitize_text_field(wp_unslash($_POST['foto_posisi'] ?? '50% 15%'));
+                $cd['foto_posisi']        = preg_match('/^\d{1,3}%\s+\d{1,3}%$/', $raw_pos) ? $raw_pos : '50% 15%';
                 $cd['sinta_id']           = sanitize_text_field($_POST['sinta_id'] ?? '');
                 $cd['sinta_url']          = esc_url_raw($_POST['sinta_url'] ?? '');
                 $cd['scholar_url']        = esc_url_raw($_POST['scholar_url'] ?? '');
@@ -4162,11 +4203,13 @@ function bk_fip_render_sync_dosen_page() {
             @file_put_contents($json_file, json_encode($current_dosen, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             update_option('bk_dosen_data_cache', $current_dosen, false);
 
-            // Sync photo URL to CPT 'dosen' / 'ppb_dosen' postmeta so single-dosen.php always stays in sync
+            // Sync photo URL & focal position to CPT 'dosen' / 'ppb_dosen' postmeta so single-dosen.php always stays in sync
             $saved_foto = '';
+            $saved_pos  = '50% 15%';
             foreach ($current_dosen as $cd_item) {
                 if (($cd_item['slug'] ?? '') === $edit_slug) {
                     $saved_foto = trim((string)($cd_item['foto_link'] ?? ''));
+                    $saved_pos  = trim((string)($cd_item['foto_posisi'] ?? '50% 15%')) ?: '50% 15%';
                     break;
                 }
             }
@@ -4180,6 +4223,7 @@ function bk_fip_render_sync_dosen_page() {
                         delete_post_meta($cpt_post->ID, '_dosen_foto_link');
                         delete_post_meta($cpt_post->ID, '_ppb_dosen_foto_link');
                     }
+                    update_post_meta($cpt_post->ID, '_dosen_foto_posisi', $saved_pos);
                     clean_post_cache($cpt_post->ID);
                 }
             }
@@ -4663,8 +4707,9 @@ function bk_fip_render_sync_dosen_page() {
                         </h4>
 
                         <div style="display:flex;align-items:flex-start;gap:18px;">
-                            <div style="width:100px;height:120px;border-radius:12px;background:#0D3B22;border:2px dashed #F5B82E;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;" id="edit-photo-preview-box">
-                                <img src="" id="edit-photo-preview" style="width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:none;">
+                            <div title="Klik langsung bagian wajah pada foto untuk mengatur titik fokus" style="position:relative;width:100px;height:120px;border-radius:12px;background:#0D3B22;border:2px dashed #F5B82E;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;cursor:crosshair;" id="edit-photo-preview-box">
+                                <img src="" id="edit-photo-preview" style="width:100%;height:100%;object-fit:cover;object-position:50% 15%;display:none;">
+                                <span id="edit-photo-focal-pin" style="position:absolute;width:12px;height:12px;border-radius:99px;background:#F5B82E;border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,0.6);transform:translate(-50%,-50%);pointer-events:none;left:50%;top:15%;display:none;"></span>
                                 <span id="edit-photo-none" style="font-size:11px;color:#F5B82E;font-weight:600;text-align:center;padding:6px;">Tanpa Foto</span>
                             </div>
 
@@ -4676,8 +4721,14 @@ function bk_fip_render_sync_dosen_page() {
                                         <span>📁 Pilih / Upload Media</span>
                                     </button>
                                 </div>
+                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                                    <label style="font-size:11.5px;font-weight:700;color:#0D3B22;">Titik Fokus Wajah:</label>
+                                    <input type="text" name="foto_posisi" id="edit-foto-posisi" value="50% 15%" readonly style="width:86px;height:28px;border-radius:6px;border:1px solid #CBD5E1;padding:0 8px;font-size:12px;background:#fff;">
+                                    <button type="button" class="button button-small" onclick="bkSetPhotoFocalPoint('50% 15%')">↺ Reset Atas (50% 15%)</button>
+                                    <span style="font-size:11px;color:#64748b;">Klik langsung bagian wajah pada kotak foto di kiri.</span>
+                                </div>
                                 <p style="margin:0;font-size:11.5px;line-height:1.5;color:#4B5563;">
-                                    <strong>Rekomendasi Format:</strong> Gunakan foto portrait dengan latar belakang transparan (format <code>.png</code> atau <code>.webp</code>). Foto akan ditampilkan tegak berdiri dari batas atas hingga batas bawah background hijau secara mulus dan elegan.
+                                    <strong>Rekomendasi:</strong> Default fokus otomatis di bagian atas (<code>50% 15%</code>) agar wajah tidak terpotong. Klik area wajah di preview bila perlu penyesuaian.
                                 </p>
                             </div>
                         </div>
@@ -5036,7 +5087,7 @@ function bk_fip_render_sync_dosen_page() {
         document.getElementById('edit-nohp').value = d.no_hp || '';
         document.getElementById('edit-bio').value = d.bio || '';
 
-        bkUpdatePhotoPreview(d.foto_link || '');
+        bkUpdatePhotoPreview(d.foto_link || '', d.foto_posisi || '50% 15%');
 
         // Populate Pendidikan
         var pList = document.getElementById('edit-pendidikan-list');
@@ -5112,9 +5163,29 @@ function bk_fip_render_sync_dosen_page() {
         });
     }
 
-    function bkUpdatePhotoPreview(url) {
+    function bkSetPhotoFocalPoint(pos) {
+        pos = (pos && /^\d{1,3}%\s+\d{1,3}%$/.test(pos.trim())) ? pos.trim() : '50% 15%';
+        var img = document.getElementById('edit-photo-preview');
+        var pin = document.getElementById('edit-photo-focal-pin');
+        var inp = document.getElementById('edit-foto-posisi');
+        if (inp) inp.value = pos;
+        if (img) img.style.objectPosition = pos;
+        if (pin) {
+            var parts = pos.split(/\s+/);
+            if (parts.length === 2) {
+                pin.style.left = parts[0];
+                pin.style.top = parts[1];
+            }
+        }
+    }
+
+    function bkUpdatePhotoPreview(url, pos) {
         var img = document.getElementById('edit-photo-preview');
         var none = document.getElementById('edit-photo-none');
+        var pin = document.getElementById('edit-photo-focal-pin');
+        if (typeof pos === 'string' && pos.trim() !== '') {
+            bkSetPhotoFocalPoint(pos);
+        }
         if (url && url.trim().length > 5) {
             url = url.trim();
             if (url.indexOf('assets/') === 0) {
@@ -5122,12 +5193,27 @@ function bk_fip_render_sync_dosen_page() {
             }
             img.src = url;
             img.style.display = 'block';
+            if (pin) pin.style.display = 'block';
             none.style.display = 'none';
         } else {
             img.style.display = 'none';
+            if (pin) pin.style.display = 'none';
             none.style.display = 'block';
         }
     }
+
+    (function(){
+        var box = document.getElementById('edit-photo-preview-box');
+        if (!box) return;
+        box.addEventListener('click', function(e){
+            var img = document.getElementById('edit-photo-preview');
+            if (!img || img.style.display === 'none') return;
+            var r = box.getBoundingClientRect();
+            var x = Math.max(0, Math.min(100, Math.round(((e.clientX - r.left) / r.width) * 100)));
+            var y = Math.max(0, Math.min(100, Math.round(((e.clientY - r.top) / r.height) * 100)));
+            bkSetPhotoFocalPoint(x + '% ' + y + '%');
+        });
+    })();
 
     function bkChooseMediaPhoto() {
         if (typeof wp !== 'undefined' && wp.media) {
@@ -5139,7 +5225,7 @@ function bk_fip_render_sync_dosen_page() {
             frame.on('select', function() {
                 var attachment = frame.state().get('selection').first().toJSON();
                 document.getElementById('edit-foto-link').value = attachment.url;
-                bkUpdatePhotoPreview(attachment.url);
+                bkUpdatePhotoPreview(attachment.url, '50% 15%');
             });
             frame.open();
         } else {
