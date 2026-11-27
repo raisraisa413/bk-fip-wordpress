@@ -17,6 +17,7 @@ if (strpos($req_path, 'yamato/') === 0) {
 
 $active_view = 'home';
 $route_map = [
+    'lab-bk/tentang-kami'           => 'tentang-kami',
     'lab-bk/inventaris'             => 'inventaris',
     'lab-bk/kegiatan'               => 'kegiatan',
     'lab-bk/lomba'                  => 'lomba',
@@ -164,16 +165,17 @@ $lab_peer_anggota = [
     ],
 ];
 
-$logo_url        = get_template_directory_uri() . '/assets/images/logo-lab-bk.png';
+$logo_url        = get_template_directory_uri() . '/assets/images/logo-lab-bk.png?v=3';
 $peersupport_url = 'https://labbk8.wixsite.com/peersupport';
 $ajax_url        = admin_url('admin-ajax.php');
 $reg_nonce       = wp_create_nonce('ppb_lab_pendaftaran_public_nonce');
 
 $titles_map = [
-    'home'       => 'Laboratorium BK FIP UNM — Portal Resmi Terpadu',
-    'inventaris' => 'Inventaris Alat Tes & Ruang — Laboratorium BK FIP UNM',
-    'kegiatan'   => 'Kegiatan & Praktikum — Laboratorium BK FIP UNM',
-    'lomba'      => 'Lomba Non-Akademik — Laboratorium BK FIP UNM',
+    'home'         => 'Laboratorium BK FIP UNM — Portal Resmi Terpadu',
+    'tentang-kami' => 'Tentang Kami, Visi Misi & Struktur — Laboratorium BK FIP UNM',
+    'inventaris'   => 'Inventaris Alat Tes & Ruang — Laboratorium BK FIP UNM',
+    'kegiatan'     => 'Kegiatan & Praktikum — Laboratorium BK FIP UNM',
+    'lomba'        => 'Lomba Non-Akademik — Laboratorium BK FIP UNM',
 ];
 $page_title = $cur_bidang
     ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP UNM')
@@ -618,14 +620,10 @@ $page_title = $cur_bidang
 
         <nav id="labMainMenu" class="lab-menu" aria-label="Navigasi Laboratorium BK">
             <a href="<?php echo esc_url(home_url('/lab-bk/')); ?>" class="<?php echo $active_view === 'home' ? 'is-active' : ''; ?>">Beranda</a>
-            <a href="<?php echo esc_url(home_url('/lab-bk/bidang-konseling/')); ?>" class="<?php echo $active_view === 'konseling' ? 'is-active' : ''; ?>">Konseling</a>
-            <a href="<?php echo esc_url(home_url('/lab-bk/bidang-asesmen/')); ?>" class="<?php echo $active_view === 'asesmen' ? 'is-active' : ''; ?>">Asesmen</a>
-            <a href="<?php echo esc_url(home_url('/lab-bk/bidang-training/')); ?>" class="<?php echo $active_view === 'training' ? 'is-active' : ''; ?>">Training</a>
-            <a href="<?php echo esc_url(home_url('/lab-bk/bidang-media/')); ?>" class="<?php echo $active_view === 'media' ? 'is-active' : ''; ?>">Media</a>
-            <a href="<?php echo esc_url(home_url('/lab-bk/bidang-ekstrakurikuler/')); ?>" class="<?php echo $active_view === 'ekstrakurikuler' ? 'is-active' : ''; ?>">Ekstrakurikuler</a>
+            <a href="<?php echo esc_url(home_url('/lab-bk/#lima-bidang')); ?>" class="<?php echo $is_bidang ? 'is-active' : ''; ?>">5 Bidang</a>
             <a href="<?php echo esc_url(home_url('/lab-bk/inventaris/')); ?>" class="<?php echo $active_view === 'inventaris' ? 'is-active' : ''; ?>">Inventaris</a>
-            <a href="<?php echo esc_url(home_url('/lab-bk/kegiatan/')); ?>" class="<?php echo $active_view === 'kegiatan' ? 'is-active' : ''; ?>">Kegiatan</a>
-            <a href="<?php echo esc_url(home_url('/lab-bk/lomba/')); ?>" class="<?php echo $active_view === 'lomba' ? 'is-active' : ''; ?>">Lomba</a>
+            <a href="<?php echo esc_url(home_url('/lab-bk/kegiatan/')); ?>" class="<?php echo ($active_view === 'kegiatan' || $active_view === 'lomba') ? 'is-active' : ''; ?>">Kegiatan</a>
+            <a href="<?php echo esc_url(home_url('/lab-bk/tentang-kami/')); ?>" class="<?php echo $active_view === 'tentang-kami' ? 'is-active' : ''; ?>">Tentang Kami</a>
         </nav>
 
         <div class="lab-nav-actions">
@@ -671,33 +669,6 @@ $page_title = $cur_bidang
                     <div style="background:rgba(255,255,255,0.08);padding:10px;border-radius:10px;">
                         <strong style="color:var(--lab-gold);display:block;">Senin – Jumat</strong>
                         <span>08.00 – 16.00 WITA</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Visi & Misi Lab BK -->
-    <section class="lab-section" style="padding-bottom:10px;">
-        <div class="lab-wrap">
-            <div class="lab-grid-2">
-                <div class="lab-card" style="border-left:4px solid var(--lab-navy);">
-                    <div>
-                        <span class="lab-eyebrow">Visi Laboratorium BK</span>
-                        <h3 style="margin:0 0 8px;font-size:20px;color:var(--lab-navy);">Pusat Layanan, Inovasi &amp; Pengembangan Profesi Konselor</h3>
-                        <p style="font-size:13.5px;color:var(--lab-muted);margin:0;">
-                            Menjadi laboratorium bimbingan dan konseling yang unggul, humanis, etis, dan berbasis riset terapan dalam mendukung kesehatan mental sivitas akademika serta pengembangan kompetensi calon konselor profesional.
-                        </p>
-                    </div>
-                </div>
-                <div class="lab-card" style="border-left:4px solid var(--lab-gold);">
-                    <div>
-                        <span class="lab-eyebrow">Misi Laboratorium BK</span>
-                        <ul style="margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--lab-muted);display:grid;gap:6px;">
-                            <li>Menyediakan layanan konseling sebaya, individual, dan kelompok yang aman serta rahasia.</li>
-                            <li>Mengembangkan layanan asesmen psikologis dan pengelolaan bank alat tes terstandar.</li>
-                            <li>Menyelenggarakan pelatihan keterampilan konseling, produksi media edukasi, dan wadah bakat non-akademik mahasiswa.</li>
-                        </ul>
                     </div>
                 </div>
             </div>
@@ -781,153 +752,16 @@ $page_title = $cur_bidang
         </div>
     </section>
 
-    <!-- Struktur Organisasi Lab BK (Kepala Lab Sejajar Ketua Jurusan, Foto Otomatis dari Direktori Dosen) -->
-    <?php
-    $kajur_card  = $find_dosen_card($kajur_nama);
-    $kalab_card  = $find_dosen_card($kalab_nama);
-    $sekjur_card = $find_dosen_card($sekjur_nama);
-    $render_org_avatar = function ($card, $size = 64) {
-        if (!empty($card['foto'])) {
-            return '<img src="' . esc_url($card['foto']) . '" alt="' . esc_attr($card['nama']) . '" style="width:' . $size . 'px;height:' . $size . 'px;border-radius:14px;object-fit:cover;border:2px solid var(--lab-gold);flex-shrink:0;">';
-        }
-        return '<div style="width:' . $size . 'px;height:' . $size . 'px;border-radius:14px;background:var(--lab-navy);color:var(--lab-gold);font-weight:800;font-size:' . round($size * 0.34) . 'px;display:flex;align-items:center;justify-content:center;border:2px solid var(--lab-gold);flex-shrink:0;">' . esc_html($card['initials']) . '</div>';
-    };
-    ?>
-    <section id="struktur" class="lab-section" style="padding-top:10px;">
+    <!-- Banner Pengantar ke Tentang Kami (Visi, Misi & Struktur Organisasi) -->
+    <section class="lab-section" style="padding-top:0;padding-bottom:24px;">
         <div class="lab-wrap">
-            <div class="lab-section-head">
-                <span class="lab-eyebrow">01b — Tata Kelola &amp; Kepengurusan</span>
-                <h2>Struktur Organisasi Laboratorium BK FIP UNM</h2>
-                <p style="color:var(--lab-muted);margin:0;max-width:720px;">Kepala Laboratorium BK berkedudukan sejajar koordinatif dengan Ketua Jurusan dalam pengelolaan layanan laboratorium, membawahi 5 Koordinator Bidang beserta tim asisten/mahasiswa.</p>
-            </div>
-
-            <div style="background:#ffffff;border:1px solid var(--lab-border);border-radius:22px;padding:28px;box-shadow:0 8px 28px rgba(20,39,78,0.05);">
-                <!-- Baris 1: Ketua Jurusan SEJAJAR dengan Kepala Lab BK -->
-                <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;max-width:860px;margin:0 auto;">
-                    <!-- Ketua Jurusan -->
-                    <div style="background:#F8FAFC;border:1.5px solid var(--lab-navy);border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px;">
-                        <?php echo $render_org_avatar($kajur_card, 64); ?>
-                        <div>
-                            <span class="lab-pill" style="margin-bottom:4px;">Ketua Jurusan PPB / BK</span>
-                            <div style="font-size:15px;font-weight:800;color:var(--lab-navy);line-height:1.25;"><?php echo esc_html($kajur_card['nama']); ?></div>
-                            <?php if (!empty($kajur_card['url'])) : ?>
-                                <a href="<?php echo esc_url($kajur_card['url']); ?>" style="font-size:11.5px;color:var(--lab-emerald);font-weight:700;text-decoration:none;">Profil Dosen &rarr;</a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- Garis Koordinasi Sejajar -->
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;">
-                        <span style="font-size:10px;font-weight:800;color:var(--lab-muted);text-transform:uppercase;letter-spacing:0.06em;">Koordinasi</span>
-                        <div style="width:100%;height:2px;border-top:2px dashed var(--lab-navy);"></div>
-                    </div>
-
-                    <!-- Kepala Laboratorium BK (Sejajar) -->
-                    <div style="background:linear-gradient(135deg, #0B1730 0%, #14274E 100%);color:#ffffff;border:1.5px solid var(--lab-gold);border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px;">
-                        <?php echo $render_org_avatar($kalab_card, 64); ?>
-                        <div>
-                            <span class="lab-pill lab-pill-gold" style="margin-bottom:4px;">Kepala Laboratorium BK</span>
-                            <div style="font-size:15px;font-weight:800;color:#ffffff;line-height:1.25;"><?php echo esc_html($kalab_card['nama']); ?></div>
-                            <?php if (!empty($kalab_card['url'])) : ?>
-                                <a href="<?php echo esc_url($kalab_card['url']); ?>" style="font-size:11.5px;color:var(--lab-gold);font-weight:700;text-decoration:none;">Profil Dosen &rarr;</a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+            <div style="background:linear-gradient(135deg, #0B1730 0%, #14274E 100%);color:#ffffff;border-radius:20px;padding:24px 28px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;">
+                <div>
+                    <span style="font-size:11px;font-weight:800;color:var(--lab-gold);text-transform:uppercase;letter-spacing:0.06em;">Tentang Laboratorium BK FIP UNM</span>
+                    <h3 style="font-family:'Fraunces',Georgia,serif;font-size:21px;margin:4px 0 6px;color:#ffffff;">Visi, Misi &amp; Bagan Struktur Pengelola Lab BK</h3>
+                    <p style="font-size:13.5px;color:rgba(255,255,255,0.82);margin:0;max-width:640px;">Kenali Kepala Lab, 6 Dosen Koordinator Bidang, Pembina, serta jajaran Peer Collaborator yang mengelola layanan Laboratorium BK.</p>
                 </div>
-
-                <!-- Baris 1b: Sekretaris Jurusan di bawah garis jurusan -->
-                <div style="max-width:860px;margin:14px auto 0;display:grid;grid-template-columns:1fr auto 1fr;gap:16px;">
-                    <div style="display:flex;flex-direction:column;align-items:center;">
-                        <div style="width:2px;height:18px;background:var(--lab-border);"></div>
-                        <div style="background:#F8FAFC;border:1px solid var(--lab-border);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;">
-                            <?php echo $render_org_avatar($sekjur_card, 48); ?>
-                            <div>
-                                <div style="font-size:10.5px;font-weight:700;color:var(--lab-muted);text-transform:uppercase;">Sekretaris Jurusan</div>
-                                <div style="font-size:14px;font-weight:700;color:var(--lab-navy);"><?php echo esc_html($sekjur_card['nama']); ?></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="min-width:70px;"></div>
-                    <div style="display:flex;flex-direction:column;align-items:center;">
-                        <div style="width:2px;height:18px;background:var(--lab-gold);"></div>
-                        <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:14px;padding:12px 16px;width:100%;box-sizing:border-box;text-align:center;">
-                            <div style="font-size:11px;font-weight:800;color:#92400E;text-transform:uppercase;">Garis Komando Laboratorium</div>
-                            <div style="font-size:12.5px;color:#78350F;font-weight:600;">Membawahi 5 Koordinator Bidang &amp; Tim Asisten/Peer</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Garis Pembagi ke 6 Koordinator Bidang -->
-                <div style="height:2px;background:linear-gradient(90deg, transparent, var(--lab-navy), transparent);margin:26px 0 22px;opacity:0.2;"></div>
-
-                <!-- Baris 2: 6 Dosen Koordinator Bidang Lab BK -->
-                <div style="font-size:11px;font-weight:800;color:var(--lab-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;text-align:center;">Dosen Koordinator Bidang Laboratorium BK</div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(175px, 1fr));gap:12px;">
-                    <?php foreach ($lab_koordinator_struktur as $ks) :
-                        $koord_card = $find_dosen_card($ks['nama']);
-                        $b_info     = $all_bidang[$ks['bidang']] ?? ['icon' => '🏛️'];
-                    ?>
-                        <a href="<?php echo esc_url(home_url('/lab-bk/bidang-' . $ks['bidang'] . '/')); ?>" style="text-decoration:none;background:#F8FAFC;border:1px solid var(--lab-border);border-radius:16px;padding:14px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;">
-                            <?php echo $render_org_avatar($koord_card, 60); ?>
-                            <div>
-                                <span class="lab-pill <?php echo $ks['bidang'] === 'ekstrakurikuler' ? 'lab-pill-gold' : ''; ?>" style="margin-bottom:6px;font-size:10.5px;"><?php echo esc_html($b_info['icon'] . ' ' . $ks['label']); ?></span>
-                                <div style="font-size:13.5px;font-weight:800;color:var(--lab-navy);line-height:1.3;"><?php echo esc_html($koord_card['nama']); ?></div>
-                                <div style="font-size:11px;color:var(--lab-muted);margin-top:2px;">Dosen Koordinator</div>
-                            </div>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-
-                <!-- Garis Pembagi ke Peer Collaborator -->
-                <div style="height:1px;border-top:2px dashed #CBD5E1;margin:28px 0 22px;"></div>
-
-                <!-- Baris 3: Pembina & Pengurus Inti Peer Collaborator -->
-                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:16px;margin-bottom:22px;">
-                    <div style="background:#F8FAFC;border:1px solid var(--lab-border);border-radius:16px;padding:16px;">
-                        <div style="font-size:11px;font-weight:800;color:var(--lab-emerald);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Pembina Peer Collaborator</div>
-                        <div style="display:grid;gap:8px;">
-                            <?php foreach ($lab_peer_pembina as $pm) : ?>
-                                <div style="background:#ffffff;border:1px solid var(--lab-border);border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;color:var(--lab-navy);">
-                                    👤 <?php echo esc_html($pm); ?>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                    <div style="background:#F8FAFC;border:1px solid var(--lab-border);border-radius:16px;padding:16px;">
-                        <div style="font-size:11px;font-weight:800;color:var(--lab-navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Pengurus Inti Peer Collaborator</div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                            <?php foreach ($lab_peer_inti as $pi) : ?>
-                                <div style="background:#ffffff;border:1px solid var(--lab-border);border-radius:10px;padding:9px 11px;">
-                                    <div style="font-size:10.5px;color:var(--lab-muted);font-weight:700;"><?php echo esc_html($pi['jabatan']); ?></div>
-                                    <div style="font-size:13px;font-weight:800;color:var(--lab-navy);"><?php echo esc_html($pi['nama']); ?></div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Baris 4: Anggota Peer Collaborator per Bidang -->
-                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));gap:14px;">
-                    <?php
-                    $anggota_labels = [
-                        'konseling' => 'Anggota Bidang Bimbingan & Konseling',
-                        'media'     => 'Anggota Bidang Media & Publikasi',
-                        'training'  => 'Anggota Bidang Training & Development',
-                        'asesmen'   => 'Anggota Bidang Asesmen & Psikologi',
-                    ];
-                    foreach ($anggota_labels as $ak => $alabel) :
-                        $mems = $lab_peer_anggota[$ak] ?? [];
-                    ?>
-                        <div style="background:linear-gradient(180deg, #1E4E79 0%, #14274E 100%);color:#ffffff;border-radius:16px;padding:16px;">
-                            <div style="font-size:12.5px;font-weight:800;color:var(--lab-gold);margin-bottom:10px;line-height:1.35;"><?php echo esc_html($alabel); ?></div>
-                            <ol style="margin:0;padding-left:18px;font-size:12.5px;color:rgba(255,255,255,0.92);display:grid;gap:3px;">
-                                <?php foreach ($mems as $m_name) : ?>
-                                    <li><?php echo esc_html($m_name); ?></li>
-                                <?php endforeach; ?>
-                            </ol>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
+                <a href="<?php echo esc_url(home_url('/lab-bk/tentang-kami/')); ?>" class="lab-btn-gold">Buka Tentang Kami &rarr;</a>
             </div>
         </div>
     </section>
@@ -1012,6 +846,226 @@ $page_title = $cur_bidang
         </div>
     </section>
     <?php endif; ?>
+
+<?php elseif ($active_view === 'tentang-kami') : ?>
+    <!-- ==================== TENTANG KAMI: VISI, MISI & STRUKTUR ==================== -->
+    <section class="lab-hero" style="padding:40px 0 46px;">
+        <div class="lab-wrap">
+            <div style="font-size:12.5px;color:rgba(255,255,255,0.75);margin-bottom:10px;">
+                <a href="<?php echo esc_url(home_url('/lab-bk/')); ?>" style="color:var(--lab-gold);text-decoration:none;font-weight:600;">Beranda Lab BK</a>
+                <span> / </span>
+                <span>Tentang Kami</span>
+            </div>
+            <span class="lab-badge">🏛️ Profil, Visi, Misi &amp; Struktur Organisasi</span>
+            <h1>Tentang Laboratorium BK FIP UNM</h1>
+            <p style="margin-bottom:0;">Mengenal visi, misi, bidang layanan, serta tata kelola pengelola dan Peer Collaborator Laboratorium Bimbingan &amp; Konseling Fakultas Ilmu Pendidikan UNM.</p>
+        </div>
+    </section>
+
+    <!-- Visi & Misi Resmi -->
+    <section class="lab-section" style="padding-bottom:16px;">
+        <div class="lab-wrap">
+            <div style="background:#ffffff;border:1px solid var(--lab-border);border-left:5px solid var(--lab-navy);border-radius:20px;padding:28px;margin-bottom:24px;box-shadow:0 6px 20px rgba(20,39,78,0.05);">
+                <span class="lab-eyebrow">Visi Laboratorium BK FIP UNM</span>
+                <p style="font-family:'Fraunces',Georgia,serif;font-size:21px;font-weight:700;color:var(--lab-navy);line-height:1.45;margin:6px 0 0;">
+                    &ldquo;Menjadi Ruang Pembelajaran Praktikum Serta Pengenalan Pengalaman Lapangan bagi Mahasiswa dan Komunitas Bimbingan dan Konseling.&rdquo;
+                </p>
+            </div>
+
+            <div class="lab-section-head" style="margin-bottom:16px;">
+                <span class="lab-eyebrow">Misi Laboratorium BK FIP UNM</span>
+                <h2 style="font-size:24px;">Tiga Pilar Misi Laboratorium</h2>
+            </div>
+            <div class="lab-grid-3" style="margin-bottom:12px;">
+                <div class="lab-card" style="background:linear-gradient(135deg, #0B1730 0%, #14274E 100%);color:#ffffff;border:none;">
+                    <div>
+                        <span class="lab-pill lab-pill-gold" style="margin-bottom:12px;">Misi 01</span>
+                        <p style="font-size:15px;font-weight:700;line-height:1.6;margin:0;color:#ffffff;">
+                            Ruang Pembelajaran Praktikum Layanan Bimbingan dan Konseling secara Individu maupun Kelompok.
+                        </p>
+                    </div>
+                </div>
+                <div class="lab-card" style="background:linear-gradient(135deg, #14274E 0%, #1E4E79 100%);color:#ffffff;border:none;">
+                    <div>
+                        <span class="lab-pill lab-pill-gold" style="margin-bottom:12px;">Misi 02</span>
+                        <p style="font-size:15px;font-weight:700;line-height:1.6;margin:0;color:#ffffff;">
+                            Ruang Pembelajaran Praktikum Asesmen baik tes dan non tes.
+                        </p>
+                    </div>
+                </div>
+                <div class="lab-card" style="background:linear-gradient(135deg, #0D3B22 0%, #165B36 100%);color:#ffffff;border:none;">
+                    <div>
+                        <span class="lab-pill lab-pill-gold" style="margin-bottom:12px;">Misi 03</span>
+                        <p style="font-size:15px;font-weight:700;line-height:1.6;margin:0;color:#ffffff;">
+                            Ruang Pengembangan Kapasitas dan Kompetensi Pribadi, Sosial, Akademik dan Karier.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Struktur Organisasi dengan Garis Komando Jelas -->
+    <?php
+    $kajur_card  = $find_dosen_card($kajur_nama);
+    $kalab_card  = $find_dosen_card($kalab_nama);
+    $sekjur_card = $find_dosen_card($sekjur_nama);
+    $render_org_avatar = function ($card, $size = 64) {
+        if (!empty($card['foto'])) {
+            return '<img src="' . esc_url($card['foto']) . '" alt="' . esc_attr($card['nama']) . '" style="width:' . $size . 'px;height:' . $size . 'px;border-radius:14px;object-fit:cover;border:2px solid var(--lab-gold);flex-shrink:0;">';
+        }
+        return '<div style="width:' . $size . 'px;height:' . $size . 'px;border-radius:14px;background:var(--lab-navy);color:var(--lab-gold);font-weight:800;font-size:' . round($size * 0.34) . 'px;display:flex;align-items:center;justify-content:center;border:2px solid var(--lab-gold);flex-shrink:0;">' . esc_html($card['initials']) . '</div>';
+    };
+    ?>
+    <section id="struktur" class="lab-section" style="padding-top:16px;">
+        <div class="lab-wrap">
+            <div class="lab-section-head">
+                <span class="lab-eyebrow">Tata Kelola &amp; Garis Komando</span>
+                <h2>Struktur Organisasi Laboratorium BK FIP UNM</h2>
+                <p style="color:var(--lab-muted);margin:0;max-width:740px;">Kepala Laboratorium BK berkedudukan sejajar koordinatif dengan Ketua Jurusan, membawahi langsung Pembina &amp; Pengurus Inti Peer Collaborator serta 6 Dosen Koordinator Bidang beserta anggota mahasiswa di bawah komando masing-masing.</p>
+            </div>
+
+            <div style="background:#ffffff;border:1px solid var(--lab-border);border-radius:22px;padding:28px;box-shadow:0 8px 28px rgba(20,39,78,0.05);">
+                <!-- Level 1: Ketua Jurusan SEJAJAR dengan Kepala Lab BK -->
+                <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;max-width:880px;margin:0 auto;">
+                    <div style="background:#F8FAFC;border:2px solid var(--lab-navy);border-radius:16px;padding:15px;display:flex;align-items:center;gap:14px;">
+                        <?php echo $render_org_avatar($kajur_card, 62); ?>
+                        <div>
+                            <span class="lab-pill" style="margin-bottom:4px;">Ketua Jurusan PPB / BK</span>
+                            <div style="font-size:15px;font-weight:800;color:var(--lab-navy);line-height:1.25;"><?php echo esc_html($kajur_card['nama']); ?></div>
+                            <?php if (!empty($kajur_card['url'])) : ?>
+                                <a href="<?php echo esc_url($kajur_card['url']); ?>" style="font-size:11.5px;color:var(--lab-emerald);font-weight:700;text-decoration:none;">Profil Dosen &rarr;</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:85px;">
+                        <span style="font-size:10px;font-weight:800;color:var(--lab-navy);text-transform:uppercase;letter-spacing:0.05em;">Sejajar</span>
+                        <div style="width:100%;height:0;border-top:2px dashed var(--lab-navy);"></div>
+                        <span style="font-size:9.5px;color:var(--lab-muted);">Koordinasi</span>
+                    </div>
+
+                    <div style="background:linear-gradient(135deg, #0B1730 0%, #14274E 100%);color:#ffffff;border:2px solid var(--lab-gold);border-radius:16px;padding:15px;display:flex;align-items:center;gap:14px;">
+                        <?php echo $render_org_avatar($kalab_card, 62); ?>
+                        <div>
+                            <span class="lab-pill lab-pill-gold" style="margin-bottom:4px;">Kepala Laboratorium BK</span>
+                            <div style="font-size:15px;font-weight:800;color:#ffffff;line-height:1.25;"><?php echo esc_html($kalab_card['nama']); ?></div>
+                            <?php if (!empty($kalab_card['url'])) : ?>
+                                <a href="<?php echo esc_url($kalab_card['url']); ?>" style="font-size:11.5px;color:var(--lab-gold);font-weight:700;text-decoration:none;">Profil Dosen &rarr;</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Level 1b: Garis Turun dari Kajur ke Sekjur & dari Kepala Lab ke Bus Bar Komando -->
+                <div style="max-width:880px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;gap:14px;">
+                    <div style="display:flex;flex-direction:column;align-items:center;">
+                        <div style="width:2px;height:22px;background:var(--lab-navy);"></div>
+                        <div style="font-size:10px;color:var(--lab-navy);line-height:1;margin-bottom:4px;">&#9660;</div>
+                        <div style="background:#F8FAFC;border:1px solid var(--lab-border);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;">
+                            <?php echo $render_org_avatar($sekjur_card, 46); ?>
+                            <div>
+                                <div style="font-size:10.5px;font-weight:700;color:var(--lab-muted);text-transform:uppercase;">Sekretaris Jurusan</div>
+                                <div style="font-size:13.5px;font-weight:700;color:var(--lab-navy);"><?php echo esc_html($sekjur_card['nama']); ?></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="min-width:85px;"></div>
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;">
+                        <div style="width:3px;height:44px;background:var(--lab-navy);"></div>
+                        <div style="background:var(--lab-navy);color:var(--lab-gold);font-size:11px;font-weight:800;padding:5px 14px;border-radius:99px;text-transform:uppercase;letter-spacing:0.05em;">
+                            Garis Komando Kepala Lab BK &#9660;
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bus Bar Horizontal Pembagi Komando -->
+                <div style="border-top:3px solid var(--lab-navy);margin:14px 0 22px;position:relative;"></div>
+
+                <!-- Level 2: Kiri = Jalur Komando Pembina -> Pengurus Inti Peer Collaborator; Kanan = 6 Dosen Koordinator -> Anggota Bidang -->
+                <div style="display:grid;grid-template-columns:280px 1fr;gap:22px;align-items:start;" class="lab-org-main-split">
+                    <!-- Kolom Kiri: Pembina & Pengurus Inti Peer Collaborator -->
+                    <div style="display:flex;flex-direction:column;align-items:center;">
+                        <div style="width:100%;background:#F8FAFC;border:1.5px solid var(--lab-emerald);border-radius:16px;padding:15px;box-sizing:border-box;">
+                            <div style="font-size:11px;font-weight:800;color:var(--lab-emerald);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Pembina Peer Collaborator</div>
+                            <div style="display:grid;gap:6px;">
+                                <?php foreach ($lab_peer_pembina as $pm) : ?>
+                                    <div style="background:#ffffff;border:1px solid var(--lab-border);border-radius:8px;padding:7px 10px;font-size:12.5px;font-weight:700;color:var(--lab-navy);">👤 <?php echo esc_html($pm); ?></div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+
+                        <!-- Garis Komando Vertikal Pembina -> Pengurus Inti -->
+                        <div style="width:2px;height:22px;background:var(--lab-emerald);"></div>
+                        <div style="font-size:11px;color:var(--lab-emerald);line-height:1;margin-bottom:4px;">&#9660;</div>
+
+                        <div style="width:100%;background:#FFFBEB;border:1.5px solid var(--lab-gold);border-radius:16px;padding:15px;box-sizing:border-box;">
+                            <div style="font-size:11px;font-weight:800;color:#92400E;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Pengurus Inti Peer Collaborator</div>
+                            <div style="display:grid;gap:7px;">
+                                <?php foreach ($lab_peer_inti as $pi) : ?>
+                                    <div style="background:#ffffff;border:1px solid #FDE68A;border-radius:8px;padding:8px 10px;">
+                                        <div style="font-size:10px;color:#92400E;font-weight:700;"><?php echo esc_html($pi['jabatan']); ?></div>
+                                        <div style="font-size:12.5px;font-weight:800;color:var(--lab-navy);"><?php echo esc_html($pi['nama']); ?></div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:10px;font-size:11px;font-weight:700;color:var(--lab-muted);text-align:center;border:1px dashed #CBD5E1;border-radius:10px;padding:8px 10px;width:100%;box-sizing:border-box;">
+                            &#8596; Koordinasi Operasional ke Anggota Peer Collaborator tiap Bidang
+                        </div>
+                    </div>
+
+                    <!-- Kolom Kanan: Setiap Dosen Koordinator + Garis Komando Vertikal ke Anggotanya -->
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;">
+                        <?php foreach ($lab_koordinator_struktur as $ks) :
+                            $b_slug     = $ks['bidang'];
+                            $koord_card = $find_dosen_card($ks['nama']);
+                            $b_info     = $all_bidang[$b_slug] ?? ['icon' => '🏛️'];
+                            $mems       = ($b_slug !== 'ekstrakurikuler') ? ($lab_peer_anggota[$b_slug] ?? []) : [];
+                        ?>
+                            <div style="display:flex;flex-direction:column;align-items:center;">
+                                <!-- Kartu Dosen Koordinator -->
+                                <a href="<?php echo esc_url(home_url('/lab-bk/bidang-' . $b_slug . '/')); ?>" style="width:100%;box-sizing:border-box;text-decoration:none;background:#F8FAFC;border:1.5px solid var(--lab-navy);border-radius:16px;padding:14px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;">
+                                    <?php echo $render_org_avatar($koord_card, 58); ?>
+                                    <div>
+                                        <span class="lab-pill <?php echo $b_slug === 'ekstrakurikuler' ? 'lab-pill-gold' : ''; ?>" style="margin-bottom:5px;font-size:10px;"><?php echo esc_html($b_info['icon'] . ' ' . $ks['label']); ?></span>
+                                        <div style="font-size:13.5px;font-weight:800;color:var(--lab-navy);line-height:1.3;"><?php echo esc_html($koord_card['nama']); ?></div>
+                                        <div style="font-size:11px;color:var(--lab-muted);margin-top:2px;">Dosen Koordinator</div>
+                                    </div>
+                                </a>
+
+                                <!-- Garis Komando Vertikal Dosen -> Peer Collaborator -->
+                                <div style="width:2px;height:20px;background:var(--lab-navy);"></div>
+                                <div style="font-size:11px;color:var(--lab-navy);line-height:1;margin-bottom:4px;">&#9660;</div>
+
+                                <!-- Daftar Anggota Peer Collaborator di Bawah Komando Dosen -->
+                                <?php if (!empty($mems)) : ?>
+                                    <div style="width:100%;box-sizing:border-box;background:linear-gradient(180deg, #1E4E79 0%, #14274E 100%);color:#ffffff;border-radius:14px;padding:14px;">
+                                        <div style="font-size:11.5px;font-weight:800;color:var(--lab-gold);margin-bottom:8px;">Anggota Peer Collaborator (<?php echo count($mems); ?>)</div>
+                                        <ol style="margin:0;padding-left:16px;font-size:12px;color:rgba(255,255,255,0.92);display:grid;gap:2px;">
+                                            <?php foreach ($mems as $m_name) : ?>
+                                                <li><?php echo esc_html($m_name); ?></li>
+                                            <?php endforeach; ?>
+                                        </ol>
+                                    </div>
+                                <?php else : ?>
+                                    <a href="<?php echo esc_url(home_url('/lab-bk/bidang-ekstrakurikuler/')); ?>" style="width:100%;box-sizing:border-box;text-decoration:none;background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:14px;padding:12px;text-align:center;font-size:12px;font-weight:700;">
+                                        Membina Klub Minat Bakat &amp; Delegasi Lomba Mahasiswa &rarr;
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <style>
+        @media (max-width: 900px) {
+            .lab-org-main-split { grid-template-columns: 1fr !important; }
+        }
+    </style>
 
 <?php elseif ($active_view === 'inventaris') : ?>
     <!-- ==================== INVENTARIS ALAT TES LAB BK ==================== -->

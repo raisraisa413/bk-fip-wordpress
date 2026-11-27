@@ -2042,6 +2042,7 @@ add_filter('template_include', function($template) {
 
         $lab_paths = array(
             'lab-bk',
+            'lab-bk/tentang-kami',
             'lab-bk/inventaris',
             'lab-bk/kegiatan',
             'lab-bk/lomba',
