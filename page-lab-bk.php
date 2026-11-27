@@ -745,8 +745,13 @@ $page_title = $cur_bidang
                             <p style="font-size:13.5px;color:var(--lab-muted);margin:0 0 14px;"><?php echo esc_html($b['tagline']); ?></p>
                         </div>
                         <div>
-                            <div style="font-size:12px;color:var(--lab-emerald);font-weight:700;padding:10px 0;border-top:1px solid var(--lab-border);margin-bottom:10px;">
-                                👤 Koordinator: <?php echo esc_html($b['koordinator']); ?>
+                            <div style="font-size:12px;color:var(--lab-emerald);font-weight:700;padding:10px 0;border-top:1px solid var(--lab-border);margin-bottom:10px;line-height:1.45;">
+                                <?php if ($b_key === 'ekstrakurikuler') : ?>
+                                    <div>👤 Non-Akademik: Maslina, S.Pd., M.Pd</div>
+                                    <div>👤 Akademik: Inayah Ridhayanti Qorimah, S.Pd., M.Pd., Gr.</div>
+                                <?php else : ?>
+                                    👤 Koordinator: <?php echo esc_html($b['koordinator']); ?>
+                                <?php endif; ?>
                             </div>
                             <a href="<?php echo esc_url(home_url('/lab-bk/bidang-' . $b_key . '/')); ?>" class="lab-btn-primary" style="width:100%;box-sizing:border-box;">
                                 Buka <?php echo esc_html($b['nama']); ?> &rarr;
