@@ -912,7 +912,7 @@ $page_title = $cur_bidang
     $sekjur_card = $find_dosen_card($sekjur_nama);
     $render_org_avatar = function ($card, $size = 64) {
         if (!empty($card['foto'])) {
-            return '<img src="' . esc_url($card['foto']) . '" alt="' . esc_attr($card['nama']) . '" style="width:' . $size . 'px;height:' . $size . 'px;border-radius:14px;object-fit:cover;border:2px solid var(--lab-gold);flex-shrink:0;">';
+            return '<img src="' . esc_url($card['foto']) . '" alt="' . esc_attr($card['nama']) . '" style="width:' . $size . 'px;height:' . $size . 'px;border-radius:14px;object-fit:cover;object-position:50% 15%;border:2px solid var(--lab-gold);flex-shrink:0;">';
         }
         return '<div style="width:' . $size . 'px;height:' . $size . 'px;border-radius:14px;background:var(--lab-navy);color:var(--lab-gold);font-weight:800;font-size:' . round($size * 0.34) . 'px;display:flex;align-items:center;justify-content:center;border:2px solid var(--lab-gold);flex-shrink:0;">' . esc_html($card['initials']) . '</div>';
     };
