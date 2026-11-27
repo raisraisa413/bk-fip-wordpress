@@ -932,44 +932,24 @@ $page_title = $cur_bidang
                 <p style="color:var(--lab-muted);margin:0;max-width:740px;">Kepala Laboratorium BK berkedudukan sejajar koordinatif dengan Ketua Jurusan, membawahi langsung Pembina &amp; Pengurus Inti Peer Collaborator serta 6 Dosen Koordinator Bidang beserta anggota mahasiswa di bawah komando masing-masing.</p>
             </div>
 
-            <div style="background:#ffffff;border:1px solid var(--lab-border);border-radius:22px;padding:28px;box-shadow:0 8px 28px rgba(20,39,78,0.05);">
-                <!-- Level 1: Ketua Jurusan SEJAJAR dengan Kepala Lab BK -->
-                <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;max-width:880px;margin:0 auto;">
-                    <div style="background:#F8FAFC;border:2px solid var(--lab-navy);border-radius:16px;padding:15px;display:flex;align-items:center;gap:14px;">
-                        <?php echo $render_org_avatar($kajur_card, 62); ?>
-                        <div>
-                            <span class="lab-pill" style="margin-bottom:4px;">Ketua Jurusan PPB / BK</span>
-                            <div style="font-size:15px;font-weight:800;color:var(--lab-navy);line-height:1.25;"><?php echo esc_html($kajur_card['nama']); ?></div>
-                            <?php if (!empty($kajur_card['url'])) : ?>
-                                <a href="<?php echo esc_url($kajur_card['url']); ?>" style="font-size:11.5px;color:var(--lab-emerald);font-weight:700;text-decoration:none;">Profil Dosen &rarr;</a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:85px;">
-                        <span style="font-size:10px;font-weight:800;color:var(--lab-navy);text-transform:uppercase;letter-spacing:0.05em;">Sejajar</span>
-                        <div style="width:100%;height:0;border-top:2px dashed var(--lab-navy);"></div>
-                        <span style="font-size:9.5px;color:var(--lab-muted);">Koordinasi</span>
-                    </div>
-
-                    <div style="background:linear-gradient(135deg, #0B1730 0%, #14274E 100%);color:#ffffff;border:2px solid var(--lab-gold);border-radius:16px;padding:15px;display:flex;align-items:center;gap:14px;">
-                        <?php echo $render_org_avatar($kalab_card, 62); ?>
-                        <div>
-                            <span class="lab-pill lab-pill-gold" style="margin-bottom:4px;">Kepala Laboratorium BK</span>
-                            <div style="font-size:15px;font-weight:800;color:#ffffff;line-height:1.25;"><?php echo esc_html($kalab_card['nama']); ?></div>
-                            <?php if (!empty($kalab_card['url'])) : ?>
-                                <a href="<?php echo esc_url($kalab_card['url']); ?>" style="font-size:11.5px;color:var(--lab-gold);font-weight:700;text-decoration:none;">Profil Dosen &rarr;</a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Level 1b: Garis Turun dari Kajur ke Sekjur & dari Kepala Lab ke Bus Bar Komando -->
-                <div style="max-width:880px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;gap:14px;">
+            <div class="lab-org-box" style="background:#ffffff;border:1px solid var(--lab-border);border-radius:22px;padding:28px;box-shadow:0 8px 28px rgba(20,39,78,0.05);">
+                <!-- Level 1: Kolom Jurusan (Kajur -> Sekjur) & Kolom Lab (Kepala Lab -> Garis Komando) -->
+                <div class="lab-org-top-split" style="display:grid;grid-template-columns:1fr 64px 1fr;gap:12px;align-items:start;max-width:880px;margin:0 auto;">
+                    <!-- Kolom Jurusan -->
                     <div style="display:flex;flex-direction:column;align-items:center;">
-                        <div style="width:2px;height:22px;background:var(--lab-navy);"></div>
+                        <div style="width:100%;box-sizing:border-box;background:#F8FAFC;border:2px solid var(--lab-navy);border-radius:16px;padding:15px;display:flex;align-items:center;gap:14px;">
+                            <?php echo $render_org_avatar($kajur_card, 62); ?>
+                            <div>
+                                <span class="lab-pill" style="margin-bottom:4px;">Ketua Jurusan PPB / BK</span>
+                                <div style="font-size:15px;font-weight:800;color:var(--lab-navy);line-height:1.25;"><?php echo esc_html($kajur_card['nama']); ?></div>
+                                <?php if (!empty($kajur_card['url'])) : ?>
+                                    <a href="<?php echo esc_url($kajur_card['url']); ?>" style="font-size:11.5px;color:var(--lab-emerald);font-weight:700;text-decoration:none;">Profil Dosen &rarr;</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <div style="width:2px;height:20px;background:var(--lab-navy);"></div>
                         <div style="font-size:10px;color:var(--lab-navy);line-height:1;margin-bottom:4px;">&#9660;</div>
-                        <div style="background:#F8FAFC;border:1px solid var(--lab-border);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;">
+                        <div style="width:100%;box-sizing:border-box;background:#F8FAFC;border:1px solid var(--lab-border);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:12px;">
                             <?php echo $render_org_avatar($sekjur_card, 46); ?>
                             <div>
                                 <div style="font-size:10.5px;font-weight:700;color:var(--lab-muted);text-transform:uppercase;">Sekretaris Jurusan</div>
@@ -977,10 +957,26 @@ $page_title = $cur_bidang
                             </div>
                         </div>
                     </div>
-                    <div style="min-width:85px;"></div>
-                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;">
-                        <div style="width:3px;height:44px;background:var(--lab-navy);"></div>
-                        <div style="background:var(--lab-navy);color:var(--lab-gold);font-size:11px;font-weight:800;padding:5px 14px;border-radius:99px;text-transform:uppercase;letter-spacing:0.05em;">
+
+                    <!-- Garis Koordinasi Horizontal (tanpa teks 'Sejajar') -->
+                    <div class="lab-org-conn-mid" style="display:flex;align-items:center;justify-content:center;padding-top:46px;">
+                        <div style="width:100%;height:0;border-top:2px dashed var(--lab-navy);"></div>
+                    </div>
+
+                    <!-- Kolom Laboratorium -->
+                    <div style="display:flex;flex-direction:column;align-items:center;">
+                        <div style="width:100%;box-sizing:border-box;background:linear-gradient(135deg, #0B1730 0%, #14274E 100%);color:#ffffff;border:2px solid var(--lab-gold);border-radius:16px;padding:15px;display:flex;align-items:center;gap:14px;">
+                            <?php echo $render_org_avatar($kalab_card, 62); ?>
+                            <div>
+                                <span class="lab-pill lab-pill-gold" style="margin-bottom:4px;">Kepala Laboratorium BK</span>
+                                <div style="font-size:15px;font-weight:800;color:#ffffff;line-height:1.25;"><?php echo esc_html($kalab_card['nama']); ?></div>
+                                <?php if (!empty($kalab_card['url'])) : ?>
+                                    <a href="<?php echo esc_url($kalab_card['url']); ?>" style="font-size:11.5px;color:var(--lab-gold);font-weight:700;text-decoration:none;">Profil Dosen &rarr;</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <div style="width:3px;height:36px;background:var(--lab-navy);"></div>
+                        <div style="background:var(--lab-navy);color:var(--lab-gold);font-size:11px;font-weight:800;padding:5px 14px;border-radius:99px;text-transform:uppercase;letter-spacing:0.05em;text-align:center;">
                             Garis Komando Kepala Lab BK &#9660;
                         </div>
                     </div>
@@ -1070,6 +1066,10 @@ $page_title = $cur_bidang
     </section>
     <style>
         @media (max-width: 900px) {
+            .lab-org-box { padding: 16px !important; }
+            .lab-org-top-split { grid-template-columns: 1fr !important; gap: 14px !important; }
+            .lab-org-conn-mid { padding-top: 0 !important; height: 18px; width: 2px; margin: 0 auto; border-left: 2px dashed var(--lab-navy); }
+            .lab-org-conn-mid > div { display: none; }
             .lab-org-main-split { grid-template-columns: 1fr !important; }
         }
     </style>
