@@ -50,6 +50,74 @@ $inventaris_items = get_posts([
     'order'          => 'ASC',
 ]);
 
+// Helper ambil foto & URL profil dosen langsung dari Direktori Dosen
+$dosen_directory = function_exists('bk_fip_load_dosen_data') ? bk_fip_load_dosen_data() : [];
+$find_dosen_card = function ($query_name) use ($dosen_directory) {
+    $clean_q = strtolower(trim(preg_replace('/^(prof\.|dr\.|m\.pd|s\.pd|m\.psi|psikolog|,|\s)+/i', ' ', (string) $query_name)));
+    $tokens  = array_values(array_filter(explode(' ', $clean_q), function ($t) {
+        return strlen($t) >= 3 && !in_array($t, ['spd', 'mpd', 'mpsi', 'kons', 'prof'], true);
+    }));
+    $matched = null;
+    foreach ($dosen_directory as $d) {
+        $nama = strtolower((string) ($d['nama'] ?? ''));
+        if ($nama === '') continue;
+        if (strpos($nama, strtolower((string) $query_name)) !== false) {
+            $matched = $d;
+            break;
+        }
+        if (!empty($tokens)) {
+            $hits = 0;
+            foreach ($tokens as $tk) {
+                if (strpos($nama, $tk) !== false) $hits++;
+            }
+            if ($hits >= min(2, count($tokens))) {
+                $matched = $d;
+                break;
+            }
+        }
+    }
+    $foto = '';
+    $url  = '';
+    if ($matched) {
+        $raw_foto = $matched['foto_link'] ?? '';
+        if (function_exists('bk_fip_resolve_dosen_foto_url')) {
+            $foto = bk_fip_resolve_dosen_foto_url($raw_foto);
+        } elseif ($raw_foto !== '') {
+            $foto = (strpos($raw_foto, 'http') === 0 || strpos($raw_foto, '/') === 0)
+                ? $raw_foto
+                : trailingslashit(get_template_directory_uri()) . ltrim($raw_foto, '/');
+        }
+        if (!empty($matched['slug'])) {
+            $url = home_url('/profil/dosen/' . $matched['slug'] . '/');
+        }
+    }
+    $initials = '';
+    $parts = preg_split('/\s+/', trim((string) $query_name));
+    foreach ($parts as $pt) {
+        $pt_clean = preg_replace('/[^a-zA-Z]/', '', $pt);
+        if ($pt_clean !== '' && !in_array(strtolower($pt_clean), ['prof', 'dr', 'mpd', 'spd', 'mpsi', 'kons', 'psikolog'], true)) {
+            $initials .= strtoupper(substr($pt_clean, 0, 1));
+            if (strlen($initials) >= 2) break;
+        }
+    }
+    return [
+        'nama'     => $matched['nama'] ?? $query_name,
+        'foto'     => $foto,
+        'url'      => $url,
+        'initials' => $initials ?: 'BK',
+    ];
+};
+
+$unit_reg = function_exists('ppb_get_unit_registry') ? ppb_get_unit_registry() : [];
+$jur_reg  = $unit_reg['jurusan'] ?? [];
+$kajur_nama = !empty($jur_reg['pimpinan_nama']) ? $jur_reg['pimpinan_nama'] : 'Dr. Suciani Latif, M.Pd';
+$sekjur_nama = (!empty($jur_reg['sekretaris_nama']) && stripos($jur_reg['sekretaris_nama'], 'Sekretaris Jurusan') === false)
+    ? $jur_reg['sekretaris_nama']
+    : 'Akhmad Harum, M.Pd';
+$kalab_nama = (!empty($jur_reg['lab_kepala']) && stripos($jur_reg['lab_kepala'], 'Kepala Laboratorium') === false)
+    ? $jur_reg['lab_kepala']
+    : 'Dr. Syahril, S.Pd., M.Pd';
+
 $logo_url        = get_template_directory_uri() . '/assets/images/logo-lab-bk.png';
 $peersupport_url = 'https://labbk8.wixsite.com/peersupport';
 $ajax_url        = admin_url('admin-ajax.php');
@@ -663,6 +731,104 @@ $page_title = $cur_bidang
                         </div>
                     </div>
                 <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+
+    <!-- Struktur Organisasi Lab BK (Kepala Lab Sejajar Ketua Jurusan, Foto Otomatis dari Direktori Dosen) -->
+    <?php
+    $kajur_card  = $find_dosen_card($kajur_nama);
+    $kalab_card  = $find_dosen_card($kalab_nama);
+    $sekjur_card = $find_dosen_card($sekjur_nama);
+    $render_org_avatar = function ($card, $size = 64) {
+        if (!empty($card['foto'])) {
+            return '<img src="' . esc_url($card['foto']) . '" alt="' . esc_attr($card['nama']) . '" style="width:' . $size . 'px;height:' . $size . 'px;border-radius:14px;object-fit:cover;border:2px solid var(--lab-gold);flex-shrink:0;">';
+        }
+        return '<div style="width:' . $size . 'px;height:' . $size . 'px;border-radius:14px;background:var(--lab-navy);color:var(--lab-gold);font-weight:800;font-size:' . round($size * 0.34) . 'px;display:flex;align-items:center;justify-content:center;border:2px solid var(--lab-gold);flex-shrink:0;">' . esc_html($card['initials']) . '</div>';
+    };
+    ?>
+    <section id="struktur" class="lab-section" style="padding-top:10px;">
+        <div class="lab-wrap">
+            <div class="lab-section-head">
+                <span class="lab-eyebrow">01b — Tata Kelola &amp; Kepengurusan</span>
+                <h2>Struktur Organisasi Laboratorium BK FIP UNM</h2>
+                <p style="color:var(--lab-muted);margin:0;max-width:720px;">Kepala Laboratorium BK berkedudukan sejajar koordinatif dengan Ketua Jurusan dalam pengelolaan layanan laboratorium, membawahi 5 Koordinator Bidang beserta tim asisten/mahasiswa.</p>
+            </div>
+
+            <div style="background:#ffffff;border:1px solid var(--lab-border);border-radius:22px;padding:28px;box-shadow:0 8px 28px rgba(20,39,78,0.05);">
+                <!-- Baris 1: Ketua Jurusan SEJAJAR dengan Kepala Lab BK -->
+                <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;max-width:860px;margin:0 auto;">
+                    <!-- Ketua Jurusan -->
+                    <div style="background:#F8FAFC;border:1.5px solid var(--lab-navy);border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px;">
+                        <?php echo $render_org_avatar($kajur_card, 64); ?>
+                        <div>
+                            <span class="lab-pill" style="margin-bottom:4px;">Ketua Jurusan PPB / BK</span>
+                            <div style="font-size:15px;font-weight:800;color:var(--lab-navy);line-height:1.25;"><?php echo esc_html($kajur_card['nama']); ?></div>
+                            <?php if (!empty($kajur_card['url'])) : ?>
+                                <a href="<?php echo esc_url($kajur_card['url']); ?>" style="font-size:11.5px;color:var(--lab-emerald);font-weight:700;text-decoration:none;">Profil Dosen &rarr;</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Garis Koordinasi Sejajar -->
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;">
+                        <span style="font-size:10px;font-weight:800;color:var(--lab-muted);text-transform:uppercase;letter-spacing:0.06em;">Koordinasi</span>
+                        <div style="width:100%;height:2px;border-top:2px dashed var(--lab-navy);"></div>
+                    </div>
+
+                    <!-- Kepala Laboratorium BK (Sejajar) -->
+                    <div style="background:linear-gradient(135deg, #0B1730 0%, #14274E 100%);color:#ffffff;border:1.5px solid var(--lab-gold);border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px;">
+                        <?php echo $render_org_avatar($kalab_card, 64); ?>
+                        <div>
+                            <span class="lab-pill lab-pill-gold" style="margin-bottom:4px;">Kepala Laboratorium BK</span>
+                            <div style="font-size:15px;font-weight:800;color:#ffffff;line-height:1.25;"><?php echo esc_html($kalab_card['nama']); ?></div>
+                            <?php if (!empty($kalab_card['url'])) : ?>
+                                <a href="<?php echo esc_url($kalab_card['url']); ?>" style="font-size:11.5px;color:var(--lab-gold);font-weight:700;text-decoration:none;">Profil Dosen &rarr;</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Baris 1b: Sekretaris Jurusan di bawah garis jurusan -->
+                <div style="max-width:860px;margin:14px auto 0;display:grid;grid-template-columns:1fr auto 1fr;gap:16px;">
+                    <div style="display:flex;flex-direction:column;align-items:center;">
+                        <div style="width:2px;height:18px;background:var(--lab-border);"></div>
+                        <div style="background:#F8FAFC;border:1px solid var(--lab-border);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;">
+                            <?php echo $render_org_avatar($sekjur_card, 48); ?>
+                            <div>
+                                <div style="font-size:10.5px;font-weight:700;color:var(--lab-muted);text-transform:uppercase;">Sekretaris Jurusan</div>
+                                <div style="font-size:14px;font-weight:700;color:var(--lab-navy);"><?php echo esc_html($sekjur_card['nama']); ?></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="min-width:70px;"></div>
+                    <div style="display:flex;flex-direction:column;align-items:center;">
+                        <div style="width:2px;height:18px;background:var(--lab-gold);"></div>
+                        <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:14px;padding:12px 16px;width:100%;box-sizing:border-box;text-align:center;">
+                            <div style="font-size:11px;font-weight:800;color:#92400E;text-transform:uppercase;">Garis Komando Laboratorium</div>
+                            <div style="font-size:12.5px;color:#78350F;font-weight:600;">Membawahi 5 Koordinator Bidang &amp; Tim Asisten/Peer</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Garis Pembagi ke 5 Koordinator Bidang -->
+                <div style="height:2px;background:linear-gradient(90deg, transparent, var(--lab-navy), transparent);margin:26px 0 22px;opacity:0.2;"></div>
+
+                <!-- Baris 2: 5 Koordinator Bidang Lab BK -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
+                    <?php foreach ($all_bidang as $b_key => $b) :
+                        $koord_card = $find_dosen_card($b['koordinator'] ?? '');
+                    ?>
+                        <a href="<?php echo esc_url(home_url('/lab-bk/bidang-' . $b_key . '/')); ?>" style="text-decoration:none;background:#F8FAFC;border:1px solid var(--lab-border);border-radius:16px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;">
+                            <?php echo $render_org_avatar($koord_card, 62); ?>
+                            <div>
+                                <span class="lab-pill <?php echo $b_key === 'ekstrakurikuler' ? 'lab-pill-gold' : ''; ?>" style="margin-bottom:6px;"><?php echo esc_html($b['icon'] . ' ' . str_replace('Bidang ', '', $b['nama'])); ?></span>
+                                <div style="font-size:14px;font-weight:800;color:var(--lab-navy);line-height:1.3;"><?php echo esc_html($koord_card['nama']); ?></div>
+                                <div style="font-size:11.5px;color:var(--lab-muted);margin-top:2px;">Dosen Koordinator Bidang</div>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
     </section>
