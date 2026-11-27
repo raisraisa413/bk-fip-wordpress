@@ -53,9 +53,10 @@ $inventaris_items = get_posts([
 // Helper ambil foto & URL profil dosen langsung dari Direktori Dosen
 $dosen_directory = function_exists('bk_fip_load_dosen_data') ? bk_fip_load_dosen_data() : [];
 $find_dosen_card = function ($query_name) use ($dosen_directory) {
-    $clean_q = strtolower(trim(preg_replace('/^(prof\.|dr\.|m\.pd|s\.pd|m\.psi|psikolog|,|\s)+/i', ' ', (string) $query_name)));
+    $clean_q = strtolower(trim(preg_replace('/^(prof\.|dr\.|m\.pd|s\.pd|s\.psi|m\.psi|psikolog|gr\.?|,|\s)+/i', ' ', (string) $query_name)));
     $tokens  = array_values(array_filter(explode(' ', $clean_q), function ($t) {
-        return strlen($t) >= 3 && !in_array($t, ['spd', 'mpd', 'mpsi', 'kons', 'prof'], true);
+        $t = preg_replace('/[^a-z]/', '', $t);
+        return strlen($t) >= 3 && !in_array($t, ['spd', 'mpd', 'spsi', 'mpsi', 'kons', 'prof', 'psikolog'], true);
     }));
     $matched = null;
     foreach ($dosen_directory as $d) {
@@ -68,9 +69,10 @@ $find_dosen_card = function ($query_name) use ($dosen_directory) {
         if (!empty($tokens)) {
             $hits = 0;
             foreach ($tokens as $tk) {
-                if (strpos($nama, $tk) !== false) $hits++;
+                $tk_clean = preg_replace('/[^a-z]/', '', $tk);
+                if ($tk_clean !== '' && strpos($nama, $tk_clean) !== false) $hits++;
             }
-            if ($hits >= min(2, count($tokens))) {
+            if ($hits >= 1 && (count($tokens) === 1 || $hits >= 2 || strpos($nama, preg_replace('/[^a-z]/', '', $tokens[0])) !== false)) {
                 $matched = $d;
                 break;
             }
@@ -95,13 +97,13 @@ $find_dosen_card = function ($query_name) use ($dosen_directory) {
     $parts = preg_split('/\s+/', trim((string) $query_name));
     foreach ($parts as $pt) {
         $pt_clean = preg_replace('/[^a-zA-Z]/', '', $pt);
-        if ($pt_clean !== '' && !in_array(strtolower($pt_clean), ['prof', 'dr', 'mpd', 'spd', 'mpsi', 'kons', 'psikolog'], true)) {
+        if ($pt_clean !== '' && !in_array(strtolower($pt_clean), ['prof', 'dr', 'mpd', 'spd', 'spsi', 'mpsi', 'kons', 'psikolog', 'gr'], true)) {
             $initials .= strtoupper(substr($pt_clean, 0, 1));
             if (strlen($initials) >= 2) break;
         }
     }
     return [
-        'nama'     => $matched['nama'] ?? $query_name,
+        'nama'     => $query_name,
         'foto'     => $foto,
         'url'      => $url,
         'initials' => $initials ?: 'BK',
@@ -110,13 +112,57 @@ $find_dosen_card = function ($query_name) use ($dosen_directory) {
 
 $unit_reg = function_exists('ppb_get_unit_registry') ? ppb_get_unit_registry() : [];
 $jur_reg  = $unit_reg['jurusan'] ?? [];
-$kajur_nama = !empty($jur_reg['pimpinan_nama']) ? $jur_reg['pimpinan_nama'] : 'Dr. Suciani Latif, M.Pd';
+$kajur_nama = !empty($jur_reg['pimpinan_nama']) ? $jur_reg['pimpinan_nama'] : 'Dr. Suciani Latif, S.Pd., M.Pd';
 $sekjur_nama = (!empty($jur_reg['sekretaris_nama']) && stripos($jur_reg['sekretaris_nama'], 'Sekretaris Jurusan') === false)
     ? $jur_reg['sekretaris_nama']
-    : 'Akhmad Harum, M.Pd';
+    : 'Akhmad Harum, S.Pd., M.Pd';
 $kalab_nama = (!empty($jur_reg['lab_kepala']) && stripos($jur_reg['lab_kepala'], 'Kepala Laboratorium') === false)
     ? $jur_reg['lab_kepala']
-    : 'Dr. Syahril, S.Pd., M.Pd';
+    : 'M. Amirullah, S.Pd., M.Pd';
+
+$lab_koordinator_struktur = [
+    ['bidang' => 'ekstrakurikuler', 'label' => 'Ekstrakurikuler Non-Akademik', 'nama' => 'Maslina, S.Pd., M.Pd'],
+    ['bidang' => 'ekstrakurikuler', 'label' => 'Ekstrakurikuler Akademik',     'nama' => 'Inayah Ridhayanti Qorimah, S.Pd., M.Pd., Gr.'],
+    ['bidang' => 'konseling',       'label' => 'Bimbingan & Konseling',        'nama' => 'Qawiyyan Fitri, S.Pd., M.Pd'],
+    ['bidang' => 'media',           'label' => 'Media & Publikasi',            'nama' => 'Dwi Endrasto Wibowo, S.Pd., M.Pd'],
+    ['bidang' => 'training',        'label' => 'Training & Development',       'nama' => 'Abid Raisardhi Abdullah, S.Psi., M.Psi., Psikolog'],
+    ['bidang' => 'asesmen',         'label' => 'Asesmen & Psikologi',          'nama' => 'Nurfaidah Ardis, S.Psi., M.Psi., Psikolog'],
+];
+
+$lab_peer_pembina = [
+    'Sabrina Putri Azam',
+    'Arbain Fajar A. Hamid',
+    'Nurul Asikin, S.Pd',
+];
+
+$lab_peer_inti = [
+    ['jabatan' => 'Koordinator Peer Collaborator',       'nama' => 'Wahyu Kurnia Saputra'],
+    ['jabatan' => 'Wakil Koordinator Peer Collaborator', 'nama' => 'Elinana'],
+    ['jabatan' => 'Sekretaris Peer Collaborator',        'nama' => 'Sri Wulandari'],
+    ['jabatan' => 'Bendahara Peer Collaborator',         'nama' => 'Miftahul Jannah Marwah'],
+];
+
+$lab_peer_anggota = [
+    'konseling' => [
+        'Herdiananda Nurhidayah', 'Alfita', 'Nursyafiqah', 'Ananda',
+        'Mardini Nurdin', 'Dyea Yuliana', 'Muh. Virgiawan Ramadhan',
+        'Rezki Nur Afni', 'Dita Putri Qurani',
+    ],
+    'media' => [
+        'Muhammad Naufal Adhim', 'Aryani Nur Annisa', 'Astrid Apandi',
+        'Andi Sitti Sahari Habulana', 'Taufiq Rahman', 'Florencya Alnisa Christin',
+        'Emmy Fauzia Amalia', 'Fitriani Nur', 'Nurul Izzah',
+    ],
+    'training' => [
+        'Nurul Izzah', 'Nurwahyuni Watmun', 'Wahyudi Kadir',
+        'Wahyu Alamsyah', 'Ummu Kalsum', 'Nasywa Nabilah S', 'Muhammad Arqam Jibril',
+    ],
+    'asesmen' => [
+        'Rasyidah Katzimah', 'Andi Septiana Syaba Tina', 'Muhammad Habib Pratama',
+        'Lutfiah Ramadhani', 'Muh Rafli Rafael Hasan', 'Putri Anggun Nur Farahim',
+        'Meliana Pongreso', 'Isratujannah', 'Nabila Herman', 'Nur Anbiyah Ihsan',
+    ],
+];
 
 $logo_url        = get_template_directory_uri() . '/assets/images/logo-lab-bk.png';
 $peersupport_url = 'https://labbk8.wixsite.com/peersupport';
@@ -553,7 +599,7 @@ $page_title = $cur_bidang
 <div class="lab-topbar">
     <div class="lab-wrap lab-topbar-inner">
         <div>🏛️ <strong>Portal Resmi Laboratorium Bimbingan &amp; Konseling</strong> &bull; FIP Universitas Negeri Makassar</div>
-        <div>🕒 Senin – Jumat, 08.00 – 16.00 WITA &bull; ✉️ admin@labbk.unm.ac.id &bull; 📸 @labbk.unm</div>
+        <div>🕒 Senin – Jumat, 08.00 – 16.00 WITA &bull; ✉️ lab.bk@unm.ac.id &bull; 📸 @lab.bk_unm</div>
     </div>
 </div>
 
@@ -811,22 +857,75 @@ $page_title = $cur_bidang
                     </div>
                 </div>
 
-                <!-- Garis Pembagi ke 5 Koordinator Bidang -->
+                <!-- Garis Pembagi ke 6 Koordinator Bidang -->
                 <div style="height:2px;background:linear-gradient(90deg, transparent, var(--lab-navy), transparent);margin:26px 0 22px;opacity:0.2;"></div>
 
-                <!-- Baris 2: 5 Koordinator Bidang Lab BK -->
-                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
-                    <?php foreach ($all_bidang as $b_key => $b) :
-                        $koord_card = $find_dosen_card($b['koordinator'] ?? '');
+                <!-- Baris 2: 6 Dosen Koordinator Bidang Lab BK -->
+                <div style="font-size:11px;font-weight:800;color:var(--lab-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;text-align:center;">Dosen Koordinator Bidang Laboratorium BK</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(175px, 1fr));gap:12px;">
+                    <?php foreach ($lab_koordinator_struktur as $ks) :
+                        $koord_card = $find_dosen_card($ks['nama']);
+                        $b_info     = $all_bidang[$ks['bidang']] ?? ['icon' => '🏛️'];
                     ?>
-                        <a href="<?php echo esc_url(home_url('/lab-bk/bidang-' . $b_key . '/')); ?>" style="text-decoration:none;background:#F8FAFC;border:1px solid var(--lab-border);border-radius:16px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;">
-                            <?php echo $render_org_avatar($koord_card, 62); ?>
+                        <a href="<?php echo esc_url(home_url('/lab-bk/bidang-' . $ks['bidang'] . '/')); ?>" style="text-decoration:none;background:#F8FAFC;border:1px solid var(--lab-border);border-radius:16px;padding:14px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;">
+                            <?php echo $render_org_avatar($koord_card, 60); ?>
                             <div>
-                                <span class="lab-pill <?php echo $b_key === 'ekstrakurikuler' ? 'lab-pill-gold' : ''; ?>" style="margin-bottom:6px;"><?php echo esc_html($b['icon'] . ' ' . str_replace('Bidang ', '', $b['nama'])); ?></span>
-                                <div style="font-size:14px;font-weight:800;color:var(--lab-navy);line-height:1.3;"><?php echo esc_html($koord_card['nama']); ?></div>
-                                <div style="font-size:11.5px;color:var(--lab-muted);margin-top:2px;">Dosen Koordinator Bidang</div>
+                                <span class="lab-pill <?php echo $ks['bidang'] === 'ekstrakurikuler' ? 'lab-pill-gold' : ''; ?>" style="margin-bottom:6px;font-size:10.5px;"><?php echo esc_html($b_info['icon'] . ' ' . $ks['label']); ?></span>
+                                <div style="font-size:13.5px;font-weight:800;color:var(--lab-navy);line-height:1.3;"><?php echo esc_html($koord_card['nama']); ?></div>
+                                <div style="font-size:11px;color:var(--lab-muted);margin-top:2px;">Dosen Koordinator</div>
                             </div>
                         </a>
+                    <?php endforeach; ?>
+                </div>
+
+                <!-- Garis Pembagi ke Peer Collaborator -->
+                <div style="height:1px;border-top:2px dashed #CBD5E1;margin:28px 0 22px;"></div>
+
+                <!-- Baris 3: Pembina & Pengurus Inti Peer Collaborator -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:16px;margin-bottom:22px;">
+                    <div style="background:#F8FAFC;border:1px solid var(--lab-border);border-radius:16px;padding:16px;">
+                        <div style="font-size:11px;font-weight:800;color:var(--lab-emerald);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Pembina Peer Collaborator</div>
+                        <div style="display:grid;gap:8px;">
+                            <?php foreach ($lab_peer_pembina as $pm) : ?>
+                                <div style="background:#ffffff;border:1px solid var(--lab-border);border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;color:var(--lab-navy);">
+                                    👤 <?php echo esc_html($pm); ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <div style="background:#F8FAFC;border:1px solid var(--lab-border);border-radius:16px;padding:16px;">
+                        <div style="font-size:11px;font-weight:800;color:var(--lab-navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Pengurus Inti Peer Collaborator</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                            <?php foreach ($lab_peer_inti as $pi) : ?>
+                                <div style="background:#ffffff;border:1px solid var(--lab-border);border-radius:10px;padding:9px 11px;">
+                                    <div style="font-size:10.5px;color:var(--lab-muted);font-weight:700;"><?php echo esc_html($pi['jabatan']); ?></div>
+                                    <div style="font-size:13px;font-weight:800;color:var(--lab-navy);"><?php echo esc_html($pi['nama']); ?></div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Baris 4: Anggota Peer Collaborator per Bidang -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));gap:14px;">
+                    <?php
+                    $anggota_labels = [
+                        'konseling' => 'Anggota Bidang Bimbingan & Konseling',
+                        'media'     => 'Anggota Bidang Media & Publikasi',
+                        'training'  => 'Anggota Bidang Training & Development',
+                        'asesmen'   => 'Anggota Bidang Asesmen & Psikologi',
+                    ];
+                    foreach ($anggota_labels as $ak => $alabel) :
+                        $mems = $lab_peer_anggota[$ak] ?? [];
+                    ?>
+                        <div style="background:linear-gradient(180deg, #1E4E79 0%, #14274E 100%);color:#ffffff;border-radius:16px;padding:16px;">
+                            <div style="font-size:12.5px;font-weight:800;color:var(--lab-gold);margin-bottom:10px;line-height:1.35;"><?php echo esc_html($alabel); ?></div>
+                            <ol style="margin:0;padding-left:18px;font-size:12.5px;color:rgba(255,255,255,0.92);display:grid;gap:3px;">
+                                <?php foreach ($mems as $m_name) : ?>
+                                    <li><?php echo esc_html($m_name); ?></li>
+                                <?php endforeach; ?>
+                            </ol>
+                        </div>
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -1190,6 +1289,20 @@ $page_title = $cur_bidang
                 <?php endforeach; ?>
             </div>
 
+            <?php if (!empty($lab_peer_anggota[$active_view])) : ?>
+                <div style="background:#ffffff;border:1px solid var(--lab-border);border-radius:20px;padding:24px;margin-top:36px;">
+                    <span class="lab-eyebrow">Tim Pelaksana Mahasiswa</span>
+                    <h2 style="font-family:'Fraunces',Georgia,serif;font-size:21px;color:var(--lab-navy);margin:0 0 14px;">Anggota Peer Collaborator <?php echo esc_html($cur_bidang['nama']); ?></h2>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));gap:10px;">
+                        <?php foreach ($lab_peer_anggota[$active_view] as $idx_m => $m_name) : ?>
+                            <div style="background:#F8FAFC;border:1px solid var(--lab-border);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;color:var(--lab-navy);">
+                                <?php echo ($idx_m + 1) . '. ' . esc_html($m_name); ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- Khusus Bidang Ekstrakurikuler: Info Lomba Non-Akademik -->
             <?php if ($active_view === 'ekstrakurikuler' && !empty($lomba_list)) : ?>
                 <div style="margin-top:44px;">
@@ -1303,7 +1416,7 @@ $page_title = $cur_bidang
                 <p style="font-size:13px;margin:0 0 10px;max-width:360px;">
                     Ruang bertumbuh, belajar bersama, layanan bimbingan konseling, asesmen psikologis, pelatihan, media, serta wadah kreativitas non-akademik mahasiswa BK.
                 </p>
-                <div style="font-size:12.5px;">✉️ admin@labbk.unm.ac.id &bull; 📸 @labbk.unm</div>
+                <div style="font-size:12.5px;">✉️ lab.bk@unm.ac.id &bull; 📸 @lab.bk_unm</div>
             </div>
             <div>
                 <strong style="color:#ffffff;display:block;margin-bottom:10px;font-size:14px;">5 Bidang Laboratorium</strong>
