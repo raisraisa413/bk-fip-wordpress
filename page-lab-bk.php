@@ -2,20 +2,24 @@
 /**
  * Template Name: Microsite Portal Khusus Laboratorium BK
  * Description: Portal khusus Laboratorium Bimbingan dan Konseling FIP UNM dengan navigasi mandiri,
- *              5 halaman bidang interaktif, skrining kondisi diri, dan formulir pendaftaran terpadu.
+ *              5 halaman bidang interaktif, inventaris alat tes, kegiatan, lomba, skrining mandiri,
+ *              dan formulir pendaftaran terpadu.
  */
 
 if (!defined('ABSPATH')) exit;
 
 // Deteksi rute aktif dari REQUEST_URI
-$req_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+$req_uri  = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
 $req_path = trim((string) parse_url($req_uri, PHP_URL_PATH), '/');
 if (strpos($req_path, 'yamato/') === 0) {
     $req_path = substr($req_path, 7);
 }
 
 $active_view = 'home';
-$bidang_map = [
+$route_map = [
+    'lab-bk/inventaris'             => 'inventaris',
+    'lab-bk/kegiatan'               => 'kegiatan',
+    'lab-bk/lomba'                  => 'lomba',
     'lab-bk/bidang-konseling'       => 'konseling',
     'bidang-konseling'              => 'konseling',
     'lab-bk/bidang-asesmen'         => 'asesmen',
@@ -27,33 +31,39 @@ $bidang_map = [
     'lab-bk/bidang-ekstrakurikuler' => 'ekstrakurikuler',
     'bidang-ekstrakurikuler'        => 'ekstrakurikuler',
 ];
-if (isset($bidang_map[$req_path])) {
-    $active_view = $bidang_map[$req_path];
+if (isset($route_map[$req_path])) {
+    $active_view = $route_map[$req_path];
 }
 
-$all_bidang = function_exists('ppb_get_lab_bidang_data') ? ppb_get_lab_bidang_data() : [];
-$cur_bidang = ($active_view !== 'home' && isset($all_bidang[$active_view])) ? $all_bidang[$active_view] : null;
-if ($active_view !== 'home' && !$cur_bidang) {
-    $active_view = 'home';
-}
-
+$all_bidang    = function_exists('ppb_get_lab_bidang_data') ? ppb_get_lab_bidang_data() : [];
+$is_bidang     = isset($all_bidang[$active_view]);
+$cur_bidang    = $is_bidang ? $all_bidang[$active_view] : null;
 $kegiatan_list = function_exists('ppb_get_lab_kegiatan_list') ? ppb_get_lab_kegiatan_list() : [];
 $lomba_list    = function_exists('ppb_get_lab_lomba_list') ? ppb_get_lab_lomba_list() : [];
 
-// Ambil daftar alat tes dari CPT ppb_inventaris_lab jika tersedia
+// Ambil daftar alat tes dari CPT ppb_inventaris_lab
 $inventaris_items = get_posts([
     'post_type'      => 'ppb_inventaris_lab',
     'post_status'    => 'publish',
-    'posts_per_page' => 50,
+    'posts_per_page' => 100,
     'orderby'        => 'title',
     'order'          => 'ASC',
 ]);
 
-$logo_url       = get_template_directory_uri() . '/assets/images/logo-lab-bk.png';
+$logo_url        = get_template_directory_uri() . '/assets/images/logo-lab-bk.png';
 $peersupport_url = 'https://labbk8.wixsite.com/peersupport';
-$ajax_url       = admin_url('admin-ajax.php');
-$reg_nonce      = wp_create_nonce('ppb_lab_pendaftaran_public_nonce');
-$page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP UNM') : 'Laboratorium BK FIP UNM — Ruang Aman & Pengembangan Potensi';
+$ajax_url        = admin_url('admin-ajax.php');
+$reg_nonce       = wp_create_nonce('ppb_lab_pendaftaran_public_nonce');
+
+$titles_map = [
+    'home'       => 'Laboratorium BK FIP UNM — Portal Resmi Terpadu',
+    'inventaris' => 'Inventaris Alat Tes & Ruang — Laboratorium BK FIP UNM',
+    'kegiatan'   => 'Kegiatan & Praktikum — Laboratorium BK FIP UNM',
+    'lomba'      => 'Lomba Non-Akademik — Laboratorium BK FIP UNM',
+];
+$page_title = $cur_bidang
+    ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP UNM')
+    : ($titles_map[$active_view] ?? $titles_map['home']);
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
@@ -89,12 +99,11 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
             margin: 0 auto;
             padding: 0 20px;
         }
-        /* Navbar Khusus Lab BK */
+        /* Topbar & Navbar Terang agar Logo Lab BK Menyatu Tanpa Border Putih */
         .lab-topbar {
             background: var(--lab-navy-deep);
-            color: rgba(255,255,255,0.85);
+            color: rgba(255,255,255,0.88);
             font-size: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
         }
         .lab-topbar-inner {
             display: flex;
@@ -108,65 +117,69 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
             position: sticky;
             top: 0;
             z-index: 900;
-            background: rgba(20, 39, 78, 0.96);
+            background: rgba(255, 255, 255, 0.97);
             backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(245, 184, 46, 0.25);
-            box-shadow: 0 4px 20px rgba(11, 23, 48, 0.14);
+            border-bottom: 2px solid var(--lab-gold);
+            box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
         }
         .lab-nav-inner {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 16px;
+            gap: 14px;
             min-height: 70px;
         }
         .lab-brand {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 11px;
             text-decoration: none;
-            color: #ffffff;
+            color: var(--lab-navy);
             flex-shrink: 0;
         }
         .lab-brand img {
-            width: 42px;
-            height: 42px;
+            width: 44px;
+            height: 44px;
             object-fit: contain;
-            background: #ffffff;
-            border-radius: 10px;
-            padding: 4px;
+            display: block;
+            border: none;
+            background: transparent;
+            padding: 0;
         }
         .lab-brand-title {
             font-family: 'Fraunces', Georgia, serif;
             font-size: 17px;
-            font-weight: 700;
-            line-height: 1.2;
-            color: #ffffff;
+            font-weight: 800;
+            line-height: 1.15;
+            color: var(--lab-navy);
         }
         .lab-brand-sub {
             font-size: 11px;
-            color: var(--lab-gold);
-            font-weight: 600;
-            letter-spacing: 0.03em;
+            color: var(--lab-emerald);
+            font-weight: 700;
+            letter-spacing: 0.02em;
         }
         .lab-menu {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
             flex-wrap: wrap;
         }
         .lab-menu a {
-            color: rgba(255,255,255,0.86);
+            color: var(--lab-navy);
             text-decoration: none;
             font-size: 13px;
-            font-weight: 600;
-            padding: 8px 12px;
+            font-weight: 700;
+            padding: 8px 11px;
             border-radius: 8px;
             transition: all 0.15s ease;
         }
-        .lab-menu a:hover,
+        .lab-menu a:hover {
+            background: #F1F5F9;
+            color: var(--lab-emerald);
+        }
         .lab-menu a.is-active {
-            background: rgba(245, 184, 46, 0.18);
+            background: var(--lab-navy);
             color: var(--lab-gold);
         }
         .lab-nav-actions {
@@ -181,15 +194,15 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
             gap: 5px;
             font-size: 12px;
             font-weight: 700;
-            color: #ffffff;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.22);
-            padding: 8px 13px;
+            color: var(--lab-navy);
+            background: #F1F5F9;
+            border: 1px solid #CBD5E1;
+            padding: 8px 12px;
             border-radius: 9px;
             text-decoration: none;
         }
         .lab-btn-back:hover {
-            background: rgba(255,255,255,0.18);
+            background: #E2E8F0;
         }
         .lab-btn-gold {
             display: inline-flex;
@@ -244,21 +257,21 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
         }
         .lab-mobile-toggle {
             display: none;
-            background: rgba(255,255,255,0.12);
+            background: var(--lab-navy);
             color: #ffffff;
-            border: 1px solid rgba(255,255,255,0.25);
+            border: none;
             border-radius: 8px;
-            padding: 7px 11px;
-            font-size: 14px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 700;
             cursor: pointer;
         }
         /* Hero */
         .lab-hero {
             background: linear-gradient(135deg, var(--lab-navy-deep) 0%, var(--lab-navy) 55%, var(--lab-emerald) 100%);
             color: #ffffff;
-            padding: 56px 0 64px;
+            padding: 52px 0 60px;
             position: relative;
-            overflow: hidden;
         }
         .lab-hero-grid {
             display: grid;
@@ -290,7 +303,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
         }
         .lab-hero p {
             font-size: 15.5px;
-            color: rgba(255,255,255,0.85);
+            color: rgba(255,255,255,0.86);
             margin: 0 0 24px;
             max-width: 600px;
         }
@@ -303,10 +316,10 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
         }
         /* Sections & Cards */
         .lab-section {
-            padding: 52px 0;
+            padding: 48px 0;
         }
         .lab-section-head {
-            margin-bottom: 26px;
+            margin-bottom: 24px;
         }
         .lab-eyebrow {
             font-size: 11px;
@@ -322,6 +335,11 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
             font-size: clamp(22px, 2.8vw, 30px);
             color: var(--lab-navy);
             margin: 0 0 6px;
+        }
+        .lab-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
         }
         .lab-grid-4 {
             display: grid;
@@ -362,7 +380,6 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
             background: var(--lab-gold-soft);
             color: #92400E;
         }
-        /* Filter Tabs */
         .lab-filter-bar {
             display: flex;
             flex-wrap: wrap;
@@ -384,7 +401,6 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
             color: #ffffff;
             border-color: var(--lab-navy);
         }
-        /* Skrining Widget */
         .lab-skrining-box {
             background: #ffffff;
             border: 1px solid var(--lab-border);
@@ -418,11 +434,6 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
             cursor: pointer;
             background: #F8FAFC;
         }
-        .lab-q-opts input:checked + span {
-            color: var(--lab-navy);
-            font-weight: 800;
-        }
-        /* Footer */
         .lab-footer {
             background: var(--lab-navy-deep);
             color: rgba(255,255,255,0.82);
@@ -443,7 +454,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
         .lab-footer a:hover {
             color: var(--lab-gold);
         }
-        @media (max-width: 960px) {
+        @media (max-width: 1020px) {
             .lab-hero-grid, .lab-footer-grid {
                 grid-template-columns: 1fr;
             }
@@ -451,7 +462,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
                 display: none;
                 width: 100%;
                 padding: 12px 0;
-                border-top: 1px solid rgba(255,255,255,0.12);
+                border-top: 1px solid var(--lab-border);
             }
             .lab-menu.is-open {
                 display: flex;
@@ -478,7 +489,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
     </div>
 </div>
 
-<!-- Navbar Khusus Lab BK -->
+<!-- Navbar Khusus Lab BK (Latar Putih Bersih agar Logo Tanpa Border Putih) -->
 <header class="lab-nav">
     <div class="lab-wrap lab-nav-inner">
         <a href="<?php echo esc_url(home_url('/lab-bk/')); ?>" class="lab-brand">
@@ -492,13 +503,15 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
         <button type="button" class="lab-mobile-toggle" onclick="document.getElementById('labMainMenu').classList.toggle('is-open')">☰ Menu Lab</button>
 
         <nav id="labMainMenu" class="lab-menu" aria-label="Navigasi Laboratorium BK">
-            <a href="<?php echo esc_url(home_url('/lab-bk/')); ?>" class="<?php echo $active_view === 'home' ? 'is-active' : ''; ?>">Beranda Lab</a>
+            <a href="<?php echo esc_url(home_url('/lab-bk/')); ?>" class="<?php echo $active_view === 'home' ? 'is-active' : ''; ?>">Beranda</a>
             <a href="<?php echo esc_url(home_url('/lab-bk/bidang-konseling/')); ?>" class="<?php echo $active_view === 'konseling' ? 'is-active' : ''; ?>">Konseling</a>
             <a href="<?php echo esc_url(home_url('/lab-bk/bidang-asesmen/')); ?>" class="<?php echo $active_view === 'asesmen' ? 'is-active' : ''; ?>">Asesmen</a>
             <a href="<?php echo esc_url(home_url('/lab-bk/bidang-training/')); ?>" class="<?php echo $active_view === 'training' ? 'is-active' : ''; ?>">Training</a>
             <a href="<?php echo esc_url(home_url('/lab-bk/bidang-media/')); ?>" class="<?php echo $active_view === 'media' ? 'is-active' : ''; ?>">Media</a>
             <a href="<?php echo esc_url(home_url('/lab-bk/bidang-ekstrakurikuler/')); ?>" class="<?php echo $active_view === 'ekstrakurikuler' ? 'is-active' : ''; ?>">Ekstrakurikuler</a>
-            <a href="<?php echo esc_url(home_url('/lab-bk/inventaris/')); ?>">Inventaris Alat</a>
+            <a href="<?php echo esc_url(home_url('/lab-bk/inventaris/')); ?>" class="<?php echo $active_view === 'inventaris' ? 'is-active' : ''; ?>">Inventaris</a>
+            <a href="<?php echo esc_url(home_url('/lab-bk/kegiatan/')); ?>" class="<?php echo $active_view === 'kegiatan' ? 'is-active' : ''; ?>">Kegiatan</a>
+            <a href="<?php echo esc_url(home_url('/lab-bk/lomba/')); ?>" class="<?php echo $active_view === 'lomba' ? 'is-active' : ''; ?>">Lomba</a>
         </nav>
 
         <div class="lab-nav-actions">
@@ -512,33 +525,34 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
     <section class="lab-hero">
         <div class="lab-wrap lab-hero-grid">
             <div>
-                <span class="lab-badge">✨ Layanan Kampus Aktif &bull; 100% Rahasia &amp; Etis</span>
+                <span class="lab-badge">✨ Portal Terpadu Laboratorium BK &bull; 100% Rahasia &amp; Etis</span>
                 <h1>Ruang aman buat cerita, belajar bareng, dan tumbuh tanpa di-judge.</h1>
                 <p>
-                    Portal terpadu Laboratorium Bimbingan &amp; Konseling FIP UNM. Mulai dari pendaftaran konseling sebaya,
-                    skrining kondisi diri mandiri, peminjaman alat tes, pelatihan kompetensi, produksi media, hingga wadah ekstrakurikuler mahasiswa.
+                    Seluruh layanan Laboratorium Bimbingan &amp; Konseling FIP UNM kini terpusat di satu tempat:
+                    pendaftaran konseling sebaya, skrining kondisi diri mandiri, inventaris &amp; peminjaman alat tes,
+                    pelatihan kompetensi, produksi media, hingga wadah ekstrakurikuler non-akademik mahasiswa.
                 </p>
                 <div style="display:flex;flex-wrap:wrap;gap:10px;">
-                    <a href="<?php echo esc_url($peersupport_url); ?>" target="_blank" rel="noopener noreferrer" class="lab-btn-gold">💬 Daftar Konseling Sekarang ↗</a>
-                    <a href="#skrining-mandiri" class="lab-btn-outline">🧠 Cek Skrining Mandiri</a>
-                    <a href="#lima-bidang" class="lab-btn-outline">🏛️ Jelajahi 5 Bidang</a>
+                    <a href="<?php echo esc_url($peersupport_url); ?>" target="_blank" rel="noopener noreferrer" class="lab-btn-gold">💬 Daftar Konseling ↗</a>
+                    <a href="#skrining-mandiri" class="lab-btn-outline">🧠 Skrining Mandiri</a>
+                    <a href="#lima-bidang" class="lab-btn-outline">🏛️ 5 Bidang Lab</a>
                 </div>
             </div>
             <div class="lab-hero-card">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                    <img src="<?php echo esc_url($logo_url); ?>" alt="Logo Lab BK" style="width:48px;height:48px;background:#fff;border-radius:12px;padding:5px;object-fit:contain;">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+                    <img src="<?php echo esc_url($logo_url); ?>" alt="Logo Lab BK" style="width:52px;height:52px;object-fit:contain;">
                     <div>
-                        <div style="font-size:14px;font-weight:800;color:#ffffff;">Prinsip Ruang Aman Lab BK</div>
+                        <div style="font-size:15px;font-weight:800;color:#ffffff;">Prinsip Ruang Aman Lab BK</div>
                         <div style="font-size:12px;color:var(--lab-gold);">Gedung FIP UNM, Kampus Gunungsari Makassar</div>
                     </div>
                 </div>
-                <p style="font-size:13px;color:rgba(255,255,255,0.85);margin:0 0 14px;">
-                    Semua cerita, hasil asesmen, dan konsultasi dilindungi kode etik kerahasiaan konselor. Didampingi langsung oleh 5 Dosen Koordinator bidang dan Peer Collaborator terlatih.
+                <p style="font-size:13px;color:rgba(255,255,255,0.86);margin:0 0 14px;">
+                    Semua cerita, hasil asesmen, dan konsultasi dilindungi kode etik kerahasiaan konselor. Didampingi langsung oleh 5 Dosen Koordinator bidang dan tim asisten terlatih.
                 </p>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
                     <div style="background:rgba(255,255,255,0.08);padding:10px;border-radius:10px;">
                         <strong style="color:var(--lab-gold);display:block;">5 Bidang Aktif</strong>
-                        <span>Terkelola Terpadu</span>
+                        <span>Satu Portal Terpadu</span>
                     </div>
                     <div style="background:rgba(255,255,255,0.08);padding:10px;border-radius:10px;">
                         <strong style="color:var(--lab-gold);display:block;">Senin – Jumat</strong>
@@ -549,15 +563,42 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
         </div>
     </section>
 
+    <!-- Visi & Misi Lab BK -->
+    <section class="lab-section" style="padding-bottom:10px;">
+        <div class="lab-wrap">
+            <div class="lab-grid-2">
+                <div class="lab-card" style="border-left:4px solid var(--lab-navy);">
+                    <div>
+                        <span class="lab-eyebrow">Visi Laboratorium BK</span>
+                        <h3 style="margin:0 0 8px;font-size:20px;color:var(--lab-navy);">Pusat Layanan, Inovasi &amp; Pengembangan Profesi Konselor</h3>
+                        <p style="font-size:13.5px;color:var(--lab-muted);margin:0;">
+                            Menjadi laboratorium bimbingan dan konseling yang unggul, humanis, etis, dan berbasis riset terapan dalam mendukung kesehatan mental sivitas akademika serta pengembangan kompetensi calon konselor profesional.
+                        </p>
+                    </div>
+                </div>
+                <div class="lab-card" style="border-left:4px solid var(--lab-gold);">
+                    <div>
+                        <span class="lab-eyebrow">Misi Laboratorium BK</span>
+                        <ul style="margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--lab-muted);display:grid;gap:6px;">
+                            <li>Menyediakan layanan konseling sebaya, individual, dan kelompok yang aman serta rahasia.</li>
+                            <li>Mengembangkan layanan asesmen psikologis dan pengelolaan bank alat tes terstandar.</li>
+                            <li>Menyelenggarakan pelatihan keterampilan konseling, produksi media edukasi, dan wadah bakat non-akademik mahasiswa.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Aksi Cepat Interaktif -->
-    <section class="lab-section" style="padding-bottom:16px;">
+    <section class="lab-section" style="padding-bottom:12px;">
         <div class="lab-wrap">
             <div class="lab-grid-4">
                 <div class="lab-card">
                     <div>
                         <span class="lab-pill">Privat &amp; Rahasia</span>
                         <h3 style="margin:10px 0 6px;font-size:17px;color:var(--lab-navy);">Curhat &amp; Konseling</h3>
-                        <p style="font-size:13px;color:var(--lab-muted);margin:0 0 14px;">Jadwalkan sesi santai bersama konselor sebaya atau dosen pembina Lab BK.</p>
+                        <p style="font-size:13px;color:var(--lab-muted);margin:0 0 14px;">Jadwalkan sesi bersama konselor sebaya atau dosen pembina Lab BK.</p>
                     </div>
                     <a href="<?php echo esc_url($peersupport_url); ?>" target="_blank" rel="noopener noreferrer" class="lab-btn-primary">Daftar Konseling ↗</a>
                 </div>
@@ -565,23 +606,23 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
                     <div>
                         <span class="lab-pill">Hasil Instan</span>
                         <h3 style="margin:10px 0 6px;font-size:17px;color:var(--lab-navy);">Skrining Kondisi Diri</h3>
-                        <p style="font-size:13px;color:var(--lab-muted);margin:0 0 14px;">Cek tingkat stres akademik dan kondisi emosimu secara mandiri langsung di halaman ini.</p>
+                        <p style="font-size:13px;color:var(--lab-muted);margin:0 0 14px;">Cek tingkat stres akademik dan kondisi emosimu langsung di halaman ini.</p>
                     </div>
                     <a href="#skrining-mandiri" class="lab-btn-primary">Mulai Skrining ↓</a>
                 </div>
                 <div class="lab-card">
                     <div>
                         <span class="lab-pill">Alat Tes Psikologi</span>
-                        <h3 style="margin:10px 0 6px;font-size:17px;color:var(--lab-navy);">Peminjaman Alat Lab</h3>
-                        <p style="font-size:13px;color:var(--lab-muted);margin:0 0 14px;">Ajukan peminjaman instrumen tes psikologi dan cek syarat bebas laboratorium.</p>
+                        <h3 style="margin:10px 0 6px;font-size:17px;color:var(--lab-navy);">Inventaris &amp; Peminjaman</h3>
+                        <p style="font-size:13px;color:var(--lab-muted);margin:0 0 14px;">Lihat katalog alat tes psikologi dan ajukan peminjaman praktikum.</p>
                     </div>
-                    <a href="<?php echo esc_url(home_url('/lab-bk/bidang-asesmen/')); ?>" class="lab-btn-primary">Buka Bidang Asesmen →</a>
+                    <a href="<?php echo esc_url(home_url('/lab-bk/inventaris/')); ?>" class="lab-btn-primary">Buka Inventaris →</a>
                 </div>
                 <div class="lab-card">
                     <div>
                         <span class="lab-pill lab-pill-gold">Non-Akademik</span>
-                        <h3 style="margin:10px 0 6px;font-size:17px;color:var(--lab-navy);">Klub &amp; Peer Collaborator</h3>
-                        <p style="font-size:13px;color:var(--lab-muted);margin:0 0 14px;">Asah minat-bakat seni, public speaking, olahraga, atau gabung tim asisten lab.</p>
+                        <h3 style="margin:10px 0 6px;font-size:17px;color:var(--lab-navy);">Klub Ekstrakurikuler</h3>
+                        <p style="font-size:13px;color:var(--lab-muted);margin:0 0 14px;">Asah minat-bakat seni, public speaking, olahraga, dan info lomba mahasiswa.</p>
                     </div>
                     <a href="<?php echo esc_url(home_url('/lab-bk/bidang-ekstrakurikuler/')); ?>" class="lab-btn-primary">Gabung Komunitas →</a>
                 </div>
@@ -595,7 +636,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
             <div class="lab-section-head">
                 <span class="lab-eyebrow">01 — Struktur &amp; Ranah Kerja</span>
                 <h2>Lima Pilar Bidang Laboratorium BK</h2>
-                <p style="color:var(--lab-muted);margin:0;max-width:680px;">Pilih salah satu bidang untuk mengakses layanan interaktif, jadwal, daftar program/klub, dan formulir pendaftaran langsung.</p>
+                <p style="color:var(--lab-muted);margin:0;max-width:680px;">Pilih salah satu bidang untuk mengakses layanan interaktif, jadwal, daftar program/klub, dan formulir pendaftaran.</p>
             </div>
             <div class="lab-grid-3">
                 <?php
@@ -617,7 +658,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
                                 👤 Koordinator: <?php echo esc_html($b['koordinator']); ?>
                             </div>
                             <a href="<?php echo esc_url(home_url('/lab-bk/bidang-' . $b_key . '/')); ?>" class="lab-btn-primary" style="width:100%;box-sizing:border-box;">
-                                Buka Portal <?php echo esc_html(str_replace('Bidang ', '', $b['nama'])); ?> &rarr;
+                                Buka <?php echo esc_html($b['nama']); ?> &rarr;
                             </a>
                         </div>
                     </div>
@@ -684,7 +725,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
                     <span class="lab-eyebrow">03 — Warta &amp; Agenda Laboratorium</span>
                     <h2 style="font-family:'Fraunces',Georgia,serif;font-size:26px;color:var(--lab-navy);margin:0;">Kegiatan &amp; Praktikum Terdekat</h2>
                 </div>
-                <a href="<?php echo esc_url(home_url('/laboratorium/kegiatan/')); ?>" class="lab-btn-primary">Semua Kegiatan &rarr;</a>
+                <a href="<?php echo esc_url(home_url('/lab-bk/kegiatan/')); ?>" class="lab-btn-primary">Semua Kegiatan &rarr;</a>
             </div>
             <div class="lab-grid-3">
                 <?php foreach (array_slice($kegiatan_list, 0, 3) as $kg) : ?>
@@ -706,6 +747,167 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
         </div>
     </section>
     <?php endif; ?>
+
+<?php elseif ($active_view === 'inventaris') : ?>
+    <!-- ==================== INVENTARIS ALAT TES LAB BK ==================== -->
+    <section class="lab-hero" style="padding:38px 0 44px;">
+        <div class="lab-wrap">
+            <div style="font-size:12.5px;color:rgba(255,255,255,0.75);margin-bottom:10px;">
+                <a href="<?php echo esc_url(home_url('/lab-bk/')); ?>" style="color:var(--lab-gold);text-decoration:none;font-weight:600;">Beranda Lab BK</a>
+                <span> / </span>
+                <span>Inventaris Alat Tes</span>
+            </div>
+            <span class="lab-badge">🧪 Katalog Instrumen &amp; Fasilitas Lab</span>
+            <h1>Inventaris Alat Tes Psikologi &amp; Non-Tes</h1>
+            <p style="margin-bottom:0;">Daftar instrumen asesmen dan perlengkapan praktikum Laboratorium BK FIP UNM. Mahasiswa dapat langsung mengajukan peminjaman alat melalui formulir di bawah.</p>
+        </div>
+    </section>
+
+    <section class="lab-section">
+        <div class="lab-wrap">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px;">
+                <input type="search" id="labInvSearch" placeholder="Cari nama alat tes atau instrumen..." style="flex:1 1 280px;max-width:420px;padding:10px 14px;border:1px solid var(--lab-border);border-radius:10px;font-size:13.5px;">
+                <a href="<?php echo esc_url(home_url('/lab-bk/bidang-asesmen/')); ?>" class="lab-btn-primary">← Kembali ke Bidang Asesmen</a>
+            </div>
+
+            <?php if (!empty($inventaris_items)) : ?>
+                <div class="lab-grid-3" id="labInvGrid">
+                    <?php foreach ($inventaris_items as $inv) :
+                        $kode   = get_post_meta($inv->ID, 'kode_alat', true) ?: ('INV-' . $inv->ID);
+                        $jumlah = get_post_meta($inv->ID, 'jumlah_unit', true) ?: 'Tersedia';
+                        $kond   = get_post_meta($inv->ID, 'kondisi', true) ?: 'Baik';
+                    ?>
+                        <div class="lab-card lab-inv-card" data-search="<?php echo esc_attr(strtolower($inv->post_title . ' ' . $kode . ' ' . $inv->post_excerpt)); ?>">
+                            <div>
+                                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+                                    <span class="lab-pill"><?php echo esc_html($kode); ?></span>
+                                    <span class="lab-pill lab-pill-gold"><?php echo esc_html($kond); ?></span>
+                                </div>
+                                <h3 style="margin:0 0 8px;font-size:17px;color:var(--lab-navy);"><?php echo esc_html($inv->post_title); ?></h3>
+                                <p style="font-size:13px;color:var(--lab-muted);margin:0 0 12px;">
+                                    <?php echo esc_html(wp_strip_all_tags($inv->post_excerpt ?: wp_trim_words($inv->post_content, 24))); ?>
+                                </p>
+                            </div>
+                            <div>
+                                <div style="font-size:12px;color:var(--lab-emerald);font-weight:700;margin-bottom:10px;">📦 Ketersediaan: <?php echo esc_html($jumlah); ?></div>
+                                <button type="button"
+                                    class="lab-btn-primary lab-open-modal"
+                                    data-bidang="Bidang Asesmen"
+                                    data-program="Peminjaman Alat Tes: <?php echo esc_attr($inv->post_title); ?>"
+                                    style="width:100%;box-sizing:border-box;">
+                                    Ajukan Peminjaman Alat
+                                </button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else : ?>
+                <div class="lab-card">
+                    <p style="margin:0;color:var(--lab-muted);">Daftar alat tes sedang disinkronkan oleh pengelola laboratorium. Anda tetap dapat mengajukan peminjaman alat melalui formulir Bidang Asesmen.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </section>
+
+<?php elseif ($active_view === 'kegiatan') : ?>
+    <!-- ==================== KEGIATAN & PRAKTIKUM LAB BK ==================== -->
+    <section class="lab-hero" style="padding:38px 0 44px;">
+        <div class="lab-wrap">
+            <div style="font-size:12.5px;color:rgba(255,255,255,0.75);margin-bottom:10px;">
+                <a href="<?php echo esc_url(home_url('/lab-bk/')); ?>" style="color:var(--lab-gold);text-decoration:none;font-weight:600;">Beranda Lab BK</a>
+                <span> / </span>
+                <span>Kegiatan &amp; Praktikum</span>
+            </div>
+            <span class="lab-badge">🗓️ Agenda Resmi Laboratorium BK</span>
+            <h1>Kegiatan &amp; Praktikum Mahasiswa Lab BK</h1>
+            <p style="margin-bottom:0;">Jadwal praktikum, workshop, pelatihan, dan agenda aktif di lingkungan Laboratorium Bimbingan dan Konseling FIP UNM.</p>
+        </div>
+    </section>
+
+    <section class="lab-section">
+        <div class="lab-wrap">
+            <div class="lab-grid-3">
+                <?php foreach ($kegiatan_list as $kg) :
+                    $dok_url = !empty($kg['dok_url']) && function_exists('ppb_clean_document_url')
+                        ? ppb_clean_document_url($kg['dok_url'])
+                        : trim((string) ($kg['dok_url'] ?? ''));
+                ?>
+                    <div class="lab-card">
+                        <div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+                                <span class="lab-pill"><?php echo esc_html($kg['status'] ?? 'Aktif'); ?></span>
+                                <span style="font-size:12px;color:var(--lab-muted);"><?php echo esc_html($kg['periode'] ?? ''); ?></span>
+                            </div>
+                            <h3 style="margin:0 0 8px;font-size:18px;color:var(--lab-navy);"><?php echo esc_html($kg['judul'] ?? ''); ?></h3>
+                            <p style="font-size:13.5px;color:var(--lab-muted);margin:0 0 12px;"><?php echo esc_html($kg['deskripsi'] ?? ''); ?></p>
+                        </div>
+                        <div>
+                            <div style="font-size:12px;color:var(--lab-emerald);font-weight:700;margin-bottom:10px;">👥 Sasaran: <?php echo esc_html($kg['peserta'] ?? ''); ?></div>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                                <button type="button" class="lab-btn-primary lab-open-modal" data-bidang="Kegiatan Lab BK" data-program="<?php echo esc_attr($kg['judul'] ?? 'Kegiatan Lab'); ?>" style="flex:1;">Daftar / Ikuti</button>
+                                <?php if ($dok_url !== '') : ?>
+                                    <a href="<?php echo esc_url($dok_url); ?>" target="_blank" rel="noopener noreferrer" class="lab-btn-back">📄 Panduan ↗</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+
+<?php elseif ($active_view === 'lomba') : ?>
+    <!-- ==================== LOMBA NON-AKADEMIK LAB BK ==================== -->
+    <section class="lab-hero" style="padding:38px 0 44px;">
+        <div class="lab-wrap">
+            <div style="font-size:12.5px;color:rgba(255,255,255,0.75);margin-bottom:10px;">
+                <a href="<?php echo esc_url(home_url('/lab-bk/')); ?>" style="color:var(--lab-gold);text-decoration:none;font-weight:600;">Beranda Lab BK</a>
+                <span> / </span>
+                <a href="<?php echo esc_url(home_url('/lab-bk/bidang-ekstrakurikuler/')); ?>" style="color:var(--lab-gold);text-decoration:none;font-weight:600;">Ekstrakurikuler</a>
+                <span> / </span>
+                <span>Info Lomba</span>
+            </div>
+            <span class="lab-badge">🏆 Prestasi &amp; Kompetisi Non-Akademik</span>
+            <h1>Informasi Lomba Non-Akademik Mahasiswa</h1>
+            <p style="margin-bottom:0;">Kompetisi kreativitas, seni, media edukasi, simulasi konseling, dan minat bakat di bawah pembinaan Bidang Ekstrakurikuler Lab BK.</p>
+        </div>
+    </section>
+
+    <section class="lab-section">
+        <div class="lab-wrap">
+            <div class="lab-grid-3">
+                <?php foreach ($lomba_list as $lb) :
+                    $dok_url = !empty($lb['dok_url']) && function_exists('ppb_clean_document_url')
+                        ? ppb_clean_document_url($lb['dok_url'])
+                        : trim((string) ($lb['dok_url'] ?? ''));
+                ?>
+                    <div class="lab-card">
+                        <div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+                                <span class="lab-pill lab-pill-gold"><?php echo esc_html($lb['kategori'] ?? 'Nasional'); ?></span>
+                                <span style="font-size:12px;color:var(--lab-muted);"><?php echo esc_html($lb['lingkup'] ?? ''); ?></span>
+                            </div>
+                            <h3 style="margin:0 0 8px;font-size:18px;color:var(--lab-navy);"><?php echo esc_html($lb['nama'] ?? ''); ?></h3>
+                            <p style="font-size:13px;color:var(--lab-muted);margin:0 0 12px;">
+                                <strong>Penyelenggara:</strong> <?php echo esc_html(html_entity_decode((string) ($lb['penyelenggara'] ?? ''), ENT_QUOTES, 'UTF-8')); ?>
+                            </p>
+                        </div>
+                        <div>
+                            <div style="font-size:12.5px;font-weight:700;color:var(--lab-emerald);background:#F8FAFC;padding:8px 12px;border-radius:8px;border:1px solid var(--lab-border);margin-bottom:10px;">
+                                🏆 <?php echo esc_html(html_entity_decode((string) ($lb['prestasi'] ?? ''), ENT_QUOTES, 'UTF-8')); ?>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                                <button type="button" class="lab-btn-primary lab-open-modal" data-bidang="Bidang Ekstrakurikuler" data-program="Delegasi Lomba: <?php echo esc_attr($lb['nama'] ?? ''); ?>" style="flex:1;">Ajukan Delegasi</button>
+                                <?php if ($dok_url !== '') : ?>
+                                    <a href="<?php echo esc_url($dok_url); ?>" target="_blank" rel="noopener noreferrer" class="lab-btn-back">📄 Juknis ↗</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
 
 <?php else : ?>
     <!-- ==================== DETAIL BIDANG LAB BK ==================== -->
@@ -735,7 +937,6 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
 
     <section class="lab-section">
         <div class="lab-wrap">
-            <!-- Filter Kategori Program / Klub -->
             <?php
             $programs = $cur_bidang['program'] ?? [];
             $categories = [];
@@ -751,15 +952,18 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
                     <span class="lab-eyebrow">Layanan &amp; Program Kerja</span>
                     <h2 style="font-family:'Fraunces',Georgia,serif;font-size:24px;color:var(--lab-navy);margin:0;">Layanan Interaktif &amp; Wadah Kegiatan</h2>
                 </div>
-                <?php if (!empty($cur_bidang['links'])) : ?>
-                    <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                        <?php foreach ($cur_bidang['links'] as $lk) : ?>
-                            <a href="<?php echo esc_url($lk['url']); ?>"<?php echo !empty($lk['external']) ? ' target="_blank" rel="noopener noreferrer"' : ''; ?> style="background:#ffffff;border:1px solid var(--lab-border);color:var(--lab-navy);font-size:12px;font-weight:700;padding:8px 13px;border-radius:9px;text-decoration:none;">
-                                <?php echo esc_html($lk['label']); ?>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                    <?php if ($active_view === 'konseling') : ?>
+                        <a href="<?php echo esc_url($peersupport_url); ?>" target="_blank" rel="noopener noreferrer" class="lab-btn-gold">Daftar Konseling ↗</a>
+                    <?php elseif ($active_view === 'asesmen') : ?>
+                        <a href="<?php echo esc_url(home_url('/lab-bk/inventaris/')); ?>" class="lab-btn-primary">Buka Katalog Alat Tes →</a>
+                    <?php elseif ($active_view === 'ekstrakurikuler') : ?>
+                        <a href="<?php echo esc_url(home_url('/lab-bk/lomba/')); ?>" class="lab-btn-primary">Lihat Info Lomba →</a>
+                    <?php endif; ?>
+                    <a href="<?php echo esc_url(home_url('/lab-bk/kegiatan/')); ?>" style="background:#ffffff;border:1px solid var(--lab-border);color:var(--lab-navy);font-size:12px;font-weight:700;padding:8px 13px;border-radius:9px;text-decoration:none;">
+                        🗓️ Agenda Lab BK
+                    </a>
+                </div>
             </div>
 
             <?php if (count($categories) > 1) : ?>
@@ -776,6 +980,11 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
                     $cta_url   = trim((string) ($pr['cta_url'] ?? ''));
                     $cta_label = !empty($pr['cta_label']) ? $pr['cta_label'] : 'Ajukan / Daftar';
                     $is_ext    = $cta_url !== '' && preg_match('/^https?:\/\//i', $cta_url) && strpos($cta_url, home_url()) === false;
+
+                    // Pastikan semua rute internal tetap di dalam ekosistem /lab-bk/*
+                    if ($cta_url === '/laboratorium/lomba/') $cta_url = '/lab-bk/lomba/';
+                    if ($cta_url === '/laboratorium/kegiatan/') $cta_url = '/lab-bk/kegiatan/';
+                    $use_modal = ($cta_url === '' || $cta_url === '/e-library/');
                     $href_final = ($cta_url !== '' && strpos($cta_url, '/') === 0) ? home_url($cta_url) : $cta_url;
                     $cat_attr  = strtolower(trim((string) ($pr['kategori'] ?? '')));
                 ?>
@@ -797,7 +1006,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
                                     <div>🗓️ <strong>Jadwal:</strong> <?php echo esc_html($pr['jadwal']); ?></div>
                                 <?php endif; ?>
                             </div>
-                            <?php if ($cta_url !== '') : ?>
+                            <?php if (!$use_modal && $cta_url !== '') : ?>
                                 <a href="<?php echo esc_url($href_final); ?>"<?php echo $is_ext ? ' target="_blank" rel="noopener noreferrer"' : ''; ?> class="lab-btn-primary" style="width:100%;box-sizing:border-box;">
                                     <?php echo esc_html($cta_label); ?>
                                 </a>
@@ -807,7 +1016,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
                                     data-bidang="<?php echo esc_attr($cur_bidang['nama']); ?>"
                                     data-program="<?php echo esc_attr($pr['judul'] ?? ''); ?>"
                                     style="width:100%;box-sizing:border-box;">
-                                    <?php echo esc_html($cta_label); ?>
+                                    <?php echo esc_html($use_modal && $cta_url === '/e-library/' ? 'Ajukan Akses Modul' : $cta_label); ?>
                                 </button>
                             <?php endif; ?>
                         </div>
@@ -823,7 +1032,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
                             <span class="lab-eyebrow">Kompetisi &amp; Minat Bakat</span>
                             <h2 style="font-family:'Fraunces',Georgia,serif;font-size:24px;color:var(--lab-navy);margin:0;">Lomba Non-Akademik Mahasiswa</h2>
                         </div>
-                        <a href="<?php echo esc_url(home_url('/laboratorium/lomba/')); ?>" class="lab-btn-primary">Semua Info Lomba &rarr;</a>
+                        <a href="<?php echo esc_url(home_url('/lab-bk/lomba/')); ?>" class="lab-btn-primary">Semua Info Lomba &rarr;</a>
                     </div>
                     <div class="lab-grid-3">
                         <?php foreach (array_slice($lomba_list, 0, 3) as $lb) : ?>
@@ -890,7 +1099,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
                     <input type="text" name="kontak" required placeholder="08xxxx / email" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #CBD5E1;border-radius:9px;font-size:13.5px;">
                 </div>
             </div>
-            <?php if (!empty($inventaris_items) && $active_view === 'asesmen') : ?>
+            <?php if (!empty($inventaris_items) && ($active_view === 'asesmen' || $active_view === 'inventaris')) : ?>
                 <div style="margin-bottom:10px;">
                     <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:4px;">Pilih Alat Tes (Opsional)</label>
                     <select id="labAlatSelect" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #CBD5E1;border-radius:9px;font-size:13.5px;">
@@ -919,7 +1128,7 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
         <div class="lab-footer-grid">
             <div>
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                    <img src="<?php echo esc_url($logo_url); ?>" alt="Logo Lab BK" style="width:42px;height:42px;background:#fff;border-radius:10px;padding:4px;object-fit:contain;">
+                    <img src="<?php echo esc_url($logo_url); ?>" alt="Logo Lab BK" style="width:44px;height:44px;object-fit:contain;">
                     <div>
                         <strong style="color:#ffffff;font-size:16px;display:block;">Laboratorium BK FIP UNM</strong>
                         <span style="font-size:12px;color:var(--lab-gold);">Universitas Negeri Makassar</span>
@@ -941,19 +1150,19 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
                 </div>
             </div>
             <div>
-                <strong style="color:#ffffff;display:block;margin-bottom:10px;font-size:14px;">Akses Cepat</strong>
+                <strong style="color:#ffffff;display:block;margin-bottom:10px;font-size:14px;">Akses Cepat Lab BK</strong>
                 <div style="display:grid;gap:7px;">
-                    <a href="<?php echo esc_url($peersupport_url); ?>" target="_blank" rel="noopener noreferrer">Pendaftaran Konseling (Peersupport) ↗</a>
+                    <a href="<?php echo esc_url($peersupport_url); ?>" target="_blank" rel="noopener noreferrer">Pendaftaran Konseling ↗</a>
                     <a href="<?php echo esc_url(home_url('/lab-bk/inventaris/')); ?>">Inventaris Alat Tes</a>
-                    <a href="<?php echo esc_url(home_url('/laboratorium/kegiatan/')); ?>">Kegiatan Lab BK</a>
-                    <a href="<?php echo esc_url(home_url('/laboratorium/lomba/')); ?>">Lomba Non-Akademik</a>
+                    <a href="<?php echo esc_url(home_url('/lab-bk/kegiatan/')); ?>">Kegiatan Lab BK</a>
+                    <a href="<?php echo esc_url(home_url('/lab-bk/lomba/')); ?>">Lomba Non-Akademik</a>
                     <a href="<?php echo esc_url(home_url('/')); ?>" style="color:var(--lab-gold);font-weight:700;">&larr; Kembali ke Website Jurusan</a>
                 </div>
             </div>
         </div>
         <div style="border-top:1px solid rgba(255,255,255,0.12);padding-top:16px;font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
             <span>&copy; <?php echo date('Y'); ?> Laboratorium Bimbingan &amp; Konseling FIP UNM</span>
-            <span>Terintegrasi dengan Website Resmi Program Studi BK FIP UNM</span>
+            <span>Portal Resmi Terpadu Laboratorium BK</span>
         </div>
     </div>
 </footer>
@@ -1009,7 +1218,19 @@ $page_title     = $cur_bidang ? ($cur_bidang['nama'] . ' — Laboratorium BK FIP
         });
     }
 
-    // 3. Modal Pendaftaran Terpadu (AJAX)
+    // 3. Pencarian Inventaris Alat Tes
+    var invSearch = document.getElementById('labInvSearch');
+    if (invSearch) {
+        invSearch.addEventListener('input', function(){
+            var q = (this.value || '').trim().toLowerCase();
+            document.querySelectorAll('.lab-inv-card').forEach(function(card){
+                var blob = card.getAttribute('data-search') || '';
+                card.style.display = (!q || blob.indexOf(q) !== -1) ? 'flex' : 'none';
+            });
+        });
+    }
+
+    // 4. Modal Pendaftaran Terpadu (AJAX)
     var modal = document.getElementById('labRegModal');
     var form  = document.getElementById('labRegForm');
     var msg   = document.getElementById('labRegMsg');

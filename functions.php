@@ -2026,10 +2026,25 @@ add_filter('template_include', function($template) {
             }
         }
 
-        // 3b. MICROSITE PORTAL KHUSUS LABORATORIUM BK (/lab-bk/, /laboratorium/, /lab-bk/bidang-*)
+        // 3b. MICROSITE PORTAL KHUSUS LABORATORIUM BK (/lab-bk/*) + REDIRECT /laboratorium* -> /lab-bk/*
+        if ($path === 'laboratorium') {
+            wp_safe_redirect(home_url('/lab-bk/'), 301);
+            exit;
+        }
+        if ($path === 'laboratorium/kegiatan') {
+            wp_safe_redirect(home_url('/lab-bk/kegiatan/'), 301);
+            exit;
+        }
+        if ($path === 'laboratorium/lomba') {
+            wp_safe_redirect(home_url('/lab-bk/lomba/'), 301);
+            exit;
+        }
+
         $lab_paths = array(
             'lab-bk',
-            'laboratorium',
+            'lab-bk/inventaris',
+            'lab-bk/kegiatan',
+            'lab-bk/lomba',
             'lab-bk/bidang-konseling',
             'bidang-konseling',
             'lab-bk/bidang-asesmen',
