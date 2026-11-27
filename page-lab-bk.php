@@ -226,8 +226,9 @@ $page_title = $cur_bidang
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 7px 0;
-            gap: 12px;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            gap: 6px 12px;
             flex-wrap: wrap;
         }
         .lab-nav {
@@ -588,7 +589,11 @@ $page_title = $cur_bidang
             }
             .lab-nav-inner {
                 flex-wrap: wrap;
-                padding: 10px 0;
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+            .lab-topbar {
+                font-size: 11px;
             }
             .lab-mobile-toggle {
                 display: inline-flex;
