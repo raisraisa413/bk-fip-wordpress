@@ -2026,6 +2026,37 @@ add_filter('template_include', function($template) {
             }
         }
 
+        // 3b. MICROSITE PORTAL KHUSUS LABORATORIUM BK (/lab-bk/, /laboratorium/, /lab-bk/bidang-*)
+        $lab_paths = array(
+            'lab-bk',
+            'laboratorium',
+            'lab-bk/bidang-konseling',
+            'bidang-konseling',
+            'lab-bk/bidang-asesmen',
+            'bidang-asesmen',
+            'lab-bk/bidang-training',
+            'bidang-training',
+            'lab-bk/bidang-media',
+            'bidang-media',
+            'lab-bk/bidang-ekstrakurikuler',
+            'bidang-ekstrakurikuler',
+        );
+        if (in_array($path, $lab_paths, true) || is_page_template('page-lab-bk.php')) {
+            global $wp_query;
+            $wp_query->is_404 = false;
+            $wp_query->is_page = true;
+            $wp_query->is_singular = true;
+            $wp_query->is_home = false;
+            $wp_query->is_archive = false;
+            $wp_query->is_post_type_archive = false;
+            status_header(200);
+
+            $lab_tpl = get_template_directory() . '/page-lab-bk.php';
+            if (file_exists($lab_tpl)) {
+                return $lab_tpl;
+            }
+        }
+
         // 4. MIS PNBP SUB-TAB REDIRECTIONS (Safely redirect to anchor tabs on /mis-pnbp/)
         if ($path === 'mis-pnbp/penelitian' || $path === 'mis-pnbp/penelitian/') {
             wp_safe_redirect(home_url('/mis-pnbp/#penelitian'), 301);
